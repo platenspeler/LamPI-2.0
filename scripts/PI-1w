@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/pi:/home/pi/scripts:/home/pi/exe"; export PATH
+export DISPLAY=:0
+#
+EXEDIR="/home/pi/exe"; export EXEDIR
+SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
+SENSOR="1w-sensor"; export SENSOR
+#
+LOGDIR="/home/pi/log"; export LOGDIR
+LOGFILE="$LOGDIR/$0.log"; export LOGFILE
+PID=""; export PID
+#
+#
+if [ "$1" = "-r" ]; then
+	echo "`/bin/date`:: Kill previous version of $SENSOR" >> $LOGFILE 2>&1
+	pkill $SENSOR
+fi
+#
+cat /proc/modules | fgrep w1_therm > /dev/null
+if [ $? = 0 ]; then
+	echo "Module loaded"
+else
+	sudo modprobe w1_them
+    sudo modprobe w1_gpio
+fi
+
+
+cd $EXEDIR
+echo "---------------------------------------------------" >> $LOGFILE 2>&1
+echo "`date`:: Starting $SENSOR" >> $LOGFILE 2>&1
+nohup ./$SENSOR -d -v >> $LOGFILE 2>&1 &

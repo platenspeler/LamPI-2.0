@@ -1,0 +1,104 @@
+#!/bin/sh
+# This is the simple installer script for LamPI
+# (c) M. Westenberg, 2013
+#
+LINUX="y"; export LINUX
+WIRING="y"; export WIRING
+CRONTAB="y"; export CRONTAB
+
+cd /home/pi
+echo "This script will upgrade your Raspberry to its latest revision of software."
+echo "It will instal MYSQL, PHP and Apache webserver packages which will take"
+echo "some time to install. Please press enter to continue or CTRL-C to abort."
+echo -n "<Press ENTER to continue>"
+read a
+
+# --------------------------------------------------------------
+# General Linux bookkeeping and installatation of the latest packages
+#
+if [ $LINUX = "y" ]; then
+  echo "Next step is to install Linux PHP, Mysql and Apache library"
+  echo -n "<Press ENTER to continue>"
+  read a
+  echo ""
+	apt-get update
+	apt-get upgrade
+
+	apt-get install php5
+	apt-get install mysql-server
+    apt-get install mysql-client
+    apt-get install php5-mysql
+	apt-get install apache2
+    apt-get install phpmyadmin
+
+	echo "All LAMP packages have been installed"
+	echo ""
+fi
+
+
+echo "Finished installing Linux packages"
+# -------------------------------------------------------------
+# Download, Install and build the wiringPI library of Gordon
+#
+if [ $WIRING != "n" ]; then
+  echo "Next step is to install the wiringPI library"
+  echo -n "<Press ENTER to continue>"
+  read a
+  echo ""
+  echo "Starting installation of Wiring Libraries"
+  sudo apt-get install git-core
+  if [ -d wiringPi ]; then
+	cd wiringPi
+	git pull origin
+  else
+	git clone git://git.drogon.net/wiringPi
+	cd wiringPi
+	./build
+  fi
+	echo ""
+fi
+
+
+
+# --------------------------------------------------------------
+# Install the LamPI software from the download server
+#
+cd /home/pi
+git clone git://github.com/platenspeler/LamPI-1.8 /home/pi
+
+sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
+sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
+sudo mv /tmp/effe /etc/apache2/sites-available/default
+sudo /etc/init.d/apache2 restart
+
+mkdir /home/pi/log; chown pi /home/pi/log
+mkdir /home/pi/exe
+# --------------------------------------------------------------
+# Setup the crontab so that daemon and receiver are enabled.
+#
+if [ $CRONTAB = "y" ]; then
+  echo "Next step is to install the crontab entries for the daemon"
+  echo -n "<Press ENTER to continue>"
+  read a
+  echo ""
+  echo "Setting up crontab"
+  crontab -u pi -l | grep "PI-run" > /dev/null
+  if [ $? = 0 ]; then
+	echo "-- Crontab already contains LamPI PI=run commands"
+  else
+	echo "-- Crontab adding LamPI commands"
+	crontab -u pi -l > /tmp/effe
+    echo "* * * * * cd /home/pi/scripts && sh ./PI-run" >> /tmp/effe
+    echo "* * * * * cd /home/pi/scripts && sh ./PI-rcv" >> /tmp/effe
+    echo "0 2 * * * cd /home/pi/scripts && sh ./PI-log" >> /tmp/effe
+    echo "0 2 * * * cd /home/pi/scripts && sh ./PI-1w"  >> /tmp/effe
+    crontab -u pi /tmp/effe
+  fi
+  if [ -f /etc/cron.allow ]; then
+	cat /etc/cron.allow | grep pi > /dev/null
+	if [ $? != 0 ]; then
+		echo "pi" >> /etc/at.allow
+	fi
+  fi
+  echo ""
+fi

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>LamPI 433Mhz controller for RaspberryPI</title>
+</head>
+
+<body>
+
+<h1>Temperature/Humidity Sensor WT-440H</h1>
+<p>Some years ago we bought a weather station at a local shop. According to todays standards it was nothing special: An indoor unit that displays temperatue indoor/outdoor, humidity, sunrise/sundawn as well as time. For measuring the outdoor temperature and humidity an external sensor unit was provided, the WT-440H.</p>
+<p>After doing some google resaerch it appeared tha the sensor unit was made by UPM/Esic</p>
+<p>The WT-400H is a basic sensor, it does only send temperature and humidity data to the receiver. However, for a low of applications this is just enough. And although this weather station transmittor is designed to work with a weather station it will do perfect in and outside the house for gathering termperature statistics.</p>
+<p>&nbsp;</p>
+<h2>What will we do with all the gathered data</h2>
+<p>At first I was determined to store all the gathered data into a MSQL database but later I decided that this was overkill and actually made no sense at all!! Alternatively, it make much more sense to store all measured datapoint in a flat file appending every new value as it comes in with a date/time tag. With that, the daemon can store some data on a days/week/months basis and the user can run his/her statistics with the data in the file (Excel will do nicely!)<br>
+</p>
+</body>
+</html>

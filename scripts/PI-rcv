@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/pi:/home/pi/scripts:/home/pi/exe"; export PATH
+export DISPLAY=:0
+#
+EXEDIR="/home/pi/exe"; export EXEDIR
+SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
+SNIFFER="LamPI-receiver"; export SNIFFER
+#
+LOGDIR="/home/pi/log"; export LOGDIR
+LOGFILE="$LOGDIR/$0.log"; export LOGFILE
+PID=""; export PID
+#
+#
+sleep 3
+#
+#
+if [ "$1" = "-r" ]; then
+	echo "`/bin/date`:: Kill previous version of sniffer" >> $LOGFILE 2>&1
+	pkill $SNIFFER
+fi
+#
+PID=`ps -eaf | grep "$SNIFFER" | grep -v grep | awk '{print $2}'`
+if [ -z $PID ]
+then
+	cd $EXEDIR
+	echo "---------------------------------------------------" >> $LOGFILE 2>&1
+	echo "`date`:: Starting $SNIFFER" >> $LOGFILE 2>&1
+	nohup ./$SNIFFER -d -v >> $LOGFILE 2>&1 &
+else
+	echo "$PID"
+fi

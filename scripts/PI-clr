@@ -1,0 +1,19 @@
+#!/bin/sh
+
+cp /dev/null /home/pi/log/LamPI-daemon.log
+cp /dev/null /home/pi/log/PI-run.log
+cp /dev/null /home/pi/log/PI-rcv.log
+
+cd /home/pi/www
+chgrp www-data *
+chmod +r *
+chmod g+w *
+
+cd /home/pi/exe
+chgrp www-data *
+chmod 755 *
+chmod u+s *
+
+cd /home/pi/log
+chgrp www-data *
+chmod 664 *

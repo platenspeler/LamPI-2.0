@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+WWWDIR="/home/pi/www"; export WWWDIR
+SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
+#
+LOGDIR="/home/pi/log"; export LOGDIR
+LOGFILE="$LOGDIR/$0.log"; export LOGFILE
+#
+PROGRAM="LamPI-daemon.php"; export PROGRAM
+PID=""; export PID
+#
+if [ "$1" = "-r" ]; then
+	echo "`date`:: Kill previous version of daemons" >> $LOGFILE
+	pkill php
+fi
+#
+PID=`ps -eaf | grep "$PROGRAM" | grep -v grep | awk '{print $2}'`
+if [ -z $PID ]
+then
+	cd $WWWDIR
+	echo "`/bin/date`:: daemon does not run, Starting $PROGRAM" >> $LOGFILE
+	nohup php ./$PROGRAM >> $LOGFILE 2>&1 &
+else
+	echo "$PID"
+fi

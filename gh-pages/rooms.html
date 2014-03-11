@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>LamPI 433Mhz controller for RaspberryPI</title>
+</head>
+
+<body>
+
+<h1>Rooms screen</h1>
+<p>This part of the documentation describes the rooms screen and what you can (and sometimes cannot) do with the rooms screen.</p>
+<p><img src="screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
+<p>As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
+<p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can tak a few days before I answer...</p>
+<p>&nbsp;</p>
+<h1>Room Actions</h1>
+<p>The following actions are defined for the Rooms screen:</p>
+<ul>
+  <li><a href="#add_room">Add a new room to the system</a></li>
+  <li><a href="#del_room">Delete a Room from the system</a></li>
+  <li>Help function for the two above</li>
+  <li>Add a device to one of your rooms</li>
+  <li>Delete a device from one of your rooms</li>
+  <li>Sort the room screen</li>
+</ul>
+<p>&nbsp;</p>
+<h1><a name="add_room"></a>Adding a Room to LamPI</h1>
+<p>This section describes how to add a room to the system. In principle 8 rooms will fit on the top line of the rooms screen without problems, but the maximum is 16, so additional rooms will be put on a second line in the gui_header section. </p>
+<p>NOTE: For some reason Internet explorer will not behave well when there are more than 8 rooms defined, however Safari and Firefox do it correctly.</p>
+<p><img src="screenshots/room_add_grey.JPG" width="964" height="638"></p>
+<p>Adding a room consists of a few basisc steps:</p>
+<ol>
+  <li>At the right, in the GUI_MENU section choose &quot;Rooms&quot;, in the GUI_HEADER section the names of all rooms defined will now show</li>
+  <li>In the GUI-HEADER section, press the &quot;+&quot; button, a popup will now show asking for the name of your new room</li>
+  <li>Specify the name of your new room and press &quot;OK&quot;</li>
+  <li>The popup will disappear and the name of the new room is added to the GUI_HEADER section</li>
+  <li>If you press the button with the name of your new room in the GUI_HEADER section, you can start adding new devies to your room (<a href="#add_device">please read below</a>).</li>
+</ol>
+<h1><a name="del_room"></a>Deleting a Room from LamPI</h1>
+<p>&nbsp;</p>
+<p><img src="screenshots/room_del_grey.JPG" width="963" height="637"></p>
+<p>&nbsp;</p>
+<h1><a name="add_device"></a>Adding a Device to a room</h1>
+<p>This section describes how you can add devices to a room in the rooms screen.</p>
+<p>&nbsp;</p>
+<h1>Deleting a Device from a room</h1>
+<p>&nbsp;</p>
+<h1>Sorting the Devices in a Room</h1>
+</body>
+</html>
