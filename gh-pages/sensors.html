@@ -49,6 +49,7 @@
 <p>&nbsp;<img src="sensors/DHT11/88dht11.jpg" alt="" width=400 height=400></p>
 <p>The DHT11 is not compatible with the Dallas 1-wire bus protocol (see below)
   which makes it a less flexible choice, even with its low pricetag.</p>
+<p>As the DHT22 is quite comparable with the DHT11 (except for its increased accuracy) we decided that we would not promote others to work with this sebsor until we find a good working driver solution</p>
   
 <h3>1.2 Software Design Considerations</h3>
 <p>Writing a software program to read the temperature and humidity values from
@@ -243,9 +244,13 @@ src="sensors/LM75/lm75.jpg" alt="" width=500 height=400 border=0 id="Picture 6">
   6.00. Next to the barometric pressure it can also measure the temperature. </p>
 <p><img
 src="sensors/BMP085/BMP085_LRG.jpg" alt="" width=600 height=461 border=0 id="Picture 22"></p>
-<h3>Programming I2C</h3>
+<p>&nbsp;</p>
+<h3>3.2  Temperature nf Humidity Sensor AM2321</h3>
+<p>Available on eBay for $7/00 including free shipping this is a wonderful sensor. Only problem: It is much smaller in real life than on the picture, so do not think tht it will fit the regular breadboard.</p>
+<p>&nbsp;</p>
+<h3>3.3 Programming I2C</h3>
 <p>By default, the I2C bus module is blacklisted on the RPI. Edit the /etc/modprobe.d/raspi-blacklist.conf file and uncomment the module (put a # character as first character of the line). </p>
-<h3>Links</h3>
+<h3>3.5 Links</h3>
 <ul>
   <li><a
 href="http://www.keesmoerman.nl/rasp_hw.html#mozTocId335084">http://www.keesmoerman.nl/rasp_hw.html#mozTocId335084</a></li>
