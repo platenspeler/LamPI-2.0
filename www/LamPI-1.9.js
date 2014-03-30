@@ -65,18 +65,18 @@ var fake=0;													// Set to 1 if we fake communication
 //
 // WebSocket definitions
 //
-var w_url = location.host; 									// URL of webserver
-var w_svr = 'LamPI-daemon.php';								// webserver filename
-var w_port = '5000'; 										// port
+var w_url = location.host; 								// URL of webserver
+var w_svr = 'LamPI-daemon.php';							// webserver filename
+var w_port = '5000'; 									// port
 var w_uri;
 var w_sock;
-var w_tcnt =0;												// Transaction counter
+var w_tcnt =0;											// Transaction counter
 
 // ----------------------------------------------------------------------------
 // Mobile settings, used for Android or other jQueryMobile device
 //
-var phonegap=0;												// Standard setting, no phonegap
-var jqmobile=0;												// This specifies what jQuery library fill be used
+var phonegap=0;											// Standard setting, no phonegap
+var jqmobile=0;											// This specifies what jQuery library fill be used
 var murl='';
 
 // ----------------------------------------------------------------------------
@@ -86,7 +86,7 @@ var skin = "";
 var debug = "1";										// debug is level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
-var cntrl = "1";										// ICS-1000== 0 or Raspberry == 1
+var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
 
 // ----------------------------------------------------------------------------
 // s_STATE variables. They keep track of current room, scene and setting
@@ -103,7 +103,7 @@ var s_timer_id = 1;
 var s_handset_id = 1;
 var s_weather_id = 1;
 var s_setting_id = "0";
-var s_recorder = '';									// will make the recording of all user actions in a scene. 
+var s_recorder = '';									// recording of all user actions in a scene. 
 var s_recording = 0;									// Set to 1 to record lamp commands
 
 // -----------------------------------------------------------------------------
@@ -263,6 +263,7 @@ function start_LAMP(){
 			alert("onLine");
 			//document.addEventListener("online", onLinePopup, false);
 	}
+	
 	function onDeviceReady() {
 			alert("onDeviceReady");
 			//document.addEventListener("online", onLine, false);
@@ -274,6 +275,8 @@ function start_LAMP(){
 	// Some callback functions are still present in the activate_xxxxx functions,
 	// such as sorting etc. but these can be moved over to this $(window).load() function later
 
+
+// --------------------------------------------------------------------------
 //
 // Handle the Header Room (HR) selection buttons
 //
@@ -288,58 +291,58 @@ function start_LAMP(){
 			$( this ).addClass ( 'hover' );
 			activate_room(id);
 	}); 
-	
+
+// --------------------------------------------------------------------------
 //	
 // Handle Command Room (CR) buttons
 //
 	$("#gui_header").on("click", ".cr_button", function(e){
-			e.preventDefault();
-//			e.stopPropagation();
-			selected = $(this);
-			$( '.cr_button' ).removeClass( 'hover' );
-			$( this ).addClass ( 'hover' );
-			value=$(this).val();								// Value of the button
-			id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		e.preventDefault();
+//		e.stopPropagation();
+		selected = $(this);
+		$( '.cr_button' ).removeClass( 'hover' );
+		$( this ).addClass ( 'hover' );
+		value=$(this).val();								// Value of the button
+		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
 			
-			switch (id )
-			{
-			case "Add":											// Need to change to add a new room
-				var ret;
-				var new_room_id;
-				var ind = 1;
+		switch (id )
+		{
+		case "Add":											// Need to change to add a new room
+			var ret;
+			var new_room_id;
+			var ind = 1;
 				
-				// Search for a roomid that is unused between 2 existing rooms
-				// Look for matchins indexes. This is a time-exhausting operation, but only when adding a device
-				while (ind <= max_rooms) { 
-					for (var i=0; i< rooms.length; i++) {
-						if ( ( rooms[i]['id'] == ind )) {		// We found this index is used!
-							break; 								// for
-						}
+			// Search for a roomid that is unused between 2 existing rooms
+			// Look for matchins indexes. This is a time-exhausting operation, but only when adding a device
+			while (ind <= max_rooms) { 
+				for (var i=0; i< rooms.length; i++) {
+					if ( ( rooms[i]['id'] == ind )) {		// We found this index is used!
+						break; 								// for
 					}
+				}
 					// If we are here, then we did not find device with id == "D"+ind
 					// So the ind is unused, we use it
-					if (i == rooms.length){
-						
-						break; // while
-					}
+				if (i == rooms.length){		
+					break; // while
+				}
 					ind++;
-				}
-				// Now we have an index either empty slot in between room records, or append the current array
-				if ( ind > max_rooms ) {
-					alert("Unable to add more rooms");
-					return(-1);
-				}
-				if (debug > 2) alert("Add Room: New index found: " + ind);
-				
-				// Now ask for a new for the new room
-				// The for asks for 2 arguments, so maybe we need to make a change later
-				// and make the function askForm more generic
-				var frm='<form><fieldset>'
-					+ '<p>You have created room nr ' + ind + '. Please specify name for your new room</p>'
-					+ '<label for="val_1">Name: </label>'
-					+ '<input type="text" name="val_1" id="val_1" value="" class="text ui-widget-content ui-corner-all" />'
-					+ '</fieldset></form>';
-				askForm(
+			}
+			// Now we have an index either empty slot in between room records, or append the current array
+			if ( ind > max_rooms ) {
+				alert("Unable to add more rooms");
+				return(-1);
+			}
+			if (debug > 2) alert("Add Room: New index found: " + ind);
+	
+			// Now ask for a new for the new room
+			// The for asks for 2 arguments, so maybe we need to make a change later
+			// and make the function askForm more generic
+			var frm='<form><fieldset>'
+				+ '<p>You have created room nr ' + ind + '. Please specify name for your new room</p>'
+				+ '<label for="val_1">Name: </label>'
+				+ '<input type="text" name="val_1" id="val_1" value="" class="text ui-widget-content ui-corner-all" />'
+				+ '</fieldset></form>';
+			askForm(
 					frm,
 					// Create
 					function (ret) {
@@ -370,13 +373,12 @@ function start_LAMP(){
 						return(1); // Avoid further actions for these radio buttons 
   					},
   					'Confirm Create'
-				); // askForm
+			); // askForm
 			
-				
-			break;
+		break;
 			
-			// Need this to delete a room
-			case "Del":
+		// Need this to delete a room
+		case "Del":
 			
 				var list = [];
 				var str = '<label for="val_1">Delete Room: </label>'
@@ -448,28 +450,30 @@ function start_LAMP(){
 				// Popup: Are you sure? If Yes: delete row
 				// Are we sure that all devices in the room are deleted as well?
 				
-			break;
+		break;
 			
-			case "Help":
-			// Help
+		case "Help":
+		// Help
 			
-				// XXX Change the alert for a better dialog solution
-				alert("This form allows you to control the lighting in a particular room " 
-					  + "Select the room that you like to control with the buttons in the top header area " 
-					  + "For every device in the room, whether dimmer or switch, users can change the light "
-					  + "setting.\n"
-					  + "The small buttons in the top right corner are special buttons "
-					  + "The leftmost green one allows you to add a device to the active room.\n"
-					  + "The red X allows you to delete a device from the room. Press the X and you'll see "
-					  + "small selection buttons on the left of every device line. Press one and you'll "
-					  + "be able to delete the device"
-					  );
-				$( '.cr_button' ).removeClass( 'hover' );
-			break;
+			helpForm('Room',"This form allows you to control the lighting in a particular room " 
+				+ "Select the room that you like to control with the buttons in the top header area " 
+				+ "For every device in the room, whether dimmer or switch, users can change the light "
+				+ "setting.\n"
+				+ "The small buttons in the top right corner are special buttons "
+				+ "The leftmost green one allows you to add a device to the active room.\n"
+				+ "The red X allows you to delete a device from the room. Press the X and you'll see "
+				+ "small selection buttons on the left of every device line. Press one and you'll "
+				+ "be able to delete the device.\n"
+				+ 'For more info: http://platenspeler.github.io/LamPI-1.9/gh-pages/rooms.html<button type="button">Click Me!</button>'
+			);
+			$( '.cr_button' ).removeClass( 'hover' );
+		break;
 			
-			}
+		}
 	});
-	
+
+
+// --------------------------------------------------------------------------------
 // SCENE	
 // *** Handle the Header Scene buttons
 //
@@ -484,6 +488,8 @@ function start_LAMP(){
 		activate_scene(id);
 	}); 
 
+
+// -----------------------------------------------------------------------------
 // SCENE
 //	*** Handle the Command Scene (CS) buttons (add, delete, help)
 //
@@ -652,7 +658,7 @@ function start_LAMP(){
 				// Help for Scene setting
 				//
 			case "Help":
-					alert("This is the Help screen for Scenes (or sequences if you wish)\n\n"
+					helpForm('Scene',"This is the Help screen for Scenes (or sequences if you wish)\n\n"
 						+ "In the header section you see an overview of your scenes defined, "
 						+ "which enables you to view/change or add to a scene of your choice. \n\n"
 						+ "The Context section in the middle shows for each defines scene the sequence "
@@ -706,7 +712,9 @@ function start_LAMP(){
 		}//else
 	
 	}); // Handler
-	
+
+
+// ---------------------------------------------------------------------------------------
 // TIMER
 // ** HANDLER FOR HEADER TIMER BUTTONS	
 	
@@ -722,6 +730,7 @@ function start_LAMP(){
 			if (debug > 2) alert("init_timer:: Button event");
 	}); 	
 
+// --------------------------------------------------------------------------------------
 // TIMER
 // ** HANDLER FOR CONTROL TIMER BUTTONS	
 		
@@ -887,7 +896,7 @@ function start_LAMP(){
 				// Help for Timer setting
 				//
 			case "Help":
-					alert("This is the Help screen for Timers\n\n"
+					helpForm('Timers', "This is the Help screen for Timers\n\n"
 						+ "In the header section you see an overview of your timers defined, "
 						+ "selecting one enables you to view/change or add to a timer. \n\n"
 						+ "The Content section in the middle shows its settings: Which scene should be started, "
@@ -895,6 +904,7 @@ function start_LAMP(){
 						+ "If you change a timer setting this will NOT be stored unless you "
 						+ "use the store function which will write the timer to the database. "
 						);
+					
 					$( '.ct_button' ).removeClass( 'hover' );
 			break;
 				
@@ -905,7 +915,7 @@ function start_LAMP(){
 	});	// CT Timer Handler
 
 
-
+// ------------------------------------------------------------------------------
 // HANDSET
 // Handle the Header Handset (=remote) selection buttons
 // This function deals with the handset buttons diaplayed in the header section.
@@ -925,7 +935,7 @@ function start_LAMP(){
 
 
 
-
+// -----------------------------------------------------------------------------
 // HANDSET
 //	*** Handle the Command Handset (CH) buttons (add, delete, help)
 // This function implements the small action buttons (add, delete, help) in the upper right corner
@@ -1116,10 +1126,10 @@ function start_LAMP(){
 			break;
 				
 				//
-				// Help for Scene setting
+				// Help for Handset setting
 				//
 			case "Help":
-					alert("This is the Help screen for Handsets or Remote controls\n\n"
+					helpForm('Handsets',"This is the Help screen for Handsets or Remote controls\n\n"
 						+ "In the header section you see an overview of your handsets defined, "
 						+ "which enables you to view/change or add to a handset of your choice. \n\n"
 						+ "The Content section in the middle shows for each defined handset the button "
@@ -1133,8 +1143,7 @@ function start_LAMP(){
 				
 			default:
 					alert("Error:: click id " + id + " not recognized");
-			}
-		
+			}		
 			
 // Sortable Gui_header on tbody
 
@@ -1176,11 +1185,259 @@ function start_LAMP(){
 	}); // Handler for remotes handsets
 
 
+// ----------------------------------------------------------------------------
+// WEATHER
+//	*** Handle the Command Weather (CW) buttons (add, delete, help)
+// This function implements the small action buttons (add, delete, help) in the upper right corner
+// of the screen.
+//
+	$("#gui_header").on("click", ".cw_button", function(e){
+		e.preventDefault();
+//		e.stopPropagation();
+		selected = $(this);
+		$( '.cs_button' ).removeClass( 'hover' );
+		$( this ).addClass ( 'hover' );
+		value=$(this).val();								// Value of the button
+		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		switch (id)
+		{	
+			// Add a new Weather station. 
+			case "Add":
+				// We start with making a new row in the weather array,
+				// give it a name etc.
+				// Then we need to transfer control to the user
+				// Find a free weather id:
+				
+				// Search for a handset id that is unused in array of existing handsets
+				// Look for matching indexes. This is a time-exhausting operation, but only when adding a handset
+				var ind = 1;
+				while (ind <= max_weather) { 
+					for (var i=0; i< weather.length; i++) {
+						if ( ( weather[i]['id'] == ind )) {
+						// alert("found this ind: "+ind+" on pos "+i+", );
+						// We found this index is used!
+							break; // for
+						} // if
+					} // for
+					// If we are here, then we did not find handset id equal to ind 
+					// So the ind is unused, its free for us to use it
+					if (i == weather.length){
+						break; // while
+					}
+					ind++;
+				}//while
+				
+				// Now we have an index either empty slot in between scene records, or append the current array
+				if ( ind > max_weather ) {
+					alert("Unable to add more handsets");
+					return(-1);
+				}
+				
+				// Now ask for a name for the new handset
+				// The for asks for 2 arguments, so maybe we need to make a change later
+				var frm='<form><fieldset>'
+					+ '<br />DRAFT:'
+					+ '<p>You have created weather station nr ' + ind + '. Please specify name</p>' 
+					+ '<label for="val_1">Name: </label>'
+					+ '<input type="text" name="val_1" id="val_1" value="" class="text ui-widget-content ui-corner-all" />'
+					+ '<br /><br />'
+					+ '<label for="val_2">Address: </label>'
+					+ '<input type="text" name="val_2" id="val_2" value="" class="text ui-widget-content ui-corner-all" />'
+					+ '<br />'
+					+ '</fieldset></form>';
+					
+				askForm(
+					frm,
+					// Create
+					function (ret) {
+						// OK Func, need to get the value of the parameters
+						// Add the device to the array
+						// So what are the variables returned by the function???
+						if (debug > 2) alert(" Dialog returned val_1,val_2: " + ret);
+						var handset_name = ret[0];
+						var handset_addr = ret[1];
+						for (var i=0; i< handsets.length; i++) {
+							if (handsets[i]['addr']==handset_addr) {
+								break;
+							}
+						}
+						if (i!=handsets.length){
+							alert("The handset address "+handset_addr+" is already registered");
+							return(0);
+						}
+						if (debug>1) alert("New handset on ind: "+ind+", name: "+handset_name+", addr: "+handset_addr);
+						var newhandset = {
+							id: ind,
+							name: handset_name,
+							brand: "",
+							addr: handset_addr,
+							unit: "0",
+							val: "0",
+							type: "switch",
+							scene: ""						// we should start with empty Scene
+						}
+						handsets.push(newhandset);			// Add record newdev to devices array
+						console.log("Added new handset "+newhandset['name']);
+						send_2_dbase("add_handset", newhandset);
+						// And add the line to the #gui_devices section
+						// Go to the new scene
+						s_handset_id = ind;
+						// activate_handset(new_hndset_id);
+						// XXX Better would be just to add one more button and activate it in #gui_header !!
+						init_handsets("init");
+						return(1);	//return(1);
+						
+					// Cancel	
+  					}, function () {
+							activate_handset (s_handset_id);
+						return(1); // Avoid further actions for these radio buttons 
+  					},
+  					'Confirm Create'
+				); // askForm
+				
+			break;
+				
+			// Remove the current scene. Means: Remove from the scenes
+			// array, and reshuffle the array. 
+			// As there are multiple records with the same id, we need to make a 
+			// list first, and after selection delete all records with that id.
+			//
+			// What it means for SQL need to sort out later .....
+			case "Del":
+				
+				var list = [];
+				var str = '<label for="val_1">Delete Handset: </label>'
+						+ '<select id="val_1" value="val_1" >' ;   // onchange="choice()"
+				
+				// Allow selection, but first let the user make a choice
+				// Make sure every name only appears once
+				var hset_list=[];
+				for (i=0; i< handsets.length; i++) {
+					if ( $.inArray(handsets[i]['id'],hset_list) == -1) {
+						str += '<option>' + handsets[i]["name"] + '</option>';
+						hset_list[hset_list.length]= handsets[i]['id'];
+					}
+				}
+				str += '</select>';
+				
+				// The form returns 2 arguments, we only need the 1st one now
+				var frm='<form><fieldset>'
+					+ '<br>DRAFT:</br>'
+					+ '<br />You are planning to delete a handset from the system. If you do so, all actions '
+					+ 'associated with the handset must be deleted too.\n'
+					+ 'Please start with selecting a handset from the list.<br /><br />'
+					+ str
+					+ '<br />'
+					+ '</fieldset></form>';
+					
+				askForm(
+					frm,
+					// Create
+					function (ret) {							// ret value is an array of return values
+						// OK Func, need to get the value of the parameters
+						if (debug>2) alert(" Dialog returned val_1,val_2: "+ret);		
+						var sname = ret[0];
+						
+						// There might be more than one record with the same id
+						// We work our way back in the array, so index i remains consistent
+						for (var i=handsets.length-1; i>=0; i--) {
+							if (debug>2) alert("working with i: "+i+", handset id: "+handsets[i]['name']);
+							if (handsets[i]['name'] == sname) {
+								// Is the room empty? Maybe we do not care, 
+								//everything for scene is IN the record itself
+								var handset_id = handsets[i]['id'];
+								// Removed is an array too, one element only
+								var removed = handsets.splice(i ,1);
+								if ( persist > 0 ) {
+									console.log(removed[0]);
+									// Remove the room from MySQL
+									send_2_dbase("delete_handset", removed[0]);
+									if (debug>1)
+										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
+								}
+							}
+						}
+						
+						// As we do not know which room will be first now
+						// If there are no handsets, we are in trouble I guess
+						s_handset_id = handsets[0]['id'];
+						init_handsets("init");
+						return(1);						
+					// Cancel	
+  					}, function () {
+							activate_handset (s_handset_id);
+						return(1); // Avoid further actions for these radio buttons 
+  					},
+  					'Confirm Delete Handset'
+				); // askForm
+				// Popup: Are you sure?
+				
+				// If Yes: delete row
+			break;
+				
+				//
+				// Help for Weather settings
+				//
+			case "Help":
+					helpForm('Weather',"This is the Help screen for weather stations and sensors\n\n"
+						+ "In the header section you see an overview of your sensors defined, "
+						+ "which enables you to view/change or add sensors to a station of your choice. \n\n"
+						+ "The Content section in the middle shows for each defined station the dials, "
+						+ "it will only show those sensors available for a station\n"
+						+ "It is quite good possible to change the layout of the dials, as well as color etc.\n"
+						+ "At the moment these style definitions are part of the steel subdirectory"
+						);
+					$( '.cw_button' ).removeClass( 'hover' );
+			break;
+				
+			default:
+					alert("Error:: click id " + id + " not recognized");
+			}
+		
+			
+	// Sortable Gui_header on tbody
 
+		// Make the handset header table sortable. It allows us to define a table with buttons above that are 
+		// Not sortable but still look quite the same as these ... And for button handling it does
+		// not see the difference.
+		if (jqmobile == 1) {							// Sortable works different for jqmobile, do later
+		
+			// **** SORTABLE NOT IMPLEMENTED FOR JQMOBILE ***
+		
+		}
+		else 
+		{										// jQuery UI Sortable
+		  $("#gui_header tbody").sortable({
 
+			start: function (event, ui) {
+            	$(ui.item).data("startindex", ui.item.index());
+        	},
+			// NOTE: index 0 contains the header and is undefined, DO NOT USE IT
+			stop: function (event, ui) {
+				var mylist;
+				// Go over each element and record the id
+				$( "#gui_devices tr" ).each(function( index ) {
+					if ( index != 0) {
+						console.log( index + ": " + $(this ).children().children('.dlabels').attr('id') );
+						// ---YYY--
+						// problem is that we have to change the order in the database
+						// whereas you're never sure which record will be fetched first
+					}
+					else {
+						console.log( index + ": " + "Header" );
+					}
+				}); // each
+            	//self.sendUpdatedIndex(ui.item);
+        	}//stop function	 
+		  }).disableSelection();
+		}//else
+	
+	}); // Handler for weathers
+
+// ----------------------------------------------------------------------------
 // CONFIG
 // ** HANDLER FOR HEADER CONFIG BUTTONS
-
+//
 	$("#gui_header").on("click", ".hc_button", function(e){
 			e.preventDefault();
 //			e.stopPropagation();
@@ -1195,6 +1452,7 @@ function start_LAMP(){
 //			alert("init_settings:: Button event");
 		});
 
+// -------------------------------------------------------------------------------
 // CONFIG
 // ** HANDLER FOR CONTROL CONFIG BUTTONS	
 		
@@ -1226,7 +1484,7 @@ function start_LAMP(){
 
 			break;
 				//
-				// Help for Timer setting. XXX May have to add this one
+				// Help for Config setting. XXX May have to add this one
 				//
 			case "Help":
 					alert("This is the Help screen for Setting Configuration\n\n"
@@ -1241,13 +1499,13 @@ function start_LAMP(){
 		} // switch
 		
 	});	// CC Config Handler
-	
+
+
 // ----------------------------------------------------------------------------------------
 //	Init websockets communication
-//	Especially the handlers for websockets etc,
-//
-	
-function init_websockets() {
+//	Especially the handlers for websockets etc, that need to test the state of the connection
+//	
+	function init_websockets() {
 	// ** These are the handlers for websocket communication.
 	// ** We only use either websockets or regular/normal sockets called by .ajax/php handlers
 	// ** User can specify/force bahaviour by setting a variable
@@ -1295,7 +1553,7 @@ function init_websockets() {
 			// First level of the json message is equal for all
 			var tcnt   = rcv.tcnt; 				// message transaction counter
 			var type   = rcv.type;				// type of content part, eg raw or json
-			var action = rcv.action; 			// message text: handset || sensor || gui || weather
+			var action = rcv.action; 			// message text: handset || sensor || gui || weather || energy
 			
 			// Now we need to parse the message and take action.
 			// Best is to build a separate parse function for messages
@@ -1421,6 +1679,7 @@ function init_websockets() {
 				break;
 				
 				// Generic sensor messages, such as connected one wire systems to the RasPI
+				// At the moment most wire sensors are in fact further treated as weather sensors.
 				//
 				case 'sensor':
 					console.log("Lampi.js:: received sensor message");
@@ -1441,7 +1700,7 @@ function init_websockets() {
 		console.log("Websocket:: readyState: "+w_sock.readyState);
 		
 	//}//rasp and !phonegap	
-}//function
+	}//function
 
 
 // ----------------------------------------------------------------------------------------
@@ -1451,99 +1710,99 @@ function init_websockets() {
 //
 // The username and pin are not necessary for local operation, but
 // they are required once we access the app over the internet.
-
-function onLinePopup() {
+//
+	function onLinePopup() {
 	
-	var uname= window.localStorage.getItem("uname");		// username
-	var pword= window.localStorage.getItem("pword");		// pin
-	var saddr= window.localStorage.getItem("saddr");		// Server address
-	// alert("OnLinePopup:: addr: "+saddr);
+		var uname= window.localStorage.getItem("uname");		// username
+		var pword= window.localStorage.getItem("pword");		// pin
+		var saddr= window.localStorage.getItem("saddr");		// Server address
+		// alert("OnLinePopup:: addr: "+saddr);
 	
-	var str;
-	//str += '<div data-role="page" id="page1">';
-	//str += '<div data-role="header">Login</div>';
-	//str += '<div data-role="content">';
+		var str;
+		//str += '<div data-role="page" id="page1">';
+		//str += '<div data-role="header">Login</div>';
+		//str += '<div data-role="content">';
 	
-	//str += '<a href="#loginpopup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">User page...</a>';
-	str += '<div data-role="popup" id="loginpopup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">';
+		//str += '<a href="#loginpopup" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-delete ui-btn-icon-left ui-btn-b">User page...</a>';
+		str += '<div data-role="popup" id="loginpopup" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">';
 	
-	str += '<div data-role="header" data-theme="a">';
-    str += '<h1>User Access</h1>';
-    str += '</div>';
+		str += '<div data-role="header" data-theme="a">';
+    	str += '<h1>User Access</h1>';
+    	str += '</div>';
 	
-    str += '<div role="main" class="ui-content">';
-	str	+= '<fieldset>';
-	str += '<label for="saddr" class="ui-hidden-accessible pops">Server IP</label>';
-	if (saddr !== null)
-		str		+= '<input type="text" name="saddr" id="saddr" value="'+saddr+'"><br/>';
-	else str	+= '<input type="text" name="saddr" id="saddr" placeholder="server ip"><br/>';
+    	str += '<div role="main" class="ui-content">';
+		str	+= '<fieldset>';
+		str += '<label for="saddr" class="ui-hidden-accessible pops">Server IP</label>';
+		if (saddr !== null)
+			str		+= '<input type="text" name="saddr" id="saddr" value="'+saddr+'"><br/>';
+		else str	+= '<input type="text" name="saddr" id="saddr" placeholder="server ip"><br/>';
 		
-	str 		+= '<label for="uname" class="ui-hidden-accessible pops">Username</label>';
-	if (uname !== null )
-		str 	+= '<input type="text" name="uname" id="uname" value="'+uname+'"><br/>';
-	else str	+= '<input type="text" name="uname" id="uname" placeholder="username"><br/>';
+		str 		+= '<label for="uname" class="ui-hidden-accessible pops">Username</label>';
+		if (uname !== null )
+			str 	+= '<input type="text" name="uname" id="uname" value="'+uname+'"><br/>';
+		else str	+= '<input type="text" name="uname" id="uname" placeholder="username"><br/>';
 		
-	str			+= '<label for="pword" class="ui-hidden-accessible pops">Password</label>';
-	if (pword !== null)
-		str		+= '<input type="password" name="pword" id="pword" value="'+pword+'"><br/>';
-	else str	+= '<input type="password" name="pword" id="pword" placeholder="pin"><br/>';
-	str += '</fieldset>';
+		str			+= '<label for="pword" class="ui-hidden-accessible pops">Password</label>';
+		if (pword !== null)
+			str		+= '<input type="password" name="pword" id="pword" value="'+pword+'"><br/>';
+		else str	+= '<input type="password" name="pword" id="pword" placeholder="pin"><br/>';
+		str += '</fieldset>';
 	
-	str += '<input type="submit" id="cancelSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Cancel</a>';
-	str += '<input type="submit" id="loginSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Submit</a>';
-	//str += '<a href="#" id="cancelSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Cancel</a>';
-	//str += '<a href="#" id="loginSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back" data-transition="flow">Submit</a>';
-	str += '</div>';											// main
-	str += '</div>';											// role popup				
-	//str += '</div>';											// page
-	$( "#popup" ).append(str);									// write the popup form to the popup anchor
-	// QQQQ		
+		str += '<input type="submit" id="cancelSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Cancel</a>';
+		str += '<input type="submit" id="loginSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Submit</a>';
+		//str += '<a href="#" id="cancelSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Cancel</a>';
+		//str += '<a href="#" id="loginSubmit" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back" data-transition="flow">Submit</a>';
+		str += '</div>';											// main
+		str += '</div>';											// role popup				
+		//str += '</div>';											// page
+		$( "#popup" ).append(str);									// write the popup form to the popup anchor
+		// QQQ	
 	
-	$( "#loginpopup" ).popup();									// define the form
-	$( "#loginpopup" ).popup( "open" );							// Open the form
+		$( "#loginpopup" ).popup();									// define the form
+		$( "#loginpopup" ).popup( "open" );							// Open the form
 	
-	$( "#loginSubmit" ).click(function(event,ui) {
-		//alert("login");	
-		console.log("login");
-		saddr = $( "#saddr" ).val();
-		uname = $( "#uname" ).val();
-		pword = $( "#pword" ).val();
-		window.localStorage.setItem("uname",uname);
-		window.localStorage.setItem("pword",pword);
-		window.localStorage.setItem("saddr",saddr);
-		console.log("popup closed with ip: "+saddr);
-		murl='http://'+saddr+'/';	
-		s_controller = murl + 'backend_rasp.php';
-		if (phonegap != 1) init_websockets();
-		var ret = load_database("init");
-		if (ret <0) {
-			alert("Error:: Loading Database Failed");
-		}
-		$( "#loginpopup" ).popup( "destroy" );
-		//return(false);
-	});
+		$( "#loginSubmit" ).click(function(event,ui) {
+			//alert("login");	
+			console.log("login");
+			saddr = $( "#saddr" ).val();
+			uname = $( "#uname" ).val();
+			pword = $( "#pword" ).val();
+			window.localStorage.setItem("uname",uname);
+			window.localStorage.setItem("pword",pword);
+			window.localStorage.setItem("saddr",saddr);
+			console.log("popup closed with ip: "+saddr);
+			murl='http://'+saddr+'/';	
+			s_controller = murl + 'backend_rasp.php';
+			if (phonegap != 1) init_websockets();
+			var ret = load_database("init");
+			if (ret <0) {
+				alert("Error:: Loading Database Failed");
+			}
+			$( "#loginpopup" ).popup( "destroy" );
+			//return(false);
+		});
 	
-	$( "#cancelSubmit" ).click(function(event,ui) {
-		alert("Cancel, assume we have defult values ...");
-		murl='http://'+saddr+'/';	
-		s_controller = murl + 'backend_rasp.php';
+		$( "#cancelSubmit" ).click(function(event,ui) {
+			alert("Cancel, assume we have defult values ...");
+			murl='http://'+saddr+'/';	
+			s_controller = murl + 'backend_rasp.php';
 		
-		var ret = load_database("init");
-		if (ret <0) {
-			alert("Error:: Loading Database Failed");
-		}
-		if (phonegap != 1) init_websockets();
-		$( "#loginpopup" ).popup( "close" );
-		return(false);
-	});
+			var ret = load_database("init");
+			if (ret <0) {
+				alert("Error:: Loading Database Failed");
+			}
+			if (phonegap != 1) init_websockets();
+			$( "#loginpopup" ).popup( "close" );
+			return(false);
+		});
 			
-}// function
+	}// function
 
 }); // Doc Ready end
 
 } //start_LAMP() function end
 
-
+// ========================================================================================
 
 
 
@@ -1607,12 +1866,16 @@ function getTime() {
   return pad(date.getHours(), 2) + ':' + pad(date.getMinutes(), 2) + ':' + pad(date.getSeconds(), 2);
 }
 
+//
 // Read Integer from string
 // 
 function parse_int(s) {
 	return(s.match(/\d+\.?\d*/g));					// returns array with values
 }
 
+//
+//
+//
 function read_int(s) {								// Read only first in in string
 	var ret = s.match(/\d+\.?\d*/g);
 	return (ret[0]);
@@ -1671,6 +1934,100 @@ function myConfirm(dialogText, okFunc, cancelFunc, dialogTitle) {
   });
 }
 
+
+// -------------------------------------------------------------------------------
+// Help specific form function (see askForm below for more info
+// This form will display a help form on the screen with two
+// buttons: More Info, Done
+// Based on the screen currently loaded, the more info button will
+// display the URL of the help function on the screen
+//
+function helpForm(dialogTitle, dialogText, moreFunc, doneFunc ) {
+  if (jqmobile == 1) {
+	//alert("askForm jqmobile");
+	// We assume that for jqmobile setting we receive a dialogtext
+	// that contains jQM correct html tags so that we can use this
+	// functions semi-generic for jQuery mobile and jQuery UI
+	
+	//QQQ
+	$( "#gui_content" ).append(dialogText);					// display the popup form
+	$( "#myform" ).popup();									// define the form
+	
+	// The function below is the callback function for when the popup form has closed
+	$( "#myform" ).popup( "open" );							// Display Open the form
+	$( "#myform" ).on( "popupafterclose", function(event, ui) {
+			if (typeof (moreFunc) == 'function') {
+				// Return max of 4 results (may define more)...
+				//var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+				setTimeout(function(){ moreFunc(ret) }, 50);
+        	}							   
+	});
+  }
+  // jQuery UI style of dialog
+  else {
+  $('<div style="padding: 10px; max-width: 500px; word-wrap: break-word;">'+dialogText+'</div>').dialog({
+    draggable: false,
+    modal: true,
+    resizable: false,
+	width: 'auto',
+    title: dialogTitle || 'Help',
+    minHeight: 120,
+    buttons: {
+    	More: function () {
+        	if (typeof (moreFunc) == 'function') {
+				// Return max of 4 results (may define more)...
+				//var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+				
+				setTimeout(function(){ moreFunc(ret) }, 50);
+        	}
+			switch (s_screen) {
+				case 'room':
+					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/rooms.html', '_blank');
+					win.focus();
+				break;
+				case 'scene':
+					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/scenes.html', '_blank');
+					win.focus();
+				break;
+				case 'timer':
+					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/timers.html', '_blank');
+					win.focus();
+				break;
+				case 'handset':
+					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/handsets.html', '_blank');
+					win.focus();
+				break;
+				case 'weather':
+					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/weather.html', '_blank');
+					win.focus();
+				break;
+				default:
+							
+			}
+      		$(this).dialog('destroy');
+      	},
+		Done: function () {
+      		if (typeof (doneFunc) == 'function') {
+      			setTimeout(doneFunc, 50);
+        	}
+			switch (s_screen) {
+				case 'room':
+					// alert("Done room screen help");
+				break;
+				default:
+							
+			}
+        	$(this).dialog('destroy');
+		}
+    },
+ 	close: function() {
+		$(this).dialog('destroy');
+	}
+  });
+  // console.log(" name: "+name.val);
+  }
+} // helpForm end
+
 // -------------------------------------------------------------------------------
 // Helper function for askForm
 //
@@ -1705,9 +2062,9 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 	//QQQQ
 	$( "#gui_content" ).append(dialogText);					// display the popup form
 	$( "#myform" ).popup();									// define the form
-	$( "#myform" ).popup( "open" );							// Display Open the form
 	
 	// The function below is the callback function for when the popup form has closed
+	$( "#myform" ).popup( "open" );							// Display Open the form
 	$( "#myform" ).on( "popupafterclose", function(event, ui) {
 			if (typeof (okFunc) == 'function') {
 				// Return max of 4 results (may define more)...
@@ -1806,7 +2163,6 @@ function init_rooms(cmd)
 //
 function init_scenes(cmd) 
 {
-
 		$("#gui_header").empty();
 		$("#gui_header").append('<table border="0">');			// Write table def to DOM
 		var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
@@ -1851,7 +2207,6 @@ function init_scenes(cmd)
 //
 function init_timers(cmd) 
 {
-
 		$("#gui_header").empty();
 		$("#gui_header").append('<table border="0">');			// Write table def to DOM
 		var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
@@ -1895,7 +2250,6 @@ function init_timers(cmd)
 //
 function init_handsets(cmd) 
 {
-
 		$("#gui_header").empty();
 		$("#gui_header").append('<table border="0">');			// Write table def to DOM
 		var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
@@ -1986,7 +2340,7 @@ function init_settings(cmd)
 
 // ------------------------------------------------------------------------------------------
 // Setup the weather event handling
-// QQQQ
+// QQQ
 function init_weather(cmd) 
 {
 		$("#gui_header").empty();
@@ -2015,7 +2369,7 @@ function init_weather(cmd)
 		if (debug>1) message(msg);
 		but += '</td>';	
 		but +=  '<td>';
-		but += '<input type="submit" id="Help" value= "?" class="cc_button help_button">'  ;
+		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">'  ;
 		but += '</td>';
 		$(table).append(but);	
 		
@@ -2066,47 +2420,44 @@ function init_menu(cmd)
 	}
 	// EVENT HANDLER
 	
-		$("#gui_menu").on("click", ".hm_button", function(e){
-			e.preventDefault();
-//			e.stopPropagation();
-			selected = $(this);
-						
-			value=$(this).val();								// Value of the button
-			id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
-			$( '.hm_button' ).removeClass( 'hover' );
-			$( this ).addClass ( 'hover' );
-			switch(id)
-			{
-				case "M1":
-					init_rooms ("init");
-
-				break;
+	$("#gui_menu").on("click", ".hm_button", function(e){
+		e.preventDefault();
+//		e.stopPropagation();
+		selected = $(this);
+			
+		value=$(this).val();								// Value of the button
+		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		$( '.hm_button' ).removeClass( 'hover' );
+		$( this ).addClass ( 'hover' );
+		switch(id)
+		{
+			case "M1":
+				init_rooms ("init");
+			break;
 				
-				case "M2":
-					init_scenes(s_scene_id);
-				break;
+			case "M2":
+				init_scenes(s_scene_id);
+			break;
 				
-				case "M3":
-					init_timers();
-					//
-				break;
+			case "M3":
+				init_timers();
+			break;
 				
-				case "M4":
-					init_handsets();
-					//
-				break;
+			case "M4":
+				init_handsets();
+			break;
 				
-				case "M5":
-					init_settings();
-				break;
+			case "M5":
+				init_settings();
+			break;
 				
-				case "M6":
-					init_weather();
-				break;
+			case "M6":
+				init_weather();
+			break;
 				
-				default:
-					message('init_menu:: id: ' + id + ' not a valid menu option');
-			}
+			default:
+				message('init_menu:: id: ' + id + ' not a valid menu option');
+		}
 	}); 	
 }
 
@@ -2343,7 +2694,7 @@ function activate_room(new_room_id, selectable)
 								$( this ).parent().siblings().children().removeClass( 'hover' );
 								// Now put the hover on the OFF button
 								$( this ).parent().siblings().children("#"+id.slice(0,-2)+"F0").addClass( 'hover' );
-							} // WWW
+							} 
 							else { 
 								handle_device( id, "P" + val );				// id ="D1Fd", value = "P31"
 								$( this ).parent().siblings().children().removeClass( 'hover' );
@@ -3402,6 +3753,7 @@ function activate_handset(hset)
 				}
 				// Display dialog box
 				if (debug > 2) alert("Activate_handset:: Add Fr button pressed, start recording ...");
+				
 				myConfirm('You are about to add an action to this handset. If you continue, the system ' 
 				+ 'will be in recording mode until you have selected a device action. Then you are returned '
 				+ 'to this scene screen again. Please confirm if you want to add a device. ', 
@@ -4938,7 +5290,7 @@ function get_scene(scn_id)
 	return(1);		
 }
 
-
+//
 // Same function but now for handset
 //
 function get_handset(hs_id)
@@ -4953,6 +5305,9 @@ function get_handset(hs_id)
 	return(1);		
 }
 
+//
+// Get Handset Record
+//
 function get_handset_record(hs_id,hs_unit,hs_val)
 {
 	for (var j = 0; j<handsets.length; j++ )
@@ -5385,39 +5740,48 @@ function message_device(action, controller_cmd)
 	//
 	else if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
-		console.log("websockets:: sending "+controller_cmd);
+		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
+		// and be same as ICS-1000, and will not be full-blown json.
 		var data = {
 			tcnt: ++w_tcnt%1000,
 			action: "gui",	
 			message: controller_cmd
 		};
 		
-		for (var i=0; i<4; i++) {				// This could be forever, have to build a limit ...
+		// Now check the state of the socket. This could take forever, have to build a limit ...
+		// In practice, this sending part will likely NOT find out that the connection is lost,
+		// but the registered receiver handler (somewhere around line 1800) will.
+		for (var i=0; i<4; i++) {				
 			switch (w_sock.readyState) {
-			// 0: Not yet ready
+			// 0: Not yet ready, wait for connect
 			case 0:
 				console.log("Websocket:: readystate not ready: "+w_sock.readyState);
+				setTimeout( function() { console.log("message_device:: socket not ready: "+w_sock.readyState); }, 500);
 			break;
-			// 1: ready
+			// 1: socket is ready, send the data
 			case 1: 
+				if (debug>0) console.log("message_device:: sending: "+controller_cmd);
 				w_sock.send(JSON.stringify(data));
 				return(0);
 			break;
 			// 2: close in progress
+			// Must wait the disconnect out?
 			case 2:
 				console.log("Websocket:: close in progress: "+w_sock.readyState);
 			break;
 			// 3: closed
+			// if closed, reopen the socket again
 			case 3:
 				console.log("Websocket:: readystate closed: "+w_sock.readyState);
-				w_sock = WebSocket(w_uri);
+				// wait with execution for 500 mSec
+				setTimeout( function() { w_sock = WebSocket(w_uri); }, 1000);
 				console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 			break;
 		
 			default:
 				console.log("Websocket:: readystate not defined: "+w_sock.readyState);
 			}
-		}
+		}// for
 		console.log("Websocket:: unable to transmit message 3 times: "+w_sock.readyState);
 	}//else
 	else {
