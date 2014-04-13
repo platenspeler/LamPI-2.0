@@ -37,15 +37,30 @@ extern "C"
 // Define Pulse /timing for devices
 //
 #define P_ACTION_SHORT	120
-#define P_AUTO	500								// Pulse time for Auto mode, must be little lower than pulse_long
+#define P_AUTO	500								// Pulse time Auto mode, must be little lower than pulse_long
 #define P_ACTION 150							// Pulse time for Action/Impulse receivers
 #define P_KAKU 260								// Pulse time for Kaku receivers
-#define ACTION_MAX_SHORT 280
 
+// Definitions for Action devices
+//
+#define ACTION_MIN_SHORT 90
+#define ACTION_MAX_SHORT 280
+#define ACTION_MIN_LONG 280
+#define ACTION_MAX_LONG 900
+
+// Definitions for WT440H Weather station wireless sensors
+//
 #define WT440H_MIN_SHORT 800
 #define WT440H_MAX_SHORT 1150
 #define WT440H_MIN_LONG 1800
 #define WT440H_MAX_LONG 2100
+
+// Definitions for Kaku Devices
+//
+#define KAKU_MIN_SHORT 150
+#define KAKU_MAX_SHORT 425
+#define KAKU_MIN_LONG 1100
+#define KAKU_MAX_LONG 1400
 
 // Define Row Indexes for statistics ARRAY, make sure I_MAX_ROWS is larger than the number
 // of receivers specified below....

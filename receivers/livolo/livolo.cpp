@@ -8,6 +8,15 @@
   		and leads to many errorneous codes discovered
   
   Released into the public domain.
+  
+  Usage:
+  As said, the Livolo protocol is rather unreliable. Even the transmitter keychain which is well received 
+  by my Raspberry sniffer/receiver program has a very limited range for its own devices. In fact, reception
+  can only be reliable when the switches are in sight and one can check whether commands are received.
+  
+  Also, as buttons A-C toggle the value of the switch, one would NEVER be sure whether the switch is on or off.
+  A workaround would be: ALWAYS first send code D, all devices OFF and then transmit on values for ALL buttons
+  again. In practice this might not be desirable, should work though.
 */
 
 #include <stdio.h>
@@ -38,7 +47,7 @@ unsigned char output_pin = 15;						// wiringPi PIN number
 
 int fflg = 0;										// Fake flag, for debugging. Init to false. If true, print values only
 
-// I found the timing paramters below to be VERY VERY critical
+// I found the timing parameters below to be VERY VERY critical
 // Only a few uSecs extra will make the switch fail.
 //
 int p_short = 110;									// 110 works quite OK

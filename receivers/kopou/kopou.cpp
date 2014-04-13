@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 		break;
 		
 		// We must make sure that manual assigned device ID's do not collide with automatic device ID's used
-		// in the application. Therefore we use the range from device ID 31 and onward.
+		// in the LamPI application. Therefore we use the range from device ID 31 and onward.
 		// Also we make a translation between out assigned device ID's, to the physical address of Kopou.
 		case 'n':						// Device Number, for interface must be A=32, B=33, C=34
 			device = atoi(optarg);

@@ -57,6 +57,26 @@ $brands = array();
 $weather= array();
 
 /** --------------------------------------------------------------------------------------
+	Some user related functions needed for credential checking etc.
+*/
+class User {
+	
+	public function pwcheck($data)
+	{
+		global $u_admin;			// Declared in the backend_cfg.php file
+		for ($i=0; $i< count($u_admin); $i++)
+		{
+			if (($data['login'] == $u_admin[$i]['login']) &&
+				($data['password'] == $u_admin[$i]['password']))
+			{
+					return(1);
+			}
+		}
+		return(0);
+	}
+}
+
+/** --------------------------------------------------------------------------------------
  * Logging class:
  * - contains lfile, lwrite and lclose public methods
  * - lfile sets path and name of log file
@@ -66,6 +86,7 @@ $weather= array();
  * - message is written with the following format: [d/M/Y:H:i:s] (script name) message
  */
 class Logging {
+
     // declare log file and file pointer as private properties
     private $log_file, $fp;
     // set log file (path and name)
@@ -73,7 +94,10 @@ class Logging {
         $this->log_file = $path;
     }
     // write message to the log file
-    public function lwrite($message) {
+    public function lwrite($message,$dlevel=false) {
+		global $debug;
+		// If we specify a minimum debug level required to log the message
+		if (($dlevel) && ($dlevel>$debug)) return(0);
         // if file pointer doesn't exist, then open log file
         if (!is_resource($this->fp)) {
             $this->lopen();
@@ -114,28 +138,42 @@ class Logging {
  * @param string $client_ip
  * @param string $server_ip
  * @return boolean
+ *
+ * Original function taken from internet, but modified to read server address from ifconfig
+ * It provides a solution, even for multiple adpters, provided they are all in same subnet.
+ * If we use PHP as a server, then we are NOT sure about the used IP address, 
+ * especially if we rely on /etc/hosts as a guide (127.0.1.1)
+ * as we might manually set the IP address in /etc/network/interfaces
+ * Therefore, best is to use ifconfig output and scan for that interface that has a Bcast
+ * next to the inet address.
  */
 function clientInSameSubnet($client_ip=false,$server_ip=false) {
+	global $log;
     if (!$client_ip)
         $client_ip = $_SERVER['REMOTE_ADDR'];
-    if (!$server_ip)
-        $server_ip = $_SERVER['SERVER_ADDR'];
+    //if (!$server_ip) {
+    //    $server_ip = $_SERVER['SERVER_ADDR'];	// For a daemon, this does NOT work
+	//}
     // Extract broadcast and netmask from ifconfig
-    if (!($p = popen("ifconfig","r"))) return false;
+    if (!($p = popen("/sbin/ifconfig","r"))) return false;
     $out = "";
     while(!feof($p))
         $out .= fread($p,1024);
-    fclose($p);
-    // This is because the php.net comment function does not
-    // allow long lines.
-    $match  = "/^.*".$server_ip;
-    $match .= ".*Bcast:(\d{1,3}\.\d{1,3}i\.\d{1,3}\.\d{1,3}).*";
-    $match .= "Mask:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/im";
-    if (!preg_match($match,$out,$regs))
+    
+    $match  = "/^.*inet addr:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Bcast:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Mask:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/im";
+	
+    if (!preg_match($match,$out,$regs)) {
+		$log->lwrite("clientInSameSubnet preg_match failed");
         return false;
-    $bcast = ip2long($regs[1]);
-    $smask = ip2long($regs[2]);
+	}
+	$log->lwrite("clientInSameSubnet:: Inet: ".$regs[1].", Bcast: ".$regs[2].", Mask: ".$regs[3],3);
+	$server_ip = $regs[1];
+    $bcast = ip2long($regs[2]);
+    $smask = ip2long($regs[3]);
     $ipadr = ip2long($client_ip);
+	if ($client_ip == '127.0.0.1') return(1);				// localhost is local subnet too.
     $nmask = $bcast & $smask;
     return (($ipadr & $smask) == ($nmask & $smask));
 }
@@ -200,10 +238,12 @@ class Queue {
 		$i = 0;
 		if ($debug > 2) $log->lwrite("q_pop:: looking for runnable items on queue");
 		for ($i=0; $i<count($this->q_list); $i++) {
-			if ($this->q_list[$i]["secs"] > $tim ){
+			if ($this->q_list[$i]["secs"] > $tim ) {
 				break;
 			}
-			if ($debug>1) $log->lwrite("q_pop:: pop Item ".$i.": ".$this->q_list[$i]['cmd']);
+			if ($debug>1) {
+				$log->lwrite("q_pop:: pop Item ".$i.": ".$this->q_list[$i]['action']);
+			}
 		}
 		$result = array_splice($this->q_list,0,$i);
 		return($result);
@@ -243,21 +283,23 @@ class Queue {
 
 class Sock {
 	
-	private $rsock = 0;					// Receive socket of the server
-	private $ssock = 0;					// Last socket rcvd on, so THE socket to reply to
-	private $clientIP;
-	private $clients = array();			// Array of sockets containing the real "accepted" clients
-	private $sock_admin = array();		// cntains name, ip, type of client etc data
+	public	$rsock = 0;					// Receive socket of the server
+	public	$ssock = 0;					// Sendto Socket; often ;ast socket rcvd on, so THE socket to reply to
+	public $clientIP;					// Refer to $sock-> or $this->
 	private $read = array();			// The object for socket_select, contains array of data sockets
 	private $wait = 1;					// Timeout value for socket_select. Changed dynamically!
 	
+	public $clients = array();			// Array of sockets containing the real "accepted" clients
+	public $sockadmin = array();		// contains name, ip, type of client etc data
+	
 	//
 	//handshake new client. Also called upgrade of a websocket connection request
+	// Websites:
 	//
-	private function s_upgrade($rcvd_header,$client_conn, $host, $port)
+	private function s_upgrade($rcvd_header, $client_conn, $host, $port)
 	{
 		global $debug, $log;
-		if ($debug > 1) $log->lwrite("s_upgrade:: building upgrade reply");
+		$log->lwrite("s_upgrade:: building upgrade reply",2);
 		$headers = array();
 		$lines = preg_split("/\r\n/", $rcvd_header);
 		foreach($lines as $line)
@@ -269,11 +311,14 @@ class Sock {
 			}
 		}
 		// XXX Need to figure out the name of this program through $_SYSTEM or $_SESSION
+		// If index Sec-Websocket-Key not found we get a warning! So maybe we shoud print the
+		// total header for debug>2 to see where this comes from
 		$secKey = $headers['Sec-WebSocket-Key'];
-		if ($debug > 1) $log->lwrite("s_upgrade:: secKey: ".$secKey);
+		
+		$log->lwrite("s_upgrade:: secKey: ".$secKey,2);
 	
 		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-		//hand shaking header
+		//hand shaking header, and write the upgrade response back to the client
 		$upgrade  = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" .
 					"Upgrade: Websocket\r\n" .
 					"Connection: Upgrade\r\n" .
@@ -281,8 +326,8 @@ class Sock {
 					"WebSocket-Location: ws://$host:$port/LamPI-daemon.php\r\n".
 					"Sec-WebSocket-Accept:$secAccept\r\n\r\n";
 		socket_write($client_conn,$upgrade,strlen($upgrade));
-		if ($debug > 0) $log->lwrite("s_upgrade:: sending upgrade reply");
-		if ($debug > 1) $log->lwrite("\n".$upgrade);
+		$log->lwrite("s_upgrade:: sending upgrade reply",1);
+		$log->lwrite("\n".$upgrade,3);
 	}
 
 	//
@@ -308,7 +353,7 @@ class Sock {
 	public function s_encode($message, $messageType='text') {
 		global $log;
 		global $debug;
-		if ($debug >= 2) $log->lwrite("s_encode:: message: ".$message.", type: ".$messageType);
+		$log->lwrite("s_encode:: message: ".$message.", type: ".$messageType,3);
 		switch ($messageType) {
 			case 'continuous':
 				$b1 = 0;
@@ -434,21 +479,25 @@ class Sock {
 	}
 	
 	//
-	// Close the socket
+	// Close the socket, use the client key ckey as an index for the socket administration.
+	// This comes in handy, as the array will still have relevant info about the socket
+	// even if the peer has already closed the connection
 	//
-	public function s_close($sock) {
+	public function s_close($ckey) {
 		global $log;
 		global $debug;
-		socket_close($sock);
-		if ($debug>0) {
-			socket_getpeername($sock, $clientIP, $clientPort);
-			$log->lwrite("s_close:: close socket for IP: ".$clientIP.":".$clientPort);
-		}
+		$log->lwrite("s_close:: close socket for IP "
+						 	.$this->sockadmin[$ckey]['ip'].":"
+							.$this->sockadmin[$ckey]['port'],2);
+		
+		socket_close($this->sockadmin[$ckey]['socket']);
 	}// s_close
 	
 	//
 	//	Send a message to the peer
 	//	The message may need to be encoded depending on the type of client connected
+	//  The function standard does not take a socket argument, we expect the $this->ssock
+	//  to be set in the receiving function.
 	//
 	public function s_send($cmd_pkg) {
 		global $log;
@@ -459,7 +508,7 @@ class Sock {
 			$log->lwrite("s_send failed: socket this->ssock not open");
 			return(-1);
         }
-		if ($debug>0) $log->lwrite("s_send:: writing message <".$cmd_pkg.">");				
+		$log->lwrite("s_send:: writing message <".$cmd_pkg.">",3);				
     	if (socket_write($this->ssock,$cmd_pkg,strlen($cmd_pkg)) === false)
    		{
      		$log->lwrite( "s_recv:: socket_write failed:: ".socket_strerror(socket_last_error()) );
@@ -477,11 +526,11 @@ class Sock {
 	//
 	// Broadcast a message to every connected (web)socket. As normal socket will probably
 	// not be async
+	//
 	public function s_bcast($cmd_pkg) {
 		global $log, $debug;
 		
-		if ($debug>0) 
-				$log->lwrite("s_bcast:: writing to connected clients: <".$cmd_pkg.">");
+		$log->lwrite("s_bcast:: writing to connected clients: <".$cmd_pkg.">",2);
 				
 		foreach ($this->clients as $key => $client) 
 		{  
@@ -490,19 +539,18 @@ class Sock {
 				continue;
         	}
 			if ($this->sockadmin[$key]['type'] != 'websocket' ) {
-				if ($debug>=2) $log->lwrite("s_bcast:: Warning: Not a websocket: "
+				$log->lwrite("s_bcast:: Warning: Not a websocket: "
 									.$this->sockadmin[$key]['ip'].":"
 									.$this->sockadmin[$key]['port'].", type "
-									.$this->sockadmin[$key]['type']." need upgrade?");
+									.$this->sockadmin[$key]['type']." need upgrade?"
+									,3);
 				$message = $cmd_pkg;
 			}
-			else // Encode the message accoring to websocket standard
+			else // Encode the message according to websocket standard
 			{
 				$message = $this->s_encode($cmd_pkg);
 			}
 			
-			
-				
     		if (socket_write($client,$message,strlen($message)) === false)
    			{
      			$log->lwrite( "ERROR s_bcast:: write failed:: ".socket_strerror(socket_last_error()) );
@@ -512,10 +560,9 @@ class Sock {
 				continue;
     		}
 		
-    		if ($debug >= 2) {
-				$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
-										":".$this->sockadmin[$key]['port']." success");
-			}
+    		$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
+										":".$this->sockadmin[$key]['port']." success",2);
+			
 		}
 		return(0);
 	}// s_bcast
@@ -537,7 +584,7 @@ class Sock {
 		$usec = 10000;
 		$i1=time();
 
-		if ($debug>1) $log->lwrite("s_recv:: calling socket_select, timeout: ".$this->wait);
+		$log->lwrite("s_recv:: calling socket_select, timeout: ".$this->wait,3);
 		if (!is_resource($this->rsock)) {
             $this->s_open();
         }
@@ -551,7 +598,7 @@ class Sock {
      	}
 		
 		// Print data for changed sockets, this is for debugging only
-		if ($debug>2) {
+		if ($debug>=3) {
 			$log->lwrite("s_recv:: socket_select: printing changed sockets");
 			foreach ($this->read as $key => $client) 
 			{
@@ -563,46 +610,54 @@ class Sock {
 		// It the select function returns 0, there are no messages on any read sockets
 		// and we return to the calling main process
 		if ($ret == 0) {
-			if ($debug>1) $log->lwrite( "s_recv:: socket_select returned 0");
+			$log->lwrite( "s_recv:: socket_select returned 0",3);
 			return(-1);
 		}
 		// $ret contains the number of sockets with messages. We will only serve one at a time!!
-		if ($debug>1) $log->lwrite("s_recv:: socket_select success, returned: ".$ret);
+		$log->lwrite("s_recv:: socket_select success, returned: ".$ret,3);
 		
 		// New connections? (coming from a previous call of socket_select() in $read)
 		// Incoming connect request comes in on server socket rsock only
 		if ($debug>2) $log->lwrite("s_recv:: checking for new connections in this->read");
 		if (in_array($this->rsock, $this->read)) 
 		{
-			if ($debug>1) $log->lwrite("s_recv:: server rsock to accept new connection ");
+			$log->lwrite("s_recv:: server rsock to accept new connection ",3);
 			if (($msgsock = socket_accept($this->rsock)) === false) {
             	$log->lwrite("s_recv:: socket_accept() failed:: ".socket_strerror(socket_last_error($this->rsock)) );
             	return(-1);
         	}
 
-         	//$key = array_keys($this->clients, $msgsock);
 			socket_getpeername($msgsock, $clientIP, $clientPort);
-			if ($debug>1) {
-				$log->lwrite("s_recv:: socket_accept: connect ip: ".$clientIP.":".$clientPort);
-			}
+			$log->lwrite("s_recv:: socket_accept: connect ip: ".$clientIP.":".$clientPort,1);
 			
 			// Add this socket to the array of clients for this server 
-			// and update the admin array with relevant info
+			// and update the admin array with relevant info for this socket
 			$this->clients[] = $msgsock;
 			$s_admin = array (
 								  'key' => '',
 								  'type' => 'rawsocket' , // either { rawsocket, websocket, ack }
 								  'socket' => $msgsock ,
 								  'ip' => $clientIP ,
-								  'port' => $clientPort
+								  'port' => $clientPort ,
+								  'login' => '',
+								  'trusted' => '0'
 							);
+			
+			// Can we trust this socket -> Is the client on our subnetwork?
+			if (clientInSameSubnet($clientIP)) {
+				$log->lwrite("s_recv:: client IP: ".$clientIP." in local subnet",2);
+				$s_admin['trusted']	= '1';
+			}
+			
+			// Append to Admin Array
 			$this->sockadmin[] = $s_admin;
+			
 			// remove rsock from read
 			$key = array_search($this->rsock, $this->read);
 			if (false === $key)
 				$log->lwrite("s_recv:: ERROR: unable to find key: ".$key." in the read array");
 			else {
-				if ($debug>1) $log->lwrite("s_recv:: Masking rsock from read array, key: ".$key);
+				$log->lwrite("s_recv:: Masking rsock from read array, key: ".$key,3);
 				unset($this->read[$key]);
 			}
 		}
@@ -617,7 +672,7 @@ class Sock {
 				$akey = array_keys($this->clients, $client);	// Key in the client array (and admin array)
 				$ckey = $akey[0];
 
-				if ($debug>1) $log->lwrite("r_recv:: key: ".$key." (ckey = ".$ckey.") has data");
+				$log->lwrite("s_recv:: key: ".$key." (ckey = ".$ckey.") has data",3);
 				$this->ssock = $client;							// Send replies for client to this address
 				
 				$buf = @socket_read($client, 2048, PHP_BINARY_READ);
@@ -625,29 +680,31 @@ class Sock {
 				{
 					// Error,  close socket and display message
 					$err = socket_last_error($client);
-                	$log->lwrite("s_recv:: socket_read failed: ".socket_strerror($err));
 					
 					if ($err === 104) {
-						$log->lwrite("s_recv:: socket_read failed: Connection reset by peer");
-						$this->s_close($client);
+						$log->lwrite("s_recv:: socket_read failed: ".$this->sockadmin[$ckey]['ip']." - Connection reset by peer");		
+						$this->s_close($ckey);
 					}
-					if ($debug>0) $log->lwrite("r_recv:: socket marked unset: ".$key." error: ".$err);
-					// XXX We need to find the key in clients and NOT in read!!!
+					else {
+						$log->lwrite("s_recv:: socket_read failed: ".socket_strerror($err));
+					}
+					$log->lwrite("s_recv:: socket marked unset: ".$key." error: ".$err,3);
+					// We need to find the key in clients and NOT in read!!!
 					unset($this->clients[$ckey]);
 					unset($this->sockadmin[$ckey]);
 					continue;
 				}
 				
 				// Select returns client with empty messages, means closed connection
+				//
 				else 
 				if (empty($buf)) {
 					socket_getpeername($client, $clientIP, $clientPort);
-					$log->lwrite("s_recv:: buffer empty for ".$clientIP.":".$clientPort);
-					if ($debug>0) $log->lwrite("r_recv:: no data in buf, close socket for key: ".$key." ");
+					$log->lwrite("s_recv:: buffer empty for key: ".$key.", IP".$clientIP.":".$clientPort,3);
 					// empty read means..... should be closing socket....
+					$this->s_close($ckey);
 					unset($this->clients[$ckey]);
 					unset($this->sockadmin[$ckey]);
-					$this->s_close($client);
 					continue;
 				}
 				
@@ -657,37 +714,21 @@ class Sock {
 				//
 				if (substr($buf,0,3) == "GET" ) {
 					$this->sockadmin[$ckey]['type'] = 'websocket';
-					$log->lwrite("r_recv:: Upgrade request for ".$this->sockadmin[$ckey]['ip'].":".$this->sockadmin[$ckey]['port']);
 					socket_getpeername($client, $clientIP, $clientPort);
-					$log->lwrite("r_recv:: Upgrade request for ".$clientIP.":".$clientPort." \n".$buf." ");
+					$log->lwrite("s_recv:: Upgrade request for ".$this->sockadmin[$ckey]['ip'].":".$this->sockadmin[$ckey]['port'],3);
+					$log->lwrite("s_recv:: Upgrade request for ".$clientIP.":".$clientPort." \n".$buf." ",3);
 					$this->s_upgrade($buf, $client, $serverIP, $rcv_daemon_port); //perform websocket handshake
-					
-					// Do some initial checks and look at the environment variables
-					// Compare the first 3 bytes of clientIP with the home network
-					if (clientInSameSubnet()) {
-						$log->lwrite("r_recv:: client IP in local subnet");
-					}
-					else {
-						$log->lwrite("r_recv:: client IP in external subnet");
-						$log->lwrite("r_recv:: server addr: " . $_SERVER['SERVER_ADDR']. ", remote addr: " . $_SERVER['REMOTE_ADDR']. ", client IP: " . $clientIP);
-						
-						// If we have a cookie for this IP for the password, we're fine
-						
-						// If we do NOT have a cookie, we need to use a login form 
-						// cause only if we connect from remote, we'll need to login first
-						// QQQQ
-					}
-					// If external IP and password check failed, or if the IP is no a well-known IP ->
-					// then close the socket again and deny access
-					
-					// else
 					continue;
 				}
 				
 				// If this is an upgraded connection, use s_unmask and json_decode to view buffer
 				//
-				if ($debug>1) $log->lwrite("r_recv:: sockettype: ".$this->sockadmin[$ckey]['type']);
+				$log->lwrite("s_recv:: ckey: ".$ckey.", clientIP: ".$clientIP,3);
+				$log->lwrite("s_recv:: ckey: ".$ckey.", this clientIP: ".$this->clientIP,3);
+				$log->lwrite("s_recv:: sockettype: ".$this->sockadmin[$ckey]['type'],3);
+				$log->lwrite("s_recv:: sockadmin ip: ".$this->sockadmin[$ckey]['ip'].", trusted:".$this->sockadmin[$ckey]['trusted'],2);
 				
+				$this->clientIP = $this->sockadmin[$ckey]['ip'];
 				if ($this->sockadmin[$ckey]['type'] == 'websocket' ) 
 				{
 					$ubuf = $this->s_unmask($buf);
@@ -697,12 +738,12 @@ class Sock {
 				// type must be a rawsocket
 				else if ($this->sockadmin[$ckey]['type'] == 'rawsocket' ) 
 				{
-					if ($debug>1) {
+					if ($debug>2) {
 							$i2=time();
 							socket_getpeername($client, $clientIP, $clientPort);
 							$log->lwrite("s_recv:: Raw buf from IP: ".$clientIP.":".$clientPort
 									.", buf: <".$buf.">, in ".($i2-$i1)." seconds");
-						}
+					}
 					return($buf);
 				}
 				
@@ -710,11 +751,33 @@ class Sock {
 				else {
 					$i2=time();
 					$log->lwrite("ERROR s_recv:: Unknown type buf from IP: ".$clientIP.":".$clientPort
-									.", buf: <".$buf.">, in ".($i2-$i1)." seconds");
+									.", buf: <".$buf.">, in ".($i2-$i1)." seconds",2);
 				}
 		}//for
 		return(-1);	
-	}// r_recv
+	}// s_recv
+	
+	// Do we trust the current client?
+	//
+	//
+	public function s_trusted() {
+		global $debug;
+		global $log;
+		
+		$akey = array_keys($this->clients, $this->ssock);
+		$ckey = $akey[0];
+		$log->lwrite("s_trusted:: ckey: ".$ckey." checking clientIP: ".$this->clientIP,3);
+		$log->lwrite("s_trusted:: ckey: ".$ckey." checking sockadmin IP: ".$this->sockadmin[$ckey]['ip'],3);
+		$log->lwrite("s_trusted:: ckey: ".$ckey." checking sockadmin Trusted: ".$this->sockadmin[$ckey]['trusted'],3);
+		if (( $this->sockadmin[$ckey]['trusted'] == "1" ) ||
+			( $this->clients[$ckey]['socket'] == $this->rsock) ||				 
+			( $this->clientIP == "127.0.0.1") ) 
+		{
+			$log->lwrite("s_trusted returned success for IP ".$this->sockadmin[$ckey]['ip'],3);
+			return(1);						// trust
+		}
+		return(0);
+	}
 	
 	// This function ONLY sets the wait time for the next SELECT call
 	// and prepares the listening structure for the SELECT call
@@ -736,8 +799,7 @@ class Sock {
 		if ($sec < 0) $sec=0;
 		if ($sec > $interval) $sec = $interval;
 		
-		if ($debug > 2) $log->lwrite( "s_wait:: set wait to ".$sec." seconds");
-		
+		$log->lwrite( "s_wait:: set wait to ".$sec." seconds",3);
 		$this->wait = $sec;
 		return(0);
 	}//s_wait
@@ -755,7 +817,6 @@ class Sock {
 * The client will only see these changes if the page is reloaded or devices are reloaded for
 * some reason.
 */
-
 class Device {
 	private $d_list = [];
 	private $mysqli;
@@ -773,6 +834,7 @@ class Device {
 	}
 	
 	// Add a new device record/object
+	//
 	public function add() {
 		global $log;
 		if (!is_resource($this->mysqli)) {
@@ -781,6 +843,7 @@ class Device {
 	}
 	
 	// Lookup by id
+	//
 	public function get($room_id, $dev_nr) {
 		global $debug, $log;
 		if (!is_resource($this->mysqli)) {
@@ -800,6 +863,7 @@ class Device {
 	}
 	
 	// update device object in sql
+	//
 	public function upd($device) {
 		global $log, $devices;
 		if (!is_resource($this->mysqli)) {
@@ -822,6 +886,7 @@ class Device {
 	}
 	
 	// Delete a device XXX not yet implemented
+	//
 	public function del($device) {
 		global $log;
 		if (!is_resource($this->mysqli)) {
@@ -950,16 +1015,14 @@ function load_handsets()
 	global $apperr;
 	global $debug;
 	global $log;
-	
-	$config = array();
-	$handsets = array();
-	
  	// We assume that a database has been created by the user
 	global $dbname;
 	global $dbuser;
 	global $dbpass;
 	global $dbhost;
 	
+	$config = array();
+	$handsets = array();
 	
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
@@ -1036,8 +1099,6 @@ function get_parse()
 } // Func
 
 
-
-
 /* ---------------------------------------------------------------------------------
 * MESSAGE_PARSE a socket
 *
@@ -1072,7 +1133,7 @@ function message_parse($cmd) {
 		// Queue and start a scene
 		case "qP":
 			$scene_name = substr($cmd, 5, -1);					// Get rid of quotes around name 
-			$log->lwrite("parse:: FqP Scene Queue cmd: ".$scene_name);
+			$log->lwrite("parse:: FqP Scene Queue cmd: ".$scene_name,1);
 			
 			$scene = read_scene($scene_name);
 			if ($scene == -1) { 								// Command not found in database
@@ -1093,11 +1154,11 @@ function message_parse($cmd) {
 				// If $cmd is a ALL OFF command, we need to substitue the command wit
 				// a string of device commands that need to be switche off.....
 				
-				if ($debug > 1) $log->lwrite("cmd  : " . $i . "=>" . $splits[$i]);
-				if ($debug > 1) $log->lwrite("timer: " . $i . "=>" . $splits[$i+1]);
+				$log->lwrite("cmd  : " . $i . "=>" . $splits[$i],2);
+				$log->lwrite("timer: " . $i . "=>" . $splits[$i+1],2);
 				
 				list ( $hrs, $mins, $secs ) = explode(':' , $splits[$i+1]);
-				$log->lwrite("Cmnd wait for $hrs hours, $mins minutes and $secs seconds");
+				$log->lwrite("Cmnd wait for $hrs hours, $mins minutes and $secs seconds",1);
 				
 				// sleep(($hrs*3600)+($mins*60)+$secs);
 				// We cannot sleep in the background now, it will give a timeout!!
@@ -1115,19 +1176,19 @@ function message_parse($cmd) {
 		
 		// Store a Scene in the database
 		case "eP":	
-			$log->lwrite("parse:: FeP Scene Store cmd: ".$cmd );
+			$log->lwrite("parse:: FeP Scene Store cmd: ".$cmd,1 );
 		break;
 		
 		case "cP":
-			$log->lwrite("parse:: FcP Scene Cancel cmd: ".$cmd );
+			$log->lwrite("parse:: FcP Scene Cancel cmd: ".$cmd,1 );
 		break;
 		
 		case "xP":
-			$log->lwrite("parse:: FxP Scene Delete cmd: ".$cmd );
+			$log->lwrite("parse:: FxP Scene Delete cmd: ".$cmd,1 );
 		break;
 		
 		default:
-			$log->lwrite("parse:: Daemon does not recognize command: ".$cmd );
+			$log->lwrite("parse:: Daemon does not recognize command: ".$cmd,1 );
 		}//switch(2,2)
 	break;	
 	//	
@@ -1422,25 +1483,26 @@ $log->lwrite("-------------- STARTING DAEMON ----------------------");
 // time once , but once we are in the loop it will save us time every loop.
 
 $log->lwrite("main:: Loading the database");
-$config = load_database();
-if ($config == -1) {
+$config = load_database();					// load the complete configuration object
+if ($config == -1) 
+{
 	$log->lwrite("main:: Error loading database, error: ".$apperr);
 	$log->lwrite("main:: FATAL, exiting now\n");
 	exit(1);
 }
 else if ($debug>0) $log->lwrite("main:: Loaded the database, err: ".$apperr);
 
-$devices = $config['devices'];
-$scenes = $config['scenes'];
-$timers = $config['timers'];						// These will be refreshed IN the loop to get up-to-date timers
-$rooms = $config['rooms'];
-$handsets = $config['handsets'];
-$brands = $config['brands'];
-$settings = $config['settings'];
+$devices     = $config['devices'];
+$scenes      = $config['scenes'];
+$timers      = $config['timers'];			// These will be refreshed IN the loop to get up-to-date timers
+$rooms       = $config['rooms'];
+$handsets    = $config['handsets'];
+$brands      = $config['brands'];
+$settings    = $config['settings'];
 $controllers = $config['controllers'];
-$weather = $config['weather'];
+$weather     = $config['weather'];
 
-$time_last_run = time();							// Last time we checked the queue. Initial to current time
+$time_last_run = time();					// Last time we checked the queue. Initial to current time
 
 // Loop forever, daemon like behaviour. For testing, we will use echo commands
 // once the daemon is running operational, we should only echo to a logfile.
@@ -1504,7 +1566,7 @@ while (true):
 	{
 		// The data structure read is decoded into a human readible string. jSon or raw
 		//
-		if ($debug>=2) $log->lwrite("main:: s_recv returned Json with ".count($buf)." elements" );
+		$log->lwrite("main:: s_recv returned Json with ".count($buf)." elements",3 );
 		
 		// Once we receive first message, read for more messages later, but without!! a timeout
 		if ( $sock->s_wait(0) == -1) {
@@ -1516,10 +1578,11 @@ while (true):
 		$i = 0;
 		while (($pos = strpos($buf,"}",$i)) != FALSE )
 		{
-			$log->lwrite("r_recv:: ".substr($buf,$i,($pos+1-$i)) );
+			$log->lwrite("s_recv:: ".substr($buf,$i,($pos+1-$i)) );
 			
 			$data = json_decode(substr($buf,$i,($pos+1-$i)), true);
-												
+			$tcnt = $data['tcnt'];						// Must be present in every communication
+			
 			if ($data == null) {
 				switch (json_last_error()) {
 							case JSON_ERROR_NONE:
@@ -1547,7 +1610,7 @@ while (true):
 			}
 
 			// Print the fields in the jSon message
-			if ($debug>=2) {
+			if ($debug>=3) {
 				$msg = "";
 				foreach ($data as $key => $value) {
 					$msg .= " ".$key."->".$value.", ";
@@ -1555,27 +1618,36 @@ while (true):
 				$log->lwrite("main:: Rcv json msg: <".$msg.">");
 			}
 			
-			// Compose ACK reply for the client that sent us this message.
-			// At this moment we use the raw message format in message ...
-			$tcnt = $data['tcnt'];						// Must be present in every communication
-			$reply = array (
-				'tcnt' => $tcnt."",
-				'type' => 'raw',
-				'action' => "ack",
-				'message' => "OK"
-			);
-			if ( false === ($tmp = json_encode($reply)) ) {
-				$log->lwrite("ERROR main:: json_encode reply: <".$reply['tcnt'].",".$reply['action'].">");
-			} 
-			$answer = $sock->s_encode($tmp);			// Websocket encode
-			if ($debug>=2) 
-				$log->lwrite("main:: json reply data: <".$tmp."> len: ".strlen($tmp).":".strlen($answer));
+			// Check if this is a trusted Internal IP connection. Every address inside our homenetwork
+			// is trusted. Trstlevel needs to be larger than 0 to pass
+			//
+			if ( $sock->s_trusted() > 0 ) {
+				$log->lwrite("main:: client is trusted: ".$sock->clientIP,2);
 			
-			// Take action on the message based on the action field of the message
-			switch ($data['action']) 
-			{
+				// Compose ACK reply for the client that sent us this message.
+				// At this moment we use the raw message format in message ...
+				
+				$reply = array (
+					'tcnt' => $tcnt."",
+					'type' => 'raw',
+					'action' => "ack",
+					'message' => "OK"
+				);
+				if ( false === ($tmp = json_encode($reply)) ) {
+					$log->lwrite("ERROR main:: json_encode reply: <".$reply['tcnt'].",".$reply['action'].">",1);
+				} 
+				$answer = $sock->s_encode($tmp);			// Websocket encode
+				$log->lwrite("main:: json reply data: <".$tmp."> len: ".strlen($tmp).":".strlen($answer),2);
+					
+				if ( $sock->s_send($answer) == -1) {
+					$log->lwrite("ERROR main:: failed writing answer on socket");
+				}
+			
+				// Take action on the message based on the action field of the message
+				switch ($data['action']) 
+				{
 				case "ping":
-					if ($debug>0) $log->lwrite("main:: PING received");
+					$log->lwrite("main:: PING received",1);
 				break;
 				
 				case "gui":
@@ -1620,38 +1692,107 @@ while (true):
 					
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
-					if ($debug>0) {
-						$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature']);
-					}
+					
+					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],1);
 					$queue->q_insert($item);
 				break;
 				
 				case "energy":
 					// Energy cation message received
 					// XXX tbd
-					$log->lwrite("main:: q_insert action: ".$item['action']);
+					$log->lwrite("main:: q_insert action: ".$item['action'],1);
 				break;
 				
 				case "sensor":
 					// Received a message from a sensor
 					// XXX tbd
-					$log->lwrite("main:: q_insert action: ".$item['action']);
+					$log->lwrite("main:: q_insert action: ".$item['action'],1);
+				break;
+				
+				case "login":
+					// Received a message for login. As the server will initiate this request
+					// and as we do the client is still untrusted, this will probably never happen.
+					// Could be used to increase trustlevel from level 1 to level 2
+					// 
+					$log->lwrite("main:: login request: ".$data['login'].", password".$data['password'],1);
 				break;
 				
 				default:
 					$log->lwrite("ERROR main:: json data type: <".$data['type']
 									."> not found using raw message");
 					$cmd = $data['message'];
-			}
+				}
 		
+				
+			}
+			// Here is when we do not trust the client
+			// It could be however that the client just sent his login data, therefore
+			// we check for these first
+			//
+			else {
+				
+				
+				$log->lwrite("main:: external client ".$sock->clientIP."not trusted, action: ".$data['action'].", login: ".$data['login'].", password: ".$data['password'],3);
+				
+				// If user has set local storage/cookie for this IP for the password, 
+				// he/she will be cone quickly
+				if ($data['action'] == "login" ){
+					$log->lwrite("main:: received login request from ip ".$sock->clientIP,1);
+					
+					if (User::pwcheck($data) > 0)
+					{
+							$akey = array_keys($sock->clients, $sock->ssock);
+							$ckey = $akey[0];
+							$sock->sockadmin[$ckey]['trusted'] = "1" ;
+							$sock->sockadmin[$ckey]['login'] = $data['login'];
+							$log->lwrite("main:: Password Correct, user: ".$sock->sockadmin[$ckey]['login']." @ IP: ".$sock->sockadmin[$ckey]['ip'],2);
+							$i = $pos+1;
+							if ($pos >= strlen($buf)) break;
+							continue;
+					}
+					else
+					{
+						$log->lwrite("main:: Incorrect Password for user: ".$data['login']." IP: ".$sock->sockadmin[$ckey]['ip'],1);
+					}
+				}
+				
+				// If we do NOT have a cookie, we need to use a login form 
+				// cause only if we connect from remote, we'll need to login first
+				// QQQQ
+				$logmsg = array (
+							'tcnt' => $tcnt."",
+							'action' => 'login',
+							'type' => 'raw'
+				);
+				if ( false === ($message = json_encode($logmsg)) ) {
+					$log->lwrite("ERROR main:: json_encode failed: <".$logmsg['tcnt'].",".$logmsg['action'].">");
+				}
+				$log->lwrite("Json encoded: ".$message,2);
+				$answer = $sock->s_encode($message);
+				if ( $sock->s_send($answer) == -1) {
+					$log->lwrite("ERROR main:: failed writing login message on socket");
+				}
+				$log->lwrite("main:: writing message on socket OK",2);
+						
+				// If the login failed, we will close the connection
+				//$this->s_close($ckey);
+				//unset($this->clients[$ckey]);
+				//unset($this->sockadmin[$ckey]);
+						//return(-1);
+				//continue;
+			}
+			
+			// Advance the index in current buffer (multiple messages may be possible in
+			// one buffer) but also messgae might be split over several buffers...
+			//
 			$i = $pos+1;
 			if ($pos >= strlen($buf)) break;
 		}
 		
-		// empty message
+		// test for empty message
 		if (strlen($data) == 0) 
 		{
-			if ($debug>=2) $log->lwrite("main:: s_recv returned empty data object");
+			$log->lwrite("main:: s_recv returned empty data object",3);
 			break;
 		}
 		
@@ -1663,7 +1804,7 @@ while (true):
 			if ($debug>=1) $log->lwrite("ERROR main:: Rcv raw data cmd on rawsocket: <".$data.">");
 			list ($tcnt, $cmd) = explode(',' , $data);
 			if (strcmp($cmd, "PING") === 0) {
-					if ($debug>=1) $log->lwrite("main:: PING received");
+					$log->lwrite("main:: PING received",2);
 					break;
 			}
 			$reply = array (
@@ -1680,13 +1821,13 @@ while (true):
 			if ( $sock->s_send($answer) == -1) {
 				$log->lwrite("ERROR main:: failed writing reply on socket, tcnt: ".$tcnt);
 			}
-			if ($debug>=3) $log->lwrite("main:: success writing reply on socket. tcnt: ".$tcnt);
+			$log->lwrite("main:: success writing reply on socket. tcnt: ".$tcnt,3);
 		
 			// Actually, although we might expect more messages we should also
 			// be able to "glue" 2 buffers together if the incoming message is split by TCP/IP
 			// message_parse parses the $cmd string and will push the commands
 			// to the queue.
-			if ($debug>=1) $log->lwrite("main:: raw cmd to parse: ".$cmd);
+			$log->lwrite("main:: raw cmd to parse: ".$cmd,2);
 			message_parse($cmd);
 		}
 		
@@ -1704,7 +1845,7 @@ while (true):
 	$tim = time();				// Get seconds since 1970. Timestamp. Makes sure that current time 
 								// is at least as big as the time recorded for the queued items.
 	
-	if ($debug > 2) {
+	if ($debug >= 3) {
 		$log->lwrite("main:: printing and handling queue");
 		$queue->q_print();
 	}
@@ -1713,7 +1854,7 @@ while (true):
 	for ($i=0; $i<count($queue); $i++) {
 		// Queue records contain scene name, timers (in secs) and commands (ready for kaku_cmd)
 		// New records are put to the end of the queue, with timer being the secs to wait from initialization
-		if ($debug > 1) $log->lwrite("main:: Handling queue, timestamp : ".date('[d/M/Y:H:i:s]',$tim));
+		if ($debug > 1) $log->lwrite("main:: Handling queue, timestamp : ".date('[d/M/Y:H:i:s]',$tim),2);
 		
 		$items = $queue->q_pop();
 		
@@ -1724,10 +1865,6 @@ while (true):
 		for ($i=0; $i< count($items); $i++) 
 		{
 			// For every item ...
-			
-			if ($debug>1) 
-				$log->lwrite("main:: q_pop: ".$items[$i]['secs'].", scene: ".$items[$i]['scene']
-							.", cmd: ".$items[$i]['cmd']);
 			// Do we have the latest list of devices??
 			// run-a-command-to-get-the-latest-list-of-devices;;;;;
 			
@@ -1742,7 +1879,7 @@ while (true):
 			switch($items[$i]['action'])
 			{
 				case "weather":
-					if ($debug>=1) $log->lwrite("main:: RECOGNIZED WEATHER MESSAGE");
+					$log->lwrite("main:: Recognized WEATHER Message",3);
 					$bcst = array (	
 						// First part of the record specifies this message type and characteristics
 						'tcnt' => "0",
@@ -1766,7 +1903,11 @@ while (true):
 				break;
 				
 				case "gui":
-					if ($debug>=1) $log->lwrite("main:: RECOGNIZED GUI MESSAGE");
+					if ($debug>1) {
+							$log->lwrite("main:: q_pop: ".$items[$i]['secs'].", scene: ".$items[$i]['scene']
+							.", cmd: ".$items[$i]['cmd']);
+					}
+					$log->lwrite("main:: Recognized GUI message",2);
 					$cmd = "";
 					if (substr($items[$i]['cmd'],-2,2) == "Fa") {
 						list( $room, $value ) = sscanf ($items[$i]['cmd'], "!R%dF%s" );
@@ -1787,16 +1928,15 @@ while (true):
 					// If not an ALL OFF command Fa, this is probably a normal device command
 					// of form !RxDyFz or !RxDyFdPz (dimmer)
 					else {
-						if ($debug>1) 
-							$log->lwrite("main:: Action: time: ".$items[$i]['secs']
-									.", scene: ".$items[$i]['scene'].", cmd: ".$items[$i]['cmd']);
+						$log->lwrite("main:: Action: time: ".$items[$i]['secs']
+									.", scene: ".$items[$i]['scene'].", cmd: ".$items[$i]['cmd'],2);
 						$cmd = $items[$i]['cmd'];
 					}
 					
 					// If we have all devices, $devices contains list of devices
 					// It is possible to look the device up through room and device combination!!
 					list( $room, $dev, $value ) = sscanf ($items[$i]['cmd'], "!R%dD%dF%s\n" );
-					if ($debug>1) $log->lwrite("room: ".$room." ,device: ".$dev." value: ".$value);
+					$log->lwrite("room: ".$room." ,device: ".$dev." value: ".$value,2);
 			
 					$device = $dlist->get($room, $dev);
 
@@ -1827,14 +1967,14 @@ while (true):
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
 					$dlist->upd($device);						// Write new value to database
 			
-					$bcst = array (								// build broadcast message
+					$bcst = array (							// build broadcast message
 						// First part of the record specifies this message type and characteristics
 						'tcnt' => "0",
 						'action' => "upd",					// code for remote command. upd tells we update a value
 						'type'   => "raw",					// type either raw or json. 
 						// Remainder of record specifies device parameters
 						'gaddr'  => $device['gaddr'],
-						'uaddr'  => $dev."",				// From he sscanf command above, cast to string
+						'uaddr'  => $dev."",				// From the sscanf command above, cast to string
 						'brand'  => $brand,					// NOTE brand is a string, not an id here
 						'val'    => $sndval,				// Value is "on", "off", or a number (dimvalue) 1-32
 						'message' => $items[$i]['cmd']		// The GUI message, ICS encoded 
@@ -1859,7 +1999,7 @@ while (true):
 		}//for
 		
 	}//for
-	if ($debug > 2) {
+	if ($debug >= 3) {
 		$log->lwrite("main:: queue finished ");
 		$queue->q_print();
 	}
@@ -1868,13 +2008,13 @@ while (true):
 	
 	
 	// -----------------------------------------------------------------------
-	// 3. STAGE 3 RUN TIMERS FROM MYSQL
+	// 3. STAGE 3, RUN TIMERS FROM MYSQL
 	// Process timers scenes in MySQL and see whether they need activation... 
 	// Other processing based on content of timers in MySQL?
 	// This part only needs to run once every 60 seconds or so, since the timer resolution in in MINUTES!
 	// What influences the timing are sensors of weather stations, but that is compensated for ..
 	
-	if ($debug> 2) $log->lwrite("main:: Entering the SQL Timers section" );
+	$log->lwrite("main:: Entering the SQL Timers section",3);
 	$timers = load_timers();				// This is a call to MSQL	
 	$tim = time();
 	// mktime(hour,minute,second,month,day,year,is_dst) NOTE is_dst daylight saving time
@@ -1882,7 +2022,7 @@ while (true):
 	//
 	for ($i=0; $i < count($timers); $i++)
 	{
-		if ($debug>2) $log->lwrite("index: $i, id: ".$timers[$i]['id'].", name: ".$timers[$i]['name']);
+		$log->lwrite("index: $i, id: ".$timers[$i]['id'].", name: ".$timers[$i]['name'],3);
 		//
 		list ( $start_hour, $start_minute) = sscanf($timers[$i]['tstart'], "%2d:%2d" );
 		list ( $start_day, $start_month, $start_year ) = sscanf($timers[$i]['startd'], "%2d/%2d/%2d" );

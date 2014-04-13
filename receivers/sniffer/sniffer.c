@@ -383,18 +383,20 @@ int wt440h(int p_length)
 		//
 		// The preamble of the WT440H has 4 bits, 1100 which means following 6 pulses
 		// if these pulses are found we assume that we might have a valid message
-		if  (  (pulse_array[j     % MAXDATASIZE] > WT440H_MIN_SHORT) 
+		if  (  (pulse_array[j     % MAXDATASIZE] > WT440H_MIN_SHORT) // 1
 			&& (pulse_array[j     % MAXDATASIZE] < WT440H_MAX_SHORT) 
 			&& (pulse_array[(j+1) % MAXDATASIZE] > WT440H_MIN_SHORT)
 			&& (pulse_array[(j+1) % MAXDATASIZE] < WT440H_MAX_SHORT)
-			&& (pulse_array[(j+2) % MAXDATASIZE] > WT440H_MIN_SHORT)
+			
+			&& (pulse_array[(j+2) % MAXDATASIZE] > WT440H_MIN_SHORT) // 1
 			&& (pulse_array[(j+2) % MAXDATASIZE] < WT440H_MAX_SHORT)
 			&& (pulse_array[(j+3) % MAXDATASIZE] > WT440H_MIN_SHORT)
 			&& (pulse_array[(j+3) % MAXDATASIZE] < WT440H_MAX_SHORT)
 			
-			&& (pulse_array[(j+4) % MAXDATASIZE] > WT440H_MIN_LONG)
+			&& (pulse_array[(j+4) % MAXDATASIZE] > WT440H_MIN_LONG) // 0
 			&& (pulse_array[(j+4) % MAXDATASIZE] < WT440H_MAX_LONG)
-			&& (pulse_array[(j+5) % MAXDATASIZE] > WT440H_MIN_LONG)
+			
+			&& (pulse_array[(j+5) % MAXDATASIZE] > WT440H_MIN_LONG) // 0
 			&& (pulse_array[(j+5) % MAXDATASIZE] < WT440H_MAX_LONG)
 			)
 		{
@@ -876,7 +878,7 @@ int action(int p_length)
 		j = r_index;
 		if  (  (pulse_array[(j+1) % MAXDATASIZE] > 4000) 
 			&& (pulse_array[(j+1) % MAXDATASIZE] < 6500) 
-			&& (pulse_array[ j    % MAXDATASIZE] > 90) 
+			&& (pulse_array[ j    % MAXDATASIZE] > ACTION_MIN_SHORT) 
 			&& (pulse_array[ j    % MAXDATASIZE] < ACTION_MAX_SHORT)
 			)
 		{
@@ -893,70 +895,72 @@ int action(int p_length)
 
 			while (j < (r_index+48))					// total Must be 50
 			{
-				if (   (pulse_array[ j    % MAXDATASIZE] > 100) 			// Short
+				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[ j    % MAXDATASIZE] < ACTION_MAX_SHORT) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+1) % MAXDATASIZE] < 900)  
-					&& (pulse_array[(j+2) % MAXDATASIZE] > 100) 			// Short
+					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+1) % MAXDATASIZE] < ACTION_MAX_LONG)  
+					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+2) % MAXDATASIZE] < ACTION_MAX_SHORT) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+3) % MAXDATASIZE] < 900)
+					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+3) % MAXDATASIZE] < ACTION_MAX_LONG)
 					)
 				{
 					binary[binary_count++]=0;
 				}
 				else 
-				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[ j    % MAXDATASIZE] < 900) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > 100) 			// Short
+				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[ j    % MAXDATASIZE] < ACTION_MAX_LONG) 
+					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+1) % MAXDATASIZE] < ACTION_MAX_SHORT)
-					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+2) % MAXDATASIZE] < 900) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > 100) 			// Short
+					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+2) % MAXDATASIZE] < ACTION_MAX_LONG) 
+					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+3) % MAXDATASIZE] < ACTION_MAX_SHORT)
 					)
 				{
 					binary[binary_count++]=1;
 				}
 				else 
-				if (   (pulse_array[ j    % MAXDATASIZE] > 100) 			// Short
+				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[ j    % MAXDATASIZE] < ACTION_MAX_SHORT) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+1) % MAXDATASIZE] < 900)
-					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+2) % MAXDATASIZE] < 900) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > 100) 			// Short
+					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+1) % MAXDATASIZE] < ACTION_MAX_LONG)
+					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+2) % MAXDATASIZE] < ACTION_MAX_LONG) 
+					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+3) % MAXDATASIZE] < ACTION_MAX_SHORT)
 					)
 				{
 					binary[binary_count++]=2;
 				}
 				else 
-				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[ j    % MAXDATASIZE] < 900) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > 100) 			// Short
+				if (   (pulse_array[ j    % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[ j    % MAXDATASIZE] < ACTION_MAX_LONG) 
+					&& (pulse_array[(j+1) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+1) % MAXDATASIZE] < ACTION_MAX_SHORT)
-					&& (pulse_array[(j+2) % MAXDATASIZE] > 100) 			// Short
+					&& (pulse_array[(j+2) % MAXDATASIZE] > ACTION_MIN_SHORT) // Short
 					&& (pulse_array[(j+2) % MAXDATASIZE] < ACTION_MAX_SHORT) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MAX_SHORT) // Long
-					&& (pulse_array[(j+3) % MAXDATASIZE] < 900)
+					&& (pulse_array[(j+3) % MAXDATASIZE] > ACTION_MIN_LONG)  // Long
+					&& (pulse_array[(j+3) % MAXDATASIZE] < ACTION_MAX_LONG)
 					)
 				{
 					binary[binary_count++]=3;
 				}
 				else
 				{
-					// If some bits arrive OK and some not, this will trigger
+					// If some bits arrive OK and some not, this will trigger here
 					// and provide some insight
 					if ((debug) && (binary_count>1)) 
 					{
 						printf("Error:: Action: binary index %d, r_index: %d, 4-bytes: %d %d %d %d\n", 
 							binary_count, r_index,
-							pulse_array[j%MAXDATASIZE],pulse_array[(j+1)%MAXDATASIZE],
-							pulse_array[(j+2)%MAXDATASIZE],pulse_array[(j+3)%MAXDATASIZE]
+							pulse_array[ j   %MAXDATASIZE],
+							pulse_array[(j+1)%MAXDATASIZE],
+							pulse_array[(j+2)%MAXDATASIZE],
+							pulse_array[(j+3)%MAXDATASIZE]
 							);
 					}
-					statistics[I_KAKU][I_MSGS_DISCARD]++;
+					statistics[I_ACTION][I_MSGS_DISCARD]++;
 					binary_count = 0;
 					return(0);
 				}
@@ -1106,12 +1110,14 @@ int kaku(int p_length)
 		binary_count = 0;
 		j = r_index;
 		
+		// First pulse is 10T followed by T
 		if  (  (pulse_array[(j+1)   % MAXDATASIZE] >  2300) 	// first pulse of the train
 			&& (pulse_array[(j+1)   % MAXDATASIZE] <  3000)				 				
-			&& (pulse_array[ j      % MAXDATASIZE] >   190) 
-			&& (pulse_array[ j      % MAXDATASIZE] <   370)
+			&& (pulse_array[ j      % MAXDATASIZE] >   KAKU_MIN_SHORT) 
+			&& (pulse_array[ j      % MAXDATASIZE] <   KAKU_MAX_SHORT)
 			)
 		{
+			// End pulse if 20T long
 			if (   (pulse_array[(j+131) % MAXDATASIZE] >  9000) 	// Last pulse of the train switch
 				&& (pulse_array[(j+131) % MAXDATASIZE] < 12000) )
 			{
@@ -1145,6 +1151,7 @@ int kaku(int p_length)
 					printf("p 140: %d\n",pulse_array[(j+140) % MAXDATASIZE]);
 					printf("\n");
 				}
+				
 				return(0);
 			}
 			
@@ -1161,41 +1168,41 @@ int kaku(int p_length)
 
 			while (j < (r_index+130))					// total Must be 50
 			{
-				if (   (pulse_array[ j    % MAXDATASIZE] > 190)	// Short
-					&& (pulse_array[ j    % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+1) % MAXDATASIZE] < 370)  
-					&& (pulse_array[(j+2) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+2) % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > 1100) // Long
-					&& (pulse_array[(j+3) % MAXDATASIZE] < 1500)
+				if (   (pulse_array[ j    % MAXDATASIZE] > KAKU_MIN_SHORT)	// Short
+					&& (pulse_array[ j    % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+1) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+1) % MAXDATASIZE] < KAKU_MAX_SHORT)  
+					&& (pulse_array[(j+2) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+2) % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+3) % MAXDATASIZE] > KAKU_MIN_LONG) // Long
+					&& (pulse_array[(j+3) % MAXDATASIZE] < KAKU_MAX_LONG)
 					)
 				{
 					binary[binary_count++]=0;
 				}
 				else 
-				if (   (pulse_array[ j    % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[ j    % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > 1100) // Long
-					&& (pulse_array[(j+1) % MAXDATASIZE] < 1500)
-					&& (pulse_array[(j+2) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+2) % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+3) % MAXDATASIZE] < 370)
+				if (   (pulse_array[ j    % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[ j    % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+1) % MAXDATASIZE] > KAKU_MIN_LONG) // Long
+					&& (pulse_array[(j+1) % MAXDATASIZE] < KAKU_MAX_LONG)
+					&& (pulse_array[(j+2) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+2) % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+3) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+3) % MAXDATASIZE] < KAKU_MAX_SHORT)
 					)
 				{
 					// Coding for a 1-bit
 					binary[binary_count++]=1;
 				}
 				else 
-				if (   (pulse_array[ j    % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[ j    % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+1) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+1) % MAXDATASIZE] < 370)
-					&& (pulse_array[(j+2) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+2) % MAXDATASIZE] < 370) 
-					&& (pulse_array[(j+3) % MAXDATASIZE] > 190) // Short
-					&& (pulse_array[(j+3) % MAXDATASIZE] < 370)
+				if (   (pulse_array[ j    % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[ j    % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+1) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+1) % MAXDATASIZE] < KAKU_MAX_SHORT)
+					&& (pulse_array[(j+2) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+2) % MAXDATASIZE] < KAKU_MAX_SHORT) 
+					&& (pulse_array[(j+3) % MAXDATASIZE] > KAKU_MIN_SHORT) // Short
+					&& (pulse_array[(j+3) % MAXDATASIZE] < KAKU_MAX_SHORT)
 					)
 				{
 					// Float encoding
@@ -1247,15 +1254,17 @@ int kaku(int p_length)
 				if (sflg) add_statistics(I_KAKU, 500, r_index+2, 128);
 				
 				
-				printf("\n------------------------------------------------------\nKAKU: <");
-				for (i=0; i<binary_count; i++) {
-					printf("%d ",binary[i]);
+				if (verbose) 
+				{
+					printf("\n------------------------------------------------------\nKAKU: <");
+					for (i=0; i<binary_count; i++) {
+						printf("%d ",binary[i]);
+					}
+					printf(">\n"); 
 				}
-				printf(">\n"); 
-				
 				// Print the pulse timing for each bit
 				//	
-				if (debug==1) {
+				if (debug) {
 					printf("Timing:: r_index: %5d, j: %d\n",r_index,j);
 					for (i=0; i<132; i++)
 					{
@@ -1290,25 +1299,27 @@ int kaku(int p_length)
 				}
 				//if (socktcnt++ > 999) socktcnt = 0;				// Transaction counter reset
 				socktcnt++;
-				// If group, send other message than if it is regular button
+				
+				// If group message, send other message than if it is regular button
 				if (group == 1) {
 				
 					sprintf(snd_buf, 
 					 "{\"tcnt\":\"%d\",\"action\":\"handset\",\"type\":\"raw\",\"message\":\"!A%dD%dG%d\"}", 
 							socktcnt%1000,address,unit,group);
-					printf("Address: %d, Unit: %d, Group: %d\n",address,unit,group);
+					if (verbose) printf("Address: %d, Unit: %d, Group: %d\n",address,unit,group);
 					
 				}
 				else {
 					
 					// Remotes do not do dimlevel, but if necessary we can ...
 					if (onoff == 2) {
-						printf("Address: %d, Unit: %d, Dim: %d\n",address,unit,dimlevel);
+						if (verbose) printf("Address: %d, Unit: %d, Dim: %d\n",address,unit,dimlevel);
 						sprintf(snd_buf, 
 							"{\"tcnt\":\"%d\",\"action\":\"handset\",\"type\":\"raw\",\"message\":\"!A%dD%dFdP%d\"}", 
 							socktcnt%1000,address,unit,dimlevel);
 					}
 					else {
+						if (verbose) printf("Address: %d, Unit: %d, OnOff: %d\n",address,unit,onoff);
 						sprintf(snd_buf, 
 							"{\"tcnt\":\"%d\",\"action\":\"handset\",\"type\":\"raw\",\"message\":\"!A%dD%dF%d\"}", 
 							socktcnt%1000,address,unit,onoff);
@@ -1481,7 +1492,7 @@ int open_socket(char *host, char *port) {
     }
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-    printf("client: connecting to %s\n", s);
+    if (verbose) printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
 	
@@ -1548,7 +1559,7 @@ int main (int argc, char **argv)
 			//if (tflg>0) errflg++;
            dflg++;						// Need daemon flag too, (implied)
         break;
-		case 's':
+		case 's':						// Do Statistics
 			sflg = 1;
 		break;
 		case 't':						// Test Mode, do debugging

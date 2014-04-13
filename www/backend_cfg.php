@@ -11,11 +11,11 @@
 
 // Use this var as a way to determine what details are logged and what not...
 // At the moment, the user has to kill the daemon and restart with new debug value.   
-// Val 0: No Debug, just logging of events in queue
+// Val 0: No Debug, Only Errors and logging of events in queue
 // Val 1: Verbose mode
 // Val 2: Normal Debug level
 // Val 3: Detail debugging info. Will fill up the logfile Quickly
-	$debug = 1;
+	$debug = 2;
 
 // MySQL DATABASE SETTINGS
 // Default server is localhost for most situations. However, should you want to run the
@@ -24,8 +24,29 @@
 	$dbname = "dorm";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
-	$dbhost = "192.168.2.11";				// standard "localhost"
+	$dbhost = "192.168.2.11";				// standard this should be "localhost"
 
+// USER ADMIN SETTINGS (could be in database too, but this is easy as well)
+	$u_admin = array (
+					array (
+						'login' => 'user1',
+						'password' => '12345' , 
+						'server' => '' ,
+						'trusted' => '2'
+					),
+					array (
+						'login' => 'user2',
+						'password' => '12345' , 
+						'server' => '' ,
+						'trusted' => '1'
+					),
+					array (
+						'login' => 'user3',
+						'password' => '12345' , 
+						'server' => '' ,
+						'trusted' => '2'
+					) 
+			);
 // Are we still debugging or testing or operational? 
 // $_GET is not allowed in operational!!
 // Set to 0 for operational, and to 1 for testing
@@ -36,7 +57,6 @@
 	$config_dir="config/";
 	$skin_dir  ="styles/";
 	$log_dir="../log/";
-
 
 // Port Settings for the LamPI Daemon (!) LamPI-daemon.php file
 	$rcv_daemon_port = "5000";										

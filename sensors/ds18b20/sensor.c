@@ -398,7 +398,7 @@ int main(int argc, char **argv)
 						0);
 					
 						// Do NOT use check_n_write_socket as weather stations will not
-						// send too many repeating messages (1 or 2 will come in one trasmission)
+						// send too many repeating messages (1 or 2 will come in one transmission)
 						//
 						if (write(sockfd, snd_buf, strlen(snd_buf)) == -1) {
 							fprintf(stderr,"socket write error\n");
@@ -423,13 +423,18 @@ int main(int argc, char **argv)
 				}
 			}
 			closedir (dir);
-		} else {
+		} 
+		else {
   			/* could not open directory */
  			 perror ("No such directory ");
 			return EXIT_FAILURE;
 		}
 	}
-	delay(1500);
+	delay(1000);
+	// Close the socket to the daemon
+	if (close(sockfd) == -1) {
+		perror("Error closing socket to daemon");
+	}
 	// Should wait for confirmation of the daemon before closing
 	
 	exit(EXIT_SUCCESS); 

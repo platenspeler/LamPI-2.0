@@ -7,7 +7,7 @@
 // Version 1.6, Nov 10, 2013. Implemented connections, started with websockets option next (!) to .ajax calls.
 // Version 1.7, Dec 10, 2013. Work on the mobile version of the program
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
-// Version 1.9, Mar 10, 2014, Support for wired sensors and logging
+// Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -1402,7 +1402,7 @@ function start_LAMP(){
 		// not see the difference.
 		if (jqmobile == 1) {							// Sortable works different for jqmobile, do later
 		
-			// **** SORTABLE NOT IMPLEMENTED FOR JQMOBILE ***
+			// **** SORTABLE HANDSETS NOT IMPLEMENTED FOR JQMOBILE ***
 		
 		}
 		else 
@@ -1521,20 +1521,26 @@ function start_LAMP(){
 		// State 2: Close in progress
 		// State 3: Closed
 		
-		w_uri = "ws://"+w_url+":"+w_port;
-		w_sock = new WebSocket(w_uri);
+		var urlParts = w_url.split(':');					// remove the calling port number
+		console.log("Splitting into: "+urlParts[0]);
+		w_uri = "ws://"+urlParts[0]+":"+w_port;				// and add the port number of server
+		w_sock = new WebSocket(w_uri);						// Create a socket for server communication
 		
-		w_sock.onopen = function(ev) { 							// connection is open 
+		w_sock.onopen = function(ev) { 						// connection is open 
 			console.log("Websocket:: Opening socket "+w_uri);	// notify user
+			message("websocket reopen",1);
 		};
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed, reopening socket "+w_uri);
-			w_sock = new WebSocket(w_uri);
+			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+			w_sock = WebSocket(w_uri);
+			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			// w_sock = new WebSocket(w_uri);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
 			console.log("Websocket:: error. State is: "+state);
-			message("websocket:: error: "+state,1);
+			// message("websocket:: error: "+state,1);
 		};
 		
 		// This is one of the most important functions of this program: It receives asynchronous
@@ -1546,14 +1552,16 @@ function start_LAMP(){
 		{
 			var ff = ev.data.substr(1);
 			//alert("Websocket:: Received a Message: "+ff);
-			//console.log("Websocket:: message");
+			
 			
 			var rcv = JSON.parse(ev.data);		//PHP sends Json data
+			console.log("Websocket:: message action: "+rcv.action);
 			
 			// First level of the json message is equal for all
 			var tcnt   = rcv.tcnt; 				// message transaction counter
 			var type   = rcv.type;				// type of content part, eg raw or json
 			var action = rcv.action; 			// message text: handset || sensor || gui || weather || energy
+												// || login
 			
 			// Now we need to parse the message and take action.
 			// Best is to build a separate parse function for messages
@@ -1691,6 +1699,78 @@ function start_LAMP(){
 					console.log("Lampi.js:: received energy message");
 				break;
 				
+				//
+				// Support for user management messages, such as login, password etc.
+				//
+				case 'user':
+				case 'login':
+					//var msg   = rcv.message;
+					if(typeof(Storage)!=="undefined")
+  					{
+  					// Code for localStorage/sessionStorage.
+						//alert("Support for localstorage");
+  						var uname= localStorage.getItem("uname");		// username
+						var pword= localStorage.getItem("pword");		// pin
+						//alert("Support for localstorage, uname: "+uname);
+ 					}
+					else
+  					{
+  					// Sorry! No Web Storage support..
+						//alert("No local storage");
+						var uname="login";
+						var pword="****";
+ 					}
+					
+					//var saddr= window.localStorage.getItem("saddr");		// Server address
+					console.log("Lampi.js:: received login request");
+					
+					askForm('<form id="addRoomForm"><fieldset>'		
+					+ '<p>Since your computer is outside the network, we ask '
+					+ 'you to logon to the system and prove your identity</p>'
+					+ '<label for="val_1">Login: </label>'
+					+ '<input type="text" name="val_1" id="val_1" value="'+uname+'" class="text ui-widget-content ui-corner-all" />'
+					+ '<br />'
+					+ '<label for="val_2">Password: </label>'
+					+ '<input type="text" name="val_2" id="val_2" value="'+pword+'" class="text ui-widget-content ui-corner-all" />'
+					+ '</fieldset></form>'
+					
+					// Create
+					,function (ret) {
+						// OK Func, need to get the value of the parameters
+						// Add the device to the array
+						// SO what are the variables returned by the function???
+						if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);	
+						
+						// All OK? 
+						var login_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'login',
+							login:  ret[0],
+							password:  ret[1],
+						}
+						
+						console.log(login_msg);
+						//alert("Submit login: "+ret[0]+", password: "+ret[1] );
+						if(typeof(Storage)!=="undefined")
+  						{
+  						// Code for localStorage/sessionStorage.
+  						localStorage.setItem("uname",uname);
+						localStorage.setItem("pword",pword);
+						//window.localStorage.setItem("saddr",saddr);
+ 						}				
+						// Send the password back to the daemon
+						w_sock.send(JSON.stringify(login_msg));
+						return(1);									//return(1);
+						
+					// Cancel	
+  					}, function () {
+						return(0); 									// Avoid further actions for these radio buttons 
+  					},
+  					'Confirm Login'
+				); // askForm
+				
+				break;
+				
 				default:
 					message("Unknown message: action: "+action+", tcnt: "+tcnt+", mes: "+msg+", type: "+type);
 			}
@@ -1700,7 +1780,13 @@ function start_LAMP(){
 		console.log("Websocket:: readyState: "+w_sock.readyState);
 		
 	//}//rasp and !phonegap	
-	}//function
+	}//function init_websockets
+
+}); // Doc Ready end
+
+} //start_LAMP() function end
+
+// ========================================================================================
 
 
 // ----------------------------------------------------------------------------------------
@@ -1708,6 +1794,8 @@ function start_LAMP(){
 // This function runs for PhoneGap/Mobile only, where we need
 // to retrieve/store the IP address of the server
 //
+// We use local storage, which is a html5 feature! and will not work
+// with older browsers.
 // The username and pin are not necessary for local operation, but
 // they are required once we access the app over the internet.
 //
@@ -1796,14 +1884,7 @@ function start_LAMP(){
 			return(false);
 		});
 			
-	}// function
-
-}); // Doc Ready end
-
-} //start_LAMP() function end
-
-// ========================================================================================
-
+	}// function onLinePopup
 
 
 
@@ -5756,7 +5837,7 @@ function message_device(action, controller_cmd)
 			// 0: Not yet ready, wait for connect
 			case 0:
 				console.log("Websocket:: readystate not ready: "+w_sock.readyState);
-				setTimeout( function() { console.log("message_device:: socket not ready: "+w_sock.readyState); }, 500);
+				setTimeout( function() { console.log("message_device:: socket not ready: "+w_sock.readyState); }, 1000);
 			break;
 			// 1: socket is ready, send the data
 			case 1: 
@@ -5767,15 +5848,15 @@ function message_device(action, controller_cmd)
 			// 2: close in progress
 			// Must wait the disconnect out?
 			case 2:
-				console.log("Websocket:: close in progress: "+w_sock.readyState);
+				console.log("Websocket:: readystate close in progress: "+w_sock.readyState);
 			break;
 			// 3: closed
 			// if closed, reopen the socket again
 			case 3:
 				console.log("Websocket:: readystate closed: "+w_sock.readyState);
 				// wait with execution for 500 mSec
-				setTimeout( function() { w_sock = WebSocket(w_uri); }, 1000);
-				console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+				//setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+				//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 			break;
 		
 			default:
