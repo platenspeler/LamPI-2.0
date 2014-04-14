@@ -1732,13 +1732,13 @@ while (true):
 			else {
 				
 				
-				$log->lwrite("main:: external client ".$sock->clientIP."not trusted, action: ".$data['action'].", login: ".$data['login'].", password: ".$data['password'],3);
+				$log->lwrite("main:: external client ".$sock->clientIP."not trusted",3);
 				
 				// If user has set local storage/cookie for this IP for the password, 
 				// he/she will be cone quickly
 				if ($data['action'] == "login" ){
-					$log->lwrite("main:: received login request from ip ".$sock->clientIP,1);
-					
+					$log->lwrite("main:: received login request from ip ".$sock->clientIP.
+							", action: ".$data['action'].", login: ".$data['login'].", password: ".$data['password'],3);
 					if (User::pwcheck($data) > 0)
 					{
 							$akey = array_keys($sock->clients, $sock->ssock);

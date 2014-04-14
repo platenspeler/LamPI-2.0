@@ -190,6 +190,8 @@ var max_weather = 4;									// Maximum number of weather stations receivers
 // HANDSETS
 //
 // WEATHER
+// Weather sensor messages coming from 440MHz transmitters or local devices on one of the Raspberries
+// on the local network are forwarded to the LamPI_daemon.php process and then forwarded to all clients.
 //
 var rooms={};			// For most users, especially novice this is the main/only screen
 var devices={};			// Administration of room devices (lamps or switches)
@@ -238,7 +240,18 @@ function start_LAMP(){
 		}	
 		// Else we use the mobile libraries but NOT phonegap.
 		else {
-			onLinePopup();
+			// Only uncomment the Popup line below if you like to test logic of mobile
+			// on your PPC
+			// onLinePopup();
+			var ret = load_database("init");		// Initialise the database, this will give names to buttons
+									// without the database being present, nothing will be displayed
+			if (ret<0) {
+				alert("Error:: loading database failed");
+			}
+			if ( (settings[1]['val'] == 1) && ( phonegap != 1 ) ) 				
+			{
+				init_websockets();			// For regular web based operations we start websockets here
+			}
 		}
 		// If we are here, we need to be sure that we have all parameters for networking etc.
 	}
@@ -2025,7 +2038,7 @@ function myConfirm(dialogText, okFunc, cancelFunc, dialogTitle) {
 //
 function helpForm(dialogTitle, dialogText, moreFunc, doneFunc ) {
   if (jqmobile == 1) {
-	//alert("askForm jqmobile");
+	//alert("helpForm jqmobile");
 	// We assume that for jqmobile setting we receive a dialogtext
 	// that contains jQM correct html tags so that we can use this
 	// functions semi-generic for jQuery mobile and jQuery UI
@@ -2135,8 +2148,9 @@ function checkLength( o, n, min, max ) {
 // Return values is an array in var ret, So ret[0] may contain values just as many as val_x
 //
 function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
+	
   if (jqmobile ==1) {
-	//alert("askForm jqmobile");
+	alert("askForm jqmobile");
 	// We assume that for jqmobile setting we receive a dialogtext
 	// that contains jQM correct html tags so that we can use this
 	// functions semi-generic for jQuery mobile and jQuery UI
@@ -2147,45 +2161,45 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 	// The function below is the callback function for when the popup form has closed
 	$( "#myform" ).popup( "open" );							// Display Open the form
 	$( "#myform" ).on( "popupafterclose", function(event, ui) {
-			if (typeof (okFunc) == 'function') {
-				// Return max of 4 results (may define more)...
-				var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
-				setTimeout(function(){ okFunc(ret) }, 50);
-        	}								   
+		if (typeof (okFunc) == 'function') {
+			// Return max of 4 results (may define more)...
+			var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+			setTimeout(function(){ okFunc(ret) }, 50);
+        }								   
 	});
   }
   // jQuery UI style of dialog
   else {
-  $('<div style="padding: 10px; max-width: 500px; word-wrap: break-word;">'+dialogText+'</div>').dialog({
-    draggable: false,
-    modal: true,
-    resizable: false,
-	width: 'auto',
-    title: dialogTitle || 'Confirm',
-    minHeight: 120,
-    buttons: {
-    	OK: function () {
-			//var bValid = true;
-//			bValid = bValid && checkLength( name, "name", 3, 16 );
-        	if (typeof (okFunc) == 'function') {
-				// Return max of 4 results (may define more)...
-				var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
-				setTimeout(function(){ okFunc(ret) }, 50);
-        	}
-      		$(this).dialog('destroy');
-      	},
-		Cancel: function () {
-      		if (typeof (cancelFunc) == 'function') {
-      			setTimeout(cancelFunc, 50);
-        	}
-        	$(this).dialog('destroy');
+	$('<div style="padding: 10px; max-width: 500px; word-wrap: break-word;">'+dialogText+'</div>').dialog({
+		draggable: false,
+		modal: true,
+		resizable: false,
+		width: 'auto',
+		title: dialogTitle || 'Confirm',
+		minHeight: 120,
+		buttons: {
+			OK: function () {
+				//var bValid = true;
+//				bValid = bValid && checkLength( name, "name", 3, 16 );
+        		if (typeof (okFunc) == 'function') {
+					// Return max of 4 results (may define more)...
+					var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+					setTimeout(function(){ okFunc(ret) }, 50);
+				}
+				$(this).dialog('destroy');
+			},
+			Cancel: function () {
+				if (typeof (cancelFunc) == 'function') {
+					setTimeout(cancelFunc, 50);
+        		}
+				$(this).dialog('destroy');
+			}
+		},
+		close: function() {
+			$(this).dialog('destroy');
 		}
-    },
- 	close: function() {
-		$(this).dialog('destroy');
-	}
-  });
-  // console.log(" name: "+name.val);
+	});
+	// console.log(" name: "+name.val);
   }
 } // askForm end
 
@@ -4936,6 +4950,7 @@ function activate_setting(sid)
 						//alert("config_file: "+config_file);
 						send_2_set("load_config",config_file);
 						if (debug>0) myAlert("The configuration file is now set to: "+config_file,"CONFIGURATION");
+						else message("Configuration file loaded "+config_file)
 					break;
 					default:
 						myAlert("Unknown option for Backup Setting: "+bak);
