@@ -10,7 +10,7 @@ cd /home/pi
 echo "This script will upgrade your Raspberry to its latest revision of software."
 echo "It will instal MYSQL, PHP and Apache webserver packages which will take"
 echo "some time to install. Please press enter to continue or CTRL-C to abort."
-echo -n "<Press ENTER to continue>"
+echo -n "<Press ENTER to start>"
 read a
 
 # --------------------------------------------------------------
@@ -64,15 +64,45 @@ fi
 # Install the LamPI software from the download server
 #
 cd /home/pi
-git clone git://github.com/platenspeler/LamPI-1.8 /home/pi
+
+# The command below will FAIL if the PI_install script is put in /home/pi/scripts or
+# if the /home/pi directory is not empty
+rm -rf /tmp/effe
+mkdir /tmp/effe
+git clone git://github.com/platenspeler/LamPI-1.9 /tmp/effe
+cd /tmp/effe; tar cf - . | ( cd /home/pi; tar xpf - )
+rm -rf /tmp/effe
 
 sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
 sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
 sudo mv /tmp/effe /etc/apache2/sites-available/default
 sudo /etc/init.d/apache2 restart
 
+# Make the w1 bus modules load at system startup
+sudo echo 'w1-gpio' >> /etc/modules
+sudo echo 'w1-therm' >> /etc/modules
+
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe
+
+# --------------------------------------------------------------
+# Fix the .exe directory
+#
+cd /home/pi/receivers/sniffer; make
+sudo make install
+
+cd /home/pi/receivers/livolo; make
+sudo make install
+
+cd /home/pi/receivers/kaku; make
+sudo make install
+
+cd /home/pi/receivers/lights; make
+sudo make install
+
+cd /home/pi/receivers/lights; make
+sudo make install
+
 # --------------------------------------------------------------
 # Setup the crontab so that daemon and receiver are enabled.
 #
@@ -91,9 +121,10 @@ if [ $CRONTAB = "y" ]; then
     echo "* * * * * cd /home/pi/scripts && sh ./PI-run" >> /tmp/effe
     echo "* * * * * cd /home/pi/scripts && sh ./PI-rcv" >> /tmp/effe
     echo "0 2 * * * cd /home/pi/scripts && sh ./PI-log" >> /tmp/effe
-    echo "0 2 * * * cd /home/pi/scripts && sh ./PI-1w"  >> /tmp/effe
+    echo "* * * * * cd /home/pi/scripts && sh ./PI-1w"  >> /tmp/effe
     crontab -u pi /tmp/effe
   fi
+  
   if [ -f /etc/cron.allow ]; then
 	cat /etc/cron.allow | grep pi > /dev/null
 	if [ $? != 0 ]; then

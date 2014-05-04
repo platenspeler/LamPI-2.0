@@ -171,8 +171,9 @@ src="sensors/DS18B20/18b20_1.jpg" alt="" width=338 height=327 id="Picture 7"></p
 </ul>
 <p>Load both modules with the modprobe command:</p>
 <p><img src="sensors/DS18B20/code_1.JPG" width="425" height="45"></p>
+<p>These commands must be loaded after every reboot of the Raspberry. If you want to load modules automatically then add two lines with the words w1-gpio and w1-therm to the /etc/modules file.</p>
 <p>After the modules are loaded it is easy to read the value of the sensors. Go to the /sys/bus/w1/devices directory and list the directories and files. Apart from the w1_bus_master command there will be one or more other directories, one for every device on the bus.</p>
-<p>For the ds18b20 sensor, the directory name will start with 28- . Go to one of the ds18b20 directorys and use the following command to read the current termperature at the sensor:</p>
+<p>For the ds18b20 sensor, the directory name will start with 28-xxxxxx . Go to one of the ds18b20 directorys and use the following command to read the current termperature at the sensor:</p>
 <p><img src="sensors/DS18B20/code_2.JPG" width="664" height="180"></p>
 <p>Both modules w1-therm and w1-gpio need to be loaded prior to their usage. By
   default, GPIO pin 4 (P1 connector 7) is used. </p>

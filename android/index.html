@@ -12,6 +12,7 @@
 // Version 1.6, Nov 10, 2013. Backend improvements and adding support for handsets
 // Version 1.7, Dec 10, 2013. Working on the mobile app and jQuery Mobile
 // Version 1.8, Jan 20, 2014. Version with Weather station support
+// Version 1.9, Mar 10, 2014. Start spport for wired sensors and logging
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 // #gui_header: Here are the buttons for selecting the active rooms 
@@ -56,19 +57,20 @@
 <head>
     <meta charset="utf-8">
 	<title>LamPI Controller</title>
-    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.0/jquery.mobile-1.4.0.min.css" />
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css" />
     <link rel="stylesheet" href="http://mobipick.sustainablepace.net/css/mobipick.css" />
     <link rel="stylesheet" href="styles/phone.css"> 
     
-	<script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
-	<script src="http://code.jquery.com/mobile/1.4.0/jquery.mobile-1.4.0.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+    <script src="steel/tween-min.js"></script>
     
     <script src="http://mobipick.sustainablepace.net/external/xdate.js"></script>    
     <script src="http://mobipick.sustainablepace.net/external/xdate.i18n.js"></script>        
     <script src="http://mobipick.sustainablepace.net/js/mobipick.js"></script>
     
-    <script src="../android/phonegap.js"></script>
-    <script src="LamPI-1.8.js"></script> 
+    <script src="phonegap.js"></script>
+    <script src="LamPI-1.9.js"></script> 
 
 	<meta name="viewport" content="width=device-width, initial-scale=0.7, minimum-scale=0.7, maximum-scale=0.75" />
     
@@ -92,9 +94,8 @@ phonegap=1;									// PhoneGap application. NOTE:: Only use for Phonegap
 fake=0;										// We do not fake communication
 debug=1;									// Init debug 
 
-//murl='http://192.168.2.51/'; 				// XXX Normally we could assume this to be the webaddress, but not for phonegap
-
-//s_controller = murl + 'backend_rasp.php';
+murl='http://192.168.2.51/'; 				// XXX Normally we could assume this to be the webaddress, but not for phonegap
+s_controller = murl + 'backend_rasp.php';
 
 
 <!--
@@ -110,7 +111,7 @@ start_LAMP();								// START THE MAIN PROGRAM
         
 <div id="wrapper">
 <div data-role="page" id="page1">
-	<div data-role="header">Hdr
+	<div data-role="header">
     </div>
 	<div data-role="content">
 <!-- This is the top area with the menu tabs --> 	
@@ -130,11 +131,13 @@ start_LAMP();								// START THE MAIN PROGRAM
     </div>
 </div> 
 <!-- wrapper -->  
+<!-- popup is the section fo jq Mobile popups and dialogs -->
 
-	<!-- popup is the section fo jq Mobile popups and dialogs -->
-	<div id="popup">
+<div data-role="page" id="page2">
+<div id="popup">
 
-	</div>
-	<!-- popup --> 
+</div>
+</div>
+<!-- popup -->
 </body>
 </html>

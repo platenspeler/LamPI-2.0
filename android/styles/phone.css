@@ -5,7 +5,7 @@
 /* CORE HTML CSS */
 		
 		body {
-			font-family		: comic sans ms; 
+			/* font-family		: comic sans ms; */
 			color			: #0F0F0F; 
 			background		: #505050;
  		}
@@ -25,7 +25,7 @@
 		
 		p {
  			/* font-family:"Times New Roman"; */
- 			font-size:16px;
+ 			/* font-size:16px; */
  		}
 		
 		input#lbl {
@@ -438,6 +438,7 @@
 		.popform {
 			width: auto;
 			min-width: 200px;
+			max-width: 500px;
 		}
 		.pops {
 			width: auto;
@@ -445,6 +446,5 @@
 		}
 		.ui-content {
 			min-width: 150px;
-			background-color:#60F;
 		}
 		

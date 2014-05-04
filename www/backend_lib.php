@@ -1,5 +1,5 @@
 <?php 
-require_once( './backend_cfg.php' );
+require_once( '../www/backend_cfg.php' );
 
 // This file contains a number of supporting functions for the LamPI-daemon.php process.
 // - Database Functions

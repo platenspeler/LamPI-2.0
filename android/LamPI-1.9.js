@@ -101,8 +101,8 @@ var s_room_id =1;										// Screen room_id
 var s_scene_id =1;
 var s_timer_id = 1;
 var s_handset_id = 1;
-var s_weather_id = '';									// Init empty
-var s_setting_id = 0;
+var s_weather_id = 1;
+var s_setting_id = "0";
 var s_recorder = '';									// recording of all user actions in a scene. 
 var s_recording = 0;									// Set to 1 to record lamp commands
 
@@ -114,7 +114,7 @@ var max_scenes = 16;									// max nr of scenes. ICS-1000 has 20
 var max_devices = 16;									// max nr. of devices per room. ICS-1000 has 6
 var max_timers = 16;
 var max_handsets = 8;
-var max_weather = 8;									// Maximum number of weather stations receivers
+var max_weather = 4;									// Maximum number of weather stations receivers
 
 // Actually, sum of timers and scenes <= 20 for ICS-1000
 
@@ -705,7 +705,7 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.ct_button' ).removeClass( 'hover' );
+		$( '.cs_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
 		value=$(this).val();								// Value of the button
 		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
@@ -912,7 +912,7 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.ch_button' ).removeClass( 'hover' );
+		$( '.cs_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
 		value=$(this).val();								// Value of the button
 		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
@@ -1151,27 +1151,8 @@ function start_LAMP(){
 	}); // Handler for remotes handsets
 
 
-// ------------------------------------------------------------------------------
-// Weather
-// Handle the Header Weather (=remote) selection buttons
-// This function deals with the weather buttons diaplayed in the header section.
-// If the user selects one of these buttons, the corresponding weather screen is activated.
-//
-	$("#gui_header").on("click", ".hw_button", function(e){
-			e.preventDefault();
-//			e.stopPropagation();
-			selected = $(this);
-						
-			value=$(this).val();								// Value of the button
-			id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
-			$( '.hw_button' ).removeClass( 'hover' );
-			$( this ).addClass ( 'hover' );
-			activate_weather(id);
-	}); // weather
-
-
 // ----------------------------------------------------------------------------
-// WEATHER and Sensors
+// WEATHER
 //	*** Handle the Command Weather (CW) buttons (add, delete, help)
 // This function implements the small action buttons (add, delete, help) in the upper right corner
 // of the screen.
@@ -1180,7 +1161,7 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.cw_button' ).removeClass( 'hover' );
+		$( '.cs_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
 		value=$(this).val();								// Value of the button
 		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
@@ -1282,7 +1263,7 @@ function start_LAMP(){
 				
 			break;
 				
-			// Remove the current weather. Means: Remove from the weather
+			// Remove the current scene. Means: Remove from the scenes
 			// array, and reshuffle the array. 
 			// As there are multiple records with the same id, we need to make a 
 			// list first, and after selection delete all records with that id.
@@ -1308,9 +1289,9 @@ function start_LAMP(){
 				// The form returns 2 arguments, we only need the 1st one now
 				var frm='<form><fieldset>'
 					+ '<br>DRAFT:</br>'
-					+ '<br />You are planning to delete a sensor from the system. If you do so, all actions '
-					+ 'associated with the sensor must be deleted too.\n'
-					+ 'Please start with selecting a sensor from the list.<br /><br />'
+					+ '<br />You are planning to delete a handset from the system. If you do so, all actions '
+					+ 'associated with the handset must be deleted too.\n'
+					+ 'Please start with selecting a handset from the list.<br /><br />'
 					+ str
 					+ '<br />'
 					+ '</fieldset></form>';
@@ -1329,14 +1310,14 @@ function start_LAMP(){
 							if (debug>2) alert("working with i: "+i+", handset id: "+handsets[i]['name']);
 							if (handsets[i]['name'] == sname) {
 								// Is the room empty? Maybe we do not care, 
-								//everything for weather is IN the record itself
+								//everything for scene is IN the record itself
 								var handset_id = handsets[i]['id'];
 								// Removed is an array too, one element only
 								var removed = handsets.splice(i ,1);
 								if ( persist > 0 ) {
 									console.log(removed[0]);
-									// Remove the weather from MySQL
-									send_2_dbase("delete_weather", removed[0]);
+									// Remove the room from MySQL
+									send_2_dbase("delete_handset", removed[0]);
 									if (debug>1)
 										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
 								}
@@ -1350,7 +1331,7 @@ function start_LAMP(){
 						return(1);						
 					// Cancel	
   					}, function () {
-						activate_weather (s_weather_id);
+							activate_handset (s_handset_id);
 						return(1); // Avoid further actions for these radio buttons 
   					},
   					'Confirm Delete Handset'
@@ -1486,10 +1467,10 @@ function start_LAMP(){
 	});	// CC Config Handler
 
 
-	// ----------------------------------------------------------------------------------------
-	//	Init websockets communication
-	//	Especially the handlers for websockets etc, that need to test the state of the connection
-	//	
+// ----------------------------------------------------------------------------------------
+//	Init websockets communication
+//	Especially the handlers for websockets etc, that need to test the state of the connection
+//	
 	function init_websockets() {
 	// ** These are the handlers for websocket communication.
 	// ** We only use either websockets or regular/normal sockets called by .ajax/php handlers
@@ -1505,8 +1486,7 @@ function start_LAMP(){
 		// State 1: Ready
 		// State 2: Close in progress
 		// State 3: Closed
-	// Apparently, after closing the socket will reopen automatically (in a while)
-	//
+		
 		var urlParts = w_url.split(':');					// remove the calling port number
 		console.log("init_websockets:: Splitting url and port: "+urlParts[0]);
 		w_uri = "ws://"+urlParts[0]+":"+w_port;				// and add the port number of server
@@ -1519,10 +1499,10 @@ function start_LAMP(){
 		};
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed, reopening socket "+w_uri);
-			alert("Connection closed by server");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-			// w_sock = WebSocket(w_uri);
-			// console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			w_sock = WebSocket(w_uri);
+			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			// w_sock = new WebSocket(w_uri);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
@@ -1532,7 +1512,7 @@ function start_LAMP(){
 		
 		// This is one of the most important functions of this program: It receives asynchronous
 		// messages from the daemon and needs to process them for the GUI.
-		// ALL(!) Messages are in json format, but type field defines whether the content is also
+		// ALL(!) Messages are in json format, bu type field defines whether the content is also
 		// in json or in ICS format (for historical and backward compatibility reasons).
 		//
 		w_sock.onmessage = function(ev) 
@@ -1624,16 +1604,25 @@ function start_LAMP(){
 				// If the weather station is not present in the array, we will not show its values !!!
 				// The weather stations that we allow for receiving are specified in the 
 				// database.cfg file (and in the database).
-				
+				// Next versions of the GUI should allow ore dynamic specification of sensors
 				case 'weather':
-					
+					var location;
+					var name;
+					var address		= rcv.address;
+					var channel		= rcv.channel;
+					var temperature = rcv.temperature;
+					var humidity 	= rcv.humidity;
+					var brand		= rcv.brand;
+					var windspeed   = rcv.windspeed;
+					var winddirection = rcv.winddirection;
+					//var rainfall = rcv.rainfall;
 					var j;
+					
 					// Compare address and channel to identify a weather sensor
-					// Decided not to use the name for this :-)
 					for (j = 0; j<weather.length; j++ )
 					{
-       					if (( weather[j]['address'] == rcv.address ) &&
-							( weather[j]['channel'] == rcv.channel ))
+       					if (( weather[j]['address'] == address ) &&
+							( weather[j]['channel'] == channel ))
   						{
 							// return value of the object
 							break;
@@ -1644,12 +1633,11 @@ function start_LAMP(){
 					// and partly needs to be filled with the latest sensor values received.
 					if (j<weather.length)
 					{
-						weather[j]['temperature']=rcv.temperature;
-						weather[j]['humidity']=rcv.humidity;
-						weather[j]['windspeed']=rcv.windspeed;
-						weather[j]['winddirection']=rcv.winddirection;
-						weather[j]['rainfall']=rcv.rainfall;
-						
+						weather[j]['temperature']=temperature;
+						weather[j]['humidity']=humidity;
+						weather[j]['windspeed']=windspeed;
+						weather[j]['winddirection']=winddirection;
+						location = weather[j]['location']; // XXX why ????
 						var msg="";
 						// Only send for the just received sensor
 						//for (j=0;j<weather.length;j++)
@@ -1657,11 +1645,10 @@ function start_LAMP(){
 							msg += "Weather "+weather[j]['name']+"@ "+weather[j]['location'];
 							msg += ": temp: "+weather[j]['temperature'];
 							msg += ", humi: "+weather[j]['humidity']+"%<br\>";
-							
-							console.log("Weather @ "+weather[j]['location']
-								+": temp: "+weather[j]['temperature']
+							console.log("Weather @ "+weather[j]['location']+": temp: "+weather[j]['temperature']
 								+", humi: "+weather[j]['humidity']+"%");
 						//}
+
 						message(msg);
 					}
 				break;
@@ -1684,22 +1671,19 @@ function start_LAMP(){
 				//
 				case 'user':
 				case 'login':
-					var uname;
-					var pword;
-					
 					//var msg   = rcv.message;
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
 						//alert("Support for localstorage");
-  						uname= window.localStorage.getItem("uname");		// username
-						pword= window.localStorage.getItem("pword");		// pin
+  						var uname= localStorage.getItem("uname");		// username
+						var pword= localStorage.getItem("pword");		// pin
 						//alert("Support for localstorage, uname: "+uname);
  					}
 					else {
   						// Sorry! No Web Storage support..
 						//alert("No local storage");
-						uname="login";
-						pword="****";
+						var uname="login";
+						var pword="****";
  					}
 					
 					//var saddr= window.localStorage.getItem("saddr");		// Server address
@@ -1734,8 +1718,8 @@ function start_LAMP(){
 						if(typeof(Storage)!=="undefined")
   						{
   						// Code for localStorage/sessionStorage.
-  						window.localStorage.setItem("uname",uname);
-						window.localStorage.setItem("pword",pword);
+  						localStorage.setItem("uname",uname);
+						localStorage.setItem("pword",pword);
 						//window.localStorage.setItem("saddr",saddr);
  						}				
 						// Send the password back to the daemon
@@ -1759,7 +1743,7 @@ function start_LAMP(){
 		
 		console.log("Websocket:: readyState: "+w_sock.readyState);
 		
-	//}//raspi and !phonegap	
+	//}//rasp and !phonegap	
 	}//function init_websockets
 
 
@@ -1769,10 +1753,8 @@ function start_LAMP(){
 	// For jqmobile and regular jqueryUI there are differences,
 	// especially for jqmobile combined with phonegap.
 	
-	if ( jqmobile == 1 ) 
-	{
-	  if (phonegap == 1)
-	  {
+	if ( jqmobile == 1 ) {
+		
 		// ----------------------------------------------------------------------------------------
 		// When device is ready, confirm certain parameters in the device
 		// This function runs for PhoneGap/Mobile only, where we need
@@ -1784,7 +1766,7 @@ function start_LAMP(){
 		// they are required once we access the app over the internet.
 		//
 		
-		$( "#popup" ).empty();
+		//$( "#popup" ).empty();
 		//html_msg = '<div id="onLinePopup"></div>';
 		
 		if(typeof(Storage)!=="undefined") {
@@ -1855,19 +1837,19 @@ function start_LAMP(){
 					window.localStorage.setItem("pword",pword);
 				}
 				// alert("Submit, saddr: "+saddr);
-				// setTimeout(cancelFunc, 50);
+				
 				if (settings.length > 0) {
 					console.log("Database already read");
-					// $popUp.popup("close");
+					$popUp.popup("close");
 				}
-				else {
-					console.log("Submit saddr: "+saddr);	
-					var ret = load_database("init");
-					if (ret<0) {
-						alert("Error:: loading database failed");
-					}
-					else { console.log("load_database returns success"); }
+				console.log("Submit saddr: "+saddr);	
+				var ret = load_database("init");
+				if (ret<0) {
+					alert("Error:: loading database failed");
 				}
+				else console.log("load_database returns success");
+				// If we use a Raspberry and NO phonegap
+
 				$popUp.popup("close");
 				
 				if ((settings[1]['val'] == 1) && (phonegap != 1)) 				
@@ -1911,20 +1893,6 @@ function start_LAMP(){
 			$popUp.popup("open");
 			console.log("No Phonegap return"); // This line will be hit immediately after opening popup
 		}
-	  }
-	  
-	  // No Phonegap, jqMobile == 1
-	  else
-	  {
-		var ret = load_database("init");
-		if (ret<0) {
-			alert("Error:: loading database failed");
-		}
-		if ((settings[1]['val'] == 1) && ( phonegap != 1 )) 				
-		{
-			init_websockets();			// For regular web based operations we start websockets here
-		}
-	  }
 		// If we are here, we need to be sure that we have all parameters for networking etc.
 	}
 	
@@ -1943,14 +1911,15 @@ function start_LAMP(){
 			init_websockets();			// For regular web based operations we start websockets here
 		}
 	}
-
+	
+	
 }); // Doc Ready end
+
 } //start_LAMP() function end
 
 
 // ========================================================================================
-// Below this line, only functions are declared.
-// The only program started is either load_database
+//
 
 
 
@@ -2486,7 +2455,7 @@ function init_timers(cmd)
 
 // --------------------------------------------------------------------------------------
 //
-// Setup the handsets event handling
+// Setup the timers event handling
 //
 function init_handsets(cmd) 
 {
@@ -2539,62 +2508,6 @@ function init_handsets(cmd)
 		activate_handset(s_handset_id);
 }
 
-// ------------------------------------------------------------------------------------------
-// Setup the weather event handling
-// Display only weather buttons for unique locations. SO in the header section
-// there will be one button for a loction. Weather dials will be sorted to locations as well
-function init_weather(cmd) 
-{
-		$("#gui_header").empty();
-		$("#gui_header").append('<table border="0">');	// Write table def to DOM
-		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
-		var msg = 'Init weather, config read: ';
-		
-		// XXX class rroom?
-		var but = '<tr class="rroom">' ;
-		but += '<td>';
-		
-		if (s_weather_id == "") { 
-			s_weather_id = weather[0]['location']; 
-			//alert("init_weather:: id: "+s_weather_id);
-		}
-		
-		var weather_list=[];
-		for (var j = 0; j<weather.length; j++ ){
-			// Create only unique buttons
-  			if ( $.inArray(weather[j]['location'],weather_list) == -1) {
-				//alert("adding id: "+j);
-				var weather_id = weather[j]['id'];
-				var location = weather[j]['location'];
-				var temperature = weather[j]['temperature'];
-				
-				msg += j + ', ';
-				if ( location == s_weather_id ) {
-					//but +=  weather_button(weather_id, location, "hover");
-					but +=  weather_button(location, location, "hover");
-				}
-				else
-				{
-					//but +=  weather_button(weather_id, location);
-					but +=  weather_button(location, location);
-				}
-				weather_list[weather_list.length]= weather[j]['location'];
-			}
-		}
-		if (debug>1) message(msg);
-		
-		but += '</td>';	
-		but +=  '<td>';
-		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
-		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
-		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
-		but += '</td>';
-		$(table).append(but);	
-
-		
-		s_screen = 'weather';
-		activate_weather(s_weather_id);	
-}
 
 // ------------------------------------------------------------------------------------------
 // Setup the settings event handling
@@ -2634,6 +2547,44 @@ function init_settings(cmd)
 		activate_setting(s_setting_id);	
 }
 
+// ------------------------------------------------------------------------------------------
+// Setup the weather event handling
+// QQQ
+function init_weather(cmd) 
+{
+		$("#gui_header").empty();
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
+		var msg = 'Init weather, config read: ';
+		
+		// XXX class rroom?
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
+		for (var j = 0; j<weather.length; j++ ){
+  
+			var weather_id = weather[j]['id'];
+			var location = weather[j]['location'];
+			var temperature = weather[j]['temperature'];
+			msg += j + ', ';
+			
+			if ( weather_id == s_weather_id ) {
+				but +=  weather_button(weather_id, location, "hover");
+			}
+			else
+			{
+				but +=  weather_button(weather_id, location);
+			}	
+		}
+		if (debug>1) message(msg);
+		but += '</td>';	
+		but +=  '<td>';
+		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">'  ;
+		but += '</td>';
+		$(table).append(but);	
+		
+		s_screen = 'weather';
+		activate_weather(s_weather_id);	
+}
 
 // ------------------------------------------------------------------------------------------
 // Setup the main menu (on the right) event handling
@@ -3679,6 +3630,493 @@ function activate_scene(scn)
 } // activate scene
 
 
+
+// ---------------------------------------------------------------------------------------
+//
+// Change a handset based on the index of the menu button pressen on top of page
+// For each handset we record a scene per button.
+//
+function activate_handset(hset)
+{
+	$( "#gui_content" ).empty();
+	
+	html_msg = '<div id="gui_handsets"></div>';
+	$( "#gui_content" ).append (html_msg);
+	
+	var offbut, onetime, onbut;
+	// For all handsets, write all to a string and print string in 1 time
+	onetime=0;
+	for (var j= 0; j<handsets.length; j++ )
+	{
+		var handset_id = handsets[j]['id'];	
+		// If the definition is for the active handset handset_id
+		if (hset == handset_id )
+		{
+			if (debug > 2) alert("Activate_handset:: Making buttons for handset: " + handset_id);
+			var handset_name  = handsets[j]['name'];
+			var handset_scene = handsets[j]['scene'];
+			var handset_addr   = handsets[j]['addr'];
+			var handset_unit  = handsets[j]['unit'];
+			var handset_val   = handsets[j]['val'];
+			
+			// Start a table for the control buttons
+			// Since we have multiple records with the same id, do this only once
+			if (onetime == 0) 								
+			{
+				html_msg = '<table border="0">';
+				$( "#gui_handsets" ).append( html_msg );
+	
+				var table = $( "#gui_handsets" ).children();		// to add to the table tree in DOM
+			
+				// alert("activate_handset:: id:"+handset_id+"\nname: "+handset_name+"\nSeq: "+handset_seq);
+				// By making first row head, we make it non sortable as well!!
+				var but =  '<thead>'	
+					+ '<tr class="switch">'
+					+ '<td colspan="2">'
+					+ '<input type="submit" id="Fx'+handset_id+'" value="X" class="dbuttons del_button">'
+					+ '<input type="submit" id="Fr'+handset_id+'" value="+" class="dbuttons new_button">'
+					// + '<input type="submit" id="Fq'+handset_id+'" value=">" class="dbuttons play_button">'
+					+ '</td>'
+					+ '<td colspan="2"><input type="input"  id="Fl'+handset_id+'" value= "'+handset_name+'" class="dlabels"> addr: '+handset_addr+'</td>' 
+					+ '<td>'
+					// + '<input type="submit" id="Fc'+handset_id+'" value="STOP" class="dbuttons">'
+					+ '<input type="submit" id="Fe'+handset_id+'" value="Store" class="dbuttons"></td>'
+					+ '</thead>'
+					;
+				$(table).append(but);
+				$(table).append('<tbody>');
+				onetime=1;												// Do not print the header row again.
+			}
+			
+			// Output the buttons for this handset
+			// Test for empty array
+			if (handset_scene != "")  {	
+			  //alert("Handset "+handset_name+", scene: <"+handset_scene+">");	// XXX
+			  
+			  var handset_split = handset_scene.split(',');			// If NO elements found, it still retuns empty array!!
+			  for (var k = 0; k < handset_split.length; k+=2 )
+			  {
+				var ind = ((k/2)+1);			// As k is always even, the result will be rounded to integer
+				var onoff; if (handset_val==0 ) onoff="off"; else onoff="on";
+				// scene sequence: !FeP"name"=,!R1D1F1,00:00:15,!R1D2F1,00:00:05, .......
+				// So we need to split the sequence by the comma and then display 2 lines for every command
+				var scmd = decode_scene_string( handset_split[k]  );
+				var stim = decode_scene_string( handset_split[k+1]);
+				but = '<tr class="handset">'
+					+ '<td><input type="checkbox" id="s'+handset_id+'c" name="cb'+ind+'" value="yes"></td>'
+					+ '<td>But ' + handset_unit +' '+ onoff + '</td>'
+					+ '<td><input type="input" id="Fs'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+handset_split[k]+'" class="dlabels sval"></td>'
+					+ '<td><input type="text" id="Ft'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+handset_split[k+1]+'" class="dbuttons sval"></td>'
+					+ '<td>' + scmd 
+					;
+				$(table).append(but);
+			  } // for
+			}// if
+			else {
+				ind=0;												// First in row
+			}
+			
+			// If we were recording actions, this is the moment to add a new command to the 
+			// Scene or sequence 
+			
+			if (s_recording == 1) {
+				
+				scmd = decode_scene_string(s_recorder);
+				
+				// Return here as there is no device to handle
+				console.log("Decode s_recorder to: "+scmd);
+				// Should we do this, or keep on recording until the user presses the recording button again?
+				s_recording = 0;
+				ind++;												// If list was empty, ind was 0, becomes 1
+
+				but = '<tr class="handset">'
+					+ '<td><input type="checkbox" id="s'+handset_id+ 'c" name="cb' + ind +'" value="yes"></td>'
+					+ '<td>But ' + ind
+					+ '<td><input type="input" id="Fs'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+s_recorder+'" class="dlabels sval"></td>'
+					+ '<td><input type="text" id="Ft'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+"00:00:10"+'" class="dbuttons sval"></td>'
+					+ '<td colspan="2">' + scmd 
+					;
+				$(table).append(but);
+				
+				// Make sure to sync the new record to the array
+				// Or should we use the global var s_handset_id?
+				if (ind == 1) {
+					// First device in the scene.seq
+					handsets[j]['scene'] = s_recorder + ",00:00:10";
+				}
+				else {
+					// All other device commands are separated with a ","
+					handsets[j]['scene']+= "," + s_recorder + ",00:00:10";
+				}
+				
+			    if (debug>2) alert("Recorder adding:: j: "+j+", s_handset_id: "+s_handset_id+"\n"
+					  + "\n id: "+handsets[j]['id']+"\nval: "+handsets[j]['val']
+					  + "\n name: "+handsets[j]['name']+"\nseq: "+handsets[j]['scene']);
+				
+				
+				// If this is the first line in the scene database
+				send_2_dbase("upd_scene", handsets[j]);
+				message("Device command added to the scene",1);
+				
+			} // if recording
+
+			// We have to setup an event handler for this screen.
+			// After all, the user might like to change things and press some buttons
+			
+		}// if a handset is s_handset_id
+	}// for each handset
+	
+	
+	
+	// NOTE::: This handler runs asynchronous! No values above might be valid!!
+	// So after click we need to sort out for which handler, which scene etc :-)
+	// Therefore, collect all scene data again in this handler.
+	//
+	$( "#gui_handsets" ).on("click", ".dbuttons", function(e) 
+	{
+		e.preventDefault();
+//		e.stopPropagation();
+		value=$(this).val();									// Value of the button pressed (eg its label)
+		var but_id = $(e.target).attr('id');					// id of button
+		var cmd_id = parse_int(but_id)[0]; 
+		//alert ("s_handset_id: " + s_handset_id + ", but_id: " + but_id + ", cmd_id: " + cmd_id);
+		
+		// id="Fx2u3v1"
+		// First chars of the button id contain the action to perform
+		// Then we have the id of the handset, followed by "u" and unit number
+		// and "v"<value>
+		switch (but_id.substr(0,2))
+		{
+			// START button, queue scene
+			//
+			//case "Fq":
+			// Fq not used for handsets!!
+				// Send to the device message_device
+			//	var handset_cmd = '!FqP"' + handset['name'] + '"';
+				// Send to device. In case of a Raspberry, we'll use the backend_rasp
+				// to lookup the command string from the database
+			//	message_device("handset", handset_cmd );
+
+			//break;
+					
+			// STORE button, only for Raspi Controllers
+			//
+			case "Fe": // WWW works, 131120
+				
+				var handset = get_handset(s_handset_id);
+				var handset_name = handset['name'];	
+				
+				// XXX We might have deleted handsets entries during delete that are NOT
+				// deleted from the MySQL database. Need to keep these insync.
+				// EITHER during store_hangset (first delete all records with this id, then add the new range)
+				// OR by deleting these entries in the Fx section already....
+				for (var j=0; j<handsets.length; j++) 
+				{
+					if (handsets[j]['id'] == s_handset_id) {
+						console.log("Fe Storing handset:: "+handset_name+":"+handsets[j]['unit']+":"+handsets[j]['val'] );
+						// Send to database and update the current scene record
+						send_2_dbase("store_handset", handsets[j]);
+					}
+				}
+				// Not Applicable for the ICS-1000 controller
+				// So we need not to do the next lines for ICS-1000
+				// var handset_cmd = '!FeP"' + handset['name'] + '"=' + handset['scene'];
+				// message_device("scene", handset_cmd );
+			break;
+
+			//
+			// DELETE handset line, ONE of the actions in the seq!!! for the button
+			//	
+			case "Fx": // WWW Works, 131120
+	
+				if (debug > 2) alert("Activate_handset:: Delete Fx button pressed" );
+				// NOTE:: See activate_handset, if the last element of a scene is deleted, we have an
+				// empty remote button defined without further action(s).
+				// When ading new handset have to check for already existing empty handsets/buttons
+				
+				var msg = "Deleted actions ";
+				// QQQ
+				if (debug>0) {
+					
+					myConfirm('You are about to delete one or more button actions for this handset. '
+					+ 'If you continue, all lines that you checked will be deleted from the system '
+					+ 'and this will be synchronized with the database.\n'
+					+ 'Please keep in mind that you will delete ALL lines that you checked and and its corresponding actions '
+					, 
+					// Confirm
+					function () {
+						// Confirm
+						
+						// Go over each TR element with id="handset" and record the id
+						// We need to go reverse, as else removing will mess up higher indexes to come,
+						// this will not be the case if we work down the array.
+						// NOTE: Index == 0 for last element of array!!
+						$($( "#gui_handsets .handset" ).get().reverse()).each(function( index ){
+																
+							var id    = $(this ).children().children('.dlabels').attr('id');
+							var value = $(this ).children().children('.dlabels').attr('value');
+					
+							var handset_id   = parse_int(id)[0];
+							var handset_unit = parse_int(id)[1];
+							var handset_val  = parse_int(id)[2];
+							var ind          = parse_int(id)[3];
+					
+							handset = get_handset_record(handset_id,handset_unit,handset_val);
+							handset_scene = handset['scene'];
+							var handset_split = handset_scene.split(',');				// Do in handler
+					
+							// Lookup value and put index in ind
+							var ind = handset_split.indexOf(value);
+							//
+							// This part is different for handsets than it is for scenes!
+
+							if ( $(this ).children().children('input[type="checkbox"]').is(':checked') ) {
+
+								if (debug > 1) alert ("delete handset button: "+handset_name+
+									"\nid: "+id+", scene ind: "+ind+" selected, index: "+index+
+									"\nHandset id: "+handset_id+", unit: "+handset_unit+", val: "+handset_val+
+									"\nScene: "+handset_scene
+								);
+						
+								// Finding the index of the item and time to delete is difficult!
+								var removed = handset_split.splice(ind,2);
+								ind --;				// After deleting from handset_split, adjust the indexes for
+													// rest of the array	
+								if (debug > 1) alert("removed:"+removed[0]+ "," +removed[1]+": from seq: "+handset_split );
+								msg += ind + " : " + decode_scene_string( removed[0] ) + "; " ;
+						
+								// Now updat the handsets array again to reflact the change
+								// We need to find the index of array handsets to update. As we are in a handler
+								// we cannot rely on the j above but need to find the index from 'id' field in handsets
+				
+								//alert("Updating id:unit:val: "+handset_id+":"+handset_unit+":"+handset_val);
+								for (var j=0; j<handsets.length; j++) {
+									if (   (handsets[j]['id']   == handset_id) 
+										&& (handsets[j]['unit'] == handset_unit) 
+										&& (handsets[j]['val']  == handset_val) )
+									{
+										// We found a match id,unit,val
+										// Now concatenate all actions and timers again for the scene_split
+										if (typeof(handset_split) == "undefined") {
+											if (debug>2) alert("activate_handset:: case FX: handset_split undefined");
+										}
+										else {
+											handsets[j]['scene']=handset_split.join();
+											if (debug>2) alert("scene: " + handsets[j]['scene']);
+										}
+										break;
+									}
+								}// for
+						
+							}// if checkbox
+						});//for all handsets on screen
+				
+						message(msg);
+						activate_handset(s_handset_id);	
+						
+  					}, function () {
+						// Cancel
+							activate_handset(s_handset_id);	
+							return(0); 					// Avoid further actions for these radio buttons 
+  					},
+  					'Continue Deleting Handet(s)?'
+					);
+				}
+				// Do NOT store in dabase unless the user stores the sequence by pressing the STORE button
+												
+			break;
+
+			//
+			// ADD Recording, ADD
+			//
+			case "Fr":
+				// FIRST!!! 
+				// Make sure that one of the checkboxes is selected as we want to insert AFTER
+				// If there are NO buttons at all, create one, other wise append to current button.
+				// this entry
+		// QQQ
+				if (debug>=0){
+					myConfirm('You are about to add one or more button actions for this handset. '
+					+ 'If you continue, the system will add a new record AFTER a line that you checked. '
+					+ 'Please do not check more than one line if you\'re adding actions. The system will take the first '
+					+ 'line ONLY and discard other lines that are checked. \n'
+					+ 'I you like to add new buttons, just check nothing and let the system guide you to selecting a new '
+					+ 'button and a new action to the handset.'
+					, 
+					// Confirm
+					function () {
+						// Confirm
+						
+  						}, function () {
+						// Cancel
+							return(0); 					// Avoid further actions for these radio buttons 
+  						},
+  					'	Continue Adding Handet(s)?'
+					);
+				}
+				// Display dialog box
+				if (debug > 2) alert("Activate_handset:: Add Fr button pressed, start recording ...");
+				
+				myConfirm('You are about to add an action to this handset. If you continue, the system ' 
+				+ 'will be in recording mode until you have selected a device action. Then you are returned '
+				+ 'to this scene screen again. Please confirm if you want to add a device. ', 
+				// Confirm
+				function () {
+					// DO nothing....
+					// Maybe make the background red during device selection or blink or so
+					// with recording in the message area ...
+					message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
+					// Before we can records, let's hope we know where to insert the 
+					// new action
+					s_recording = 1;							// Set the recording flag on!
+					s_recorder = "";							// Empty the recorder
+					init_handsets("init");
+					
+					// Cancel	
+  					}, function () {
+						s_recording = 0;
+						return(1); // Avoid further actions for these radio buttons 
+  					},
+  					'Adding a Device action?'
+				);
+			break;
+			
+			//
+			// Change a time value in the handset screen. The time field is an input action field.
+			//
+			case "Ft":	// XXX Works 131122
+			
+				// This is the current value of the time field
+				var val= $(e.target).val();
+				
+				//alert("scene current time val is: "+val);
+				
+				var hh=""; for(i=00;i<24;i++) {
+					if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+					else hh +='<option>'+("00"+i).slice(-2)+'</option>';
+				}
+				var mm=""; for(i=00;i<60;i++) {
+					if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+					else mm +='<option>'+("00"+i).slice(-2)+'</option>';
+				}
+				var ss=""; for(i=00;i<60;i++) {
+					if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+					else ss +='<option>'+("00"+i).slice(-2)+'</option>';
+				}
+				var ret;
+				var frm = '<form id="addRoomForm"><fieldset>'
+					+ '<p>You can change the timer settings for this action. Please use hh:mm:ss</p>'
+					+ '<br />'
+					+ '<label style="width:50px;" for="val_1">hrs: </label>'
+					+ '<select id="val_1" value="'+val.substr(0,2)+'" >' + hh +'</select>'
+					+ '<label style="width:50px;" for="val_2">mins: </label>'
+					+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
+					+ '<label style="width:50px;" for="val_3">secs: </label>'
+					+ '<select id="val_3" selectedIndex="10" value="'+ val.substr(6,2)+'">' + ss +'</select>'
+					+ '</fieldset></form>'
+					;	
+				askForm(
+					frm,
+					function(ret){
+					// OK Func, need to get the value of the parameters
+					// Add the device to the array
+					// SO what are the variables returned by the function???
+					if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
+						
+					// Value of the button pressed (eg its label)
+					var laval = ret[0]+":"+ret[1]+":"+ret[2];
+					$(e.target).val(laval);
+					if (debug>2) alert("Timer changed from "+ val+" to: "+ $(e.target).val() );
+						
+					// Now change its value in the sequence string of timers also
+					// use but_id= $(e.target).attr('id') to get the index number ...							
+					var ids = parse_int(but_id);
+					// 1st handset_id, 2nd number is unit, 3rd val
+					var j;
+					for (j=0; j<handsets.length; j++) {
+						if (   (handsets[j]['id'] == ids[0] ) 
+							&& (handsets[j]['unit'] == ids[1] )
+							&& (handsets[j]['val'] == ids[2] ) ) {
+							break;					
+						}
+					}
+					// j contains the correct record index
+					var handset_split = handsets[j]['scene'].split(',');
+					var tid = $(e.target).attr('id');
+					var sid = "Fs" + tid.substr(2);
+					var sval = $( "#"+sid).val(); //xxx
+					alert("tid: "+tid+", sid: "+sid+", sval: "+sval);
+					
+					// Lookup value and put index in ind
+					var ind = handset_split.indexOf( sval );
+					alert("split ind: "+ind);
+					handset_split [ind+1] = laval;
+					handsets[j]['scene']=handset_split.join();
+					
+					return (0);	
+  				},
+				function () {
+					return(1); // Avoid further actions for these radio buttons 
+  				},
+  				'Confirm Change'
+			); // askForm
+			break;
+					
+			default:
+				alert("Sequence action unknown: " + but_id.substr(-2) );
+		}
+	})// on-click handler XXX can be moved to document.ready part of the program
+	
+	
+	// ------SORTABLE---REQUIRES MORE WORK -------
+	// Sortable put at the end of the function
+	// The last() makes sure only the second table is sortable with the scene elements
+	
+	// Note: Unsure if we should use scene_split var, as this function is async!
+	// however, scene_split is in the scope of this function, and contains the
+	// scurrent values on the screen...... but it works!
+	if (jqmobile == 1) {
+		
+		// jmobile handsets NOT sortable at the moment
+		
+		
+		
+	}
+	else {
+	  $("#gui_handsets tbody").sortable({
+
+		start: function (event, ui) {
+            $(ui.item).data("startindex", ui.item.index());
+        },
+		// Make sure we select the second table!
+		stop: function (event, ui) {
+
+			var my_list = '';
+			// Go over each element and record the id
+			$( "#gui_handsets .scene" ).each(function( index ) {
+				var id = 	$(this ).children().children('.dbuttons').attr('id');	
+				// XXX Assumption that scene id is only 1 digit!!
+				var ind = id.substr(4);
+			// MMM	
+				console.log( "scn: " + hset + " html index: " + index + " scene ind: " + ind );
+				
+				my_list += scene_split [(ind-1)*2] + ',' + scene_split [((ind-1)*2) + 1] + ',' ;
+			});
+			// Now we need to remove the last ","
+			console.log("my_list :" + my_list);
+			my_list = my_list.slice(0,-1);
+			console.log("scene: " + hset + ", " + handsets[hset-1]['name'] + ", my_list: " + my_list );
+			
+			// XXX OOPS, not nice, should look up the index, not assume ind[1] is same as array index 0
+			handsets[hset-1]['scene'] =  my_list;
+        }	 
+	  }).disableSelection();
+	}//else
+	
+	s_handset_id = hset;
+} // activate handset
+
+
 // ------------------------------------------------------------------------------
 // Activate Timer
 // 
@@ -4196,719 +4634,6 @@ function activate_timer(tim)
 	
 } //activate_timer
 
-
-
-
-// ---------------------------------------------------------------------------------------
-//
-// Change a handset based on the index of the menu button pressen on top of page
-// For each handset we record a scene per button.
-//
-function activate_handset(hset)
-{
-	$( "#gui_content" ).empty();
-	
-	html_msg = '<div id="gui_handsets"></div>';
-	$( "#gui_content" ).append (html_msg);
-	
-	var offbut, onetime, onbut;
-	// For all handsets, write all to a string and print string in 1 time
-	onetime=0;
-	for (var j= 0; j<handsets.length; j++ )
-	{
-		var handset_id = handsets[j]['id'];	
-		// If the definition is for the active handset handset_id
-		if (hset == handset_id )
-		{
-			if (debug > 2) alert("Activate_handset:: Making buttons for handset: " + handset_id);
-			var handset_name  = handsets[j]['name'];
-			var handset_scene = handsets[j]['scene'];
-			var handset_addr   = handsets[j]['addr'];
-			var handset_unit  = handsets[j]['unit'];
-			var handset_val   = handsets[j]['val'];
-			
-			// Start a table for the control buttons
-			// Since we have multiple records with the same id, do this only once
-			if (onetime == 0) 								
-			{
-				html_msg = '<table border="0">';
-				$( "#gui_handsets" ).append( html_msg );
-	
-				var table = $( "#gui_handsets" ).children();		// to add to the table tree in DOM
-			
-				// alert("activate_handset:: id:"+handset_id+"\nname: "+handset_name+"\nSeq: "+handset_seq);
-				// By making first row head, we make it non sortable as well!!
-				var but =  '<thead>'	
-					+ '<tr class="switch">'
-					+ '<td colspan="2">'
-					+ '<input type="submit" id="Fx'+handset_id+'" value="X" class="dbuttons del_button">'
-					+ '<input type="submit" id="Fr'+handset_id+'" value="+" class="dbuttons new_button">'
-					// + '<input type="submit" id="Fq'+handset_id+'" value=">" class="dbuttons play_button">'
-					+ '</td>'
-					+ '<td colspan="2"><input type="input"  id="Fl'+handset_id+'" value= "'+handset_name+'" class="dlabels"> addr: '+handset_addr+'</td>' 
-					+ '<td>'
-					// + '<input type="submit" id="Fc'+handset_id+'" value="STOP" class="dbuttons">'
-					+ '<input type="submit" id="Fe'+handset_id+'" value="Store" class="dbuttons"></td>'
-					+ '</thead>'
-					;
-				$(table).append(but);
-				$(table).append('<tbody>');
-				onetime=1;												// Do not print the header row again.
-			}
-			
-			// Output the buttons for this handset
-			// Test for empty array
-			if (handset_scene != "")  {	
-			  //alert("Handset "+handset_name+", scene: <"+handset_scene+">");	// XXX
-			  
-			  var handset_split = handset_scene.split(',');			// If NO elements found, it still retuns empty array!!
-			  for (var k = 0; k < handset_split.length; k+=2 )
-			  {
-				var ind = ((k/2)+1);			// As k is always even, the result will be rounded to integer
-				var onoff; if (handset_val==0 ) onoff="off"; else onoff="on";
-				// scene sequence: !FeP"name"=,!R1D1F1,00:00:15,!R1D2F1,00:00:05, .......
-				// So we need to split the sequence by the comma and then display 2 lines for every command
-				var scmd = decode_scene_string( handset_split[k]  );
-				var stim = decode_scene_string( handset_split[k+1]);
-				but = '<tr class="handset">'
-					+ '<td><input type="checkbox" id="s'+handset_id+'c" name="cb'+ind+'" value="yes"></td>'
-					+ '<td>But ' + handset_unit +' '+ onoff + '</td>'
-					+ '<td><input type="input" id="Fs'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+handset_split[k]+'" class="dlabels sval"></td>'
-					+ '<td><input type="text" id="Ft'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+handset_split[k+1]+'" class="dbuttons sval"></td>'
-					+ '<td>' + scmd 
-					;
-				$(table).append(but);
-			  } // for
-			}// if
-			else {
-				ind=0;												// First in row
-			}
-			
-			// If we were recording actions, this is the moment to add a new command to the 
-			// Scene or sequence 
-			
-			if (s_recording == 1) {
-				
-				scmd = decode_scene_string(s_recorder);
-				
-				// Return here as there is no device to handle
-				console.log("Decode s_recorder to: "+scmd);
-				// Should we do this, or keep on recording until the user presses the recording button again?
-				s_recording = 0;
-				ind++;												// If list was empty, ind was 0, becomes 1
-
-				but = '<tr class="handset">'
-					+ '<td><input type="checkbox" id="s'+handset_id+ 'c" name="cb' + ind +'" value="yes"></td>'
-					+ '<td>But ' + ind
-					+ '<td><input type="input" id="Fs'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+s_recorder+'" class="dlabels sval"></td>'
-					+ '<td><input type="text" id="Ft'+handset_id+'u'+handset_unit+'v'+handset_val+'i'+ind+'" value= "'+"00:00:10"+'" class="dbuttons sval"></td>'
-					+ '<td colspan="2">' + scmd 
-					;
-				$(table).append(but);
-				
-				// Make sure to sync the new record to the array
-				// Or should we use the global var s_handset_id?
-				if (ind == 1) {
-					// First device in the scene.seq
-					handsets[j]['scene'] = s_recorder + ",00:00:10";
-				}
-				else {
-					// All other device commands are separated with a ","
-					handsets[j]['scene']+= "," + s_recorder + ",00:00:10";
-				}
-				
-			    if (debug>2) alert("Recorder adding:: j: "+j+", s_handset_id: "+s_handset_id+"\n"
-					  + "\n id: "+handsets[j]['id']+"\nval: "+handsets[j]['val']
-					  + "\n name: "+handsets[j]['name']+"\nseq: "+handsets[j]['scene']);
-				
-				
-				// If this is the first line in the scene database
-				send_2_dbase("upd_scene", handsets[j]);
-				message("Device command added to the scene",1);
-				
-			} // if recording
-
-			// We have to setup an event handler for this screen.
-			// After all, the user might like to change things and press some buttons
-			
-		}// if a handset is s_handset_id
-	}// for each handset
-	
-	
-	
-	// NOTE::: This handler runs asynchronous! No values above might be valid!!
-	// So after click we need to sort out for which handler, which scene etc :-)
-	// Therefore, collect all scene data again in this handler.
-	//
-	$( "#gui_handsets" ).on("click", ".dbuttons", function(e) 
-	{
-		e.preventDefault();
-//		e.stopPropagation();
-		value=$(this).val();									// Value of the button pressed (eg its label)
-		var but_id = $(e.target).attr('id');					// id of button
-		var cmd_id = parse_int(but_id)[0]; 
-		//alert ("s_handset_id: " + s_handset_id + ", but_id: " + but_id + ", cmd_id: " + cmd_id);
-		
-		// id="Fx2u3v1"
-		// First chars of the button id contain the action to perform
-		// Then we have the id of the handset, followed by "u" and unit number
-		// and "v"<value>
-		switch (but_id.substr(0,2))
-		{
-			// START button, queue scene
-			//
-			//case "Fq":
-			// Fq not used for handsets!!
-				// Send to the device message_device
-			//	var handset_cmd = '!FqP"' + handset['name'] + '"';
-				// Send to device. In case of a Raspberry, we'll use the backend_rasp
-				// to lookup the command string from the database
-			//	message_device("handset", handset_cmd );
-
-			//break;
-					
-			// STORE button, only for Raspi Controllers
-			//
-			case "Fe": // WWW works, 131120
-				
-				var handset = get_handset(s_handset_id);
-				var handset_name = handset['name'];	
-				
-				// XXX We might have deleted handsets entries during delete that are NOT
-				// deleted from the MySQL database. Need to keep these insync.
-				// EITHER during store_hangset (first delete all records with this id, then add the new range)
-				// OR by deleting these entries in the Fx section already....
-				for (var j=0; j<handsets.length; j++) 
-				{
-					if (handsets[j]['id'] == s_handset_id) {
-						console.log("Fe Storing handset:: "+handset_name+":"+handsets[j]['unit']+":"+handsets[j]['val'] );
-						// Send to database and update the current scene record
-						send_2_dbase("store_handset", handsets[j]);
-					}
-				}
-				// Not Applicable for the ICS-1000 controller
-				// So we need not to do the next lines for ICS-1000
-				// var handset_cmd = '!FeP"' + handset['name'] + '"=' + handset['scene'];
-				// message_device("scene", handset_cmd );
-			break;
-
-			//
-			// DELETE handset line, ONE of the actions in the seq!!! for the button
-			//	
-			case "Fx": // WWW Works, 131120
-	
-				if (debug > 2) alert("Activate_handset:: Delete Fx button pressed" );
-				// NOTE:: See activate_handset, if the last element of a scene is deleted, we have an
-				// empty remote button defined without further action(s).
-				// When ading new handset have to check for already existing empty handsets/buttons
-				
-				var msg = "Deleted actions ";
-				// QQQ
-				if (debug>0) {
-					
-					myConfirm('You are about to delete one or more button actions for this handset. '
-					+ 'If you continue, all lines that you checked will be deleted from the system '
-					+ 'and this will be synchronized with the database.\n'
-					+ 'Please keep in mind that you will delete ALL lines that you checked and and its corresponding actions '
-					, 
-					// Confirm
-					function () {
-						// Confirm
-						
-						// Go over each TR element with id="handset" and record the id
-						// We need to go reverse, as else removing will mess up higher indexes to come,
-						// this will not be the case if we work down the array.
-						// NOTE: Index == 0 for last element of array!!
-						$($( "#gui_handsets .handset" ).get().reverse()).each(function( index ){
-																
-							var id    = $(this ).children().children('.dlabels').attr('id');
-							var value = $(this ).children().children('.dlabels').attr('value');
-					
-							var handset_id   = parse_int(id)[0];
-							var handset_unit = parse_int(id)[1];
-							var handset_val  = parse_int(id)[2];
-							var ind          = parse_int(id)[3];
-					
-							handset = get_handset_record(handset_id,handset_unit,handset_val);
-							handset_scene = handset['scene'];
-							var handset_split = handset_scene.split(',');				// Do in handler
-					
-							// Lookup value and put index in ind
-							var ind = handset_split.indexOf(value);
-							//
-							// This part is different for handsets than it is for scenes!
-
-							if ( $(this ).children().children('input[type="checkbox"]').is(':checked') ) {
-
-								if (debug > 1) alert ("delete handset button: "+handset_name+
-									"\nid: "+id+", scene ind: "+ind+" selected, index: "+index+
-									"\nHandset id: "+handset_id+", unit: "+handset_unit+", val: "+handset_val+
-									"\nScene: "+handset_scene
-								);
-						
-								// Finding the index of the item and time to delete is difficult!
-								var removed = handset_split.splice(ind,2);
-								ind --;				// After deleting from handset_split, adjust the indexes for
-													// rest of the array	
-								if (debug > 1) alert("removed:"+removed[0]+ "," +removed[1]+": from seq: "+handset_split );
-								msg += ind + " : " + decode_scene_string( removed[0] ) + "; " ;
-						
-								// Now updat the handsets array again to reflact the change
-								// We need to find the index of array handsets to update. As we are in a handler
-								// we cannot rely on the j above but need to find the index from 'id' field in handsets
-				
-								//alert("Updating id:unit:val: "+handset_id+":"+handset_unit+":"+handset_val);
-								for (var j=0; j<handsets.length; j++) {
-									if (   (handsets[j]['id']   == handset_id) 
-										&& (handsets[j]['unit'] == handset_unit) 
-										&& (handsets[j]['val']  == handset_val) )
-									{
-										// We found a match id,unit,val
-										// Now concatenate all actions and timers again for the scene_split
-										if (typeof(handset_split) == "undefined") {
-											if (debug>2) alert("activate_handset:: case FX: handset_split undefined");
-										}
-										else {
-											handsets[j]['scene']=handset_split.join();
-											if (debug>2) alert("scene: " + handsets[j]['scene']);
-										}
-										break;
-									}
-								}// for
-						
-							}// if checkbox
-						});//for all handsets on screen
-				
-						message(msg);
-						activate_handset(s_handset_id);	
-						
-  					}, function () {
-						// Cancel
-							activate_handset(s_handset_id);	
-							return(0); 					// Avoid further actions for these radio buttons 
-  					},
-  					'Continue Deleting Handet(s)?'
-					);
-				}
-				// Do NOT store in dabase unless the user stores the sequence by pressing the STORE button
-												
-			break;
-
-			//
-			// ADD Recording, ADD
-			//
-			case "Fr":
-				// FIRST!!! 
-				// Make sure that one of the checkboxes is selected as we want to insert AFTER
-				// If there are NO buttons at all, create one, other wise append to current button.
-				// this entry
-		// QQQ
-				if (debug>=0){
-					myConfirm('You are about to add one or more button actions for this handset. '
-					+ 'If you continue, the system will add a new record AFTER a line that you checked. '
-					+ 'Please do not check more than one line if you\'re adding actions. The system will take the first '
-					+ 'line ONLY and discard other lines that are checked. \n'
-					+ 'I you like to add new buttons, just check nothing and let the system guide you to selecting a new '
-					+ 'button and a new action to the handset.'
-					, 
-					// Confirm
-					function () {
-						// Confirm
-						
-  						}, function () {
-						// Cancel
-							return(0); 					// Avoid further actions for these radio buttons 
-  						},
-  					'	Continue Adding Handet(s)?'
-					);
-				}
-				// Display dialog box
-				if (debug > 2) alert("Activate_handset:: Add Fr button pressed, start recording ...");
-				
-				myConfirm('You are about to add an action to this handset. If you continue, the system ' 
-				+ 'will be in recording mode until you have selected a device action. Then you are returned '
-				+ 'to this scene screen again. Please confirm if you want to add a device. ', 
-				// Confirm
-				function () {
-					// DO nothing....
-					// Maybe make the background red during device selection or blink or so
-					// with recording in the message area ...
-					message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
-					// Before we can records, let's hope we know where to insert the 
-					// new action
-					s_recording = 1;							// Set the recording flag on!
-					s_recorder = "";							// Empty the recorder
-					init_handsets("init");
-					
-					// Cancel	
-  					}, function () {
-						s_recording = 0;
-						return(1); // Avoid further actions for these radio buttons 
-  					},
-  					'Adding a Device action?'
-				);
-			break;
-			
-			//
-			// Change a time value in the handset screen. The time field is an input action field.
-			//
-			case "Ft":	// XXX Works 131122
-			
-				// This is the current value of the time field
-				var val= $(e.target).val();
-				
-				//alert("scene current time val is: "+val);
-				
-				var hh=""; for(i=00;i<24;i++) {
-					if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-					else hh +='<option>'+("00"+i).slice(-2)+'</option>';
-				}
-				var mm=""; for(i=00;i<60;i++) {
-					if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-					else mm +='<option>'+("00"+i).slice(-2)+'</option>';
-				}
-				var ss=""; for(i=00;i<60;i++) {
-					if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-					else ss +='<option>'+("00"+i).slice(-2)+'</option>';
-				}
-				var ret;
-				var frm = '<form id="addRoomForm"><fieldset>'
-					+ '<p>You can change the timer settings for this action. Please use hh:mm:ss</p>'
-					+ '<br />'
-					+ '<label style="width:50px;" for="val_1">hrs: </label>'
-					+ '<select id="val_1" value="'+val.substr(0,2)+'" >' + hh +'</select>'
-					+ '<label style="width:50px;" for="val_2">mins: </label>'
-					+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
-					+ '<label style="width:50px;" for="val_3">secs: </label>'
-					+ '<select id="val_3" selectedIndex="10" value="'+ val.substr(6,2)+'">' + ss +'</select>'
-					+ '</fieldset></form>'
-					;	
-				askForm(
-					frm,
-					function(ret){
-					// OK Func, need to get the value of the parameters
-					// Add the device to the array
-					// SO what are the variables returned by the function???
-					if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
-						
-					// Value of the button pressed (eg its label)
-					var laval = ret[0]+":"+ret[1]+":"+ret[2];
-					$(e.target).val(laval);
-					if (debug>2) alert("Timer changed from "+ val+" to: "+ $(e.target).val() );
-						
-					// Now change its value in the sequence string of timers also
-					// use but_id= $(e.target).attr('id') to get the index number ...							
-					var ids = parse_int(but_id);
-					// 1st handset_id, 2nd number is unit, 3rd val
-					var j;
-					for (j=0; j<handsets.length; j++) {
-						if (   (handsets[j]['id'] == ids[0] ) 
-							&& (handsets[j]['unit'] == ids[1] )
-							&& (handsets[j]['val'] == ids[2] ) ) {
-							break;					
-						}
-					}
-					// j contains the correct record index
-					var handset_split = handsets[j]['scene'].split(',');
-					var tid = $(e.target).attr('id');
-					var sid = "Fs" + tid.substr(2);
-					var sval = $( "#"+sid).val(); //xxx
-					alert("tid: "+tid+", sid: "+sid+", sval: "+sval);
-					
-					// Lookup value and put index in ind
-					var ind = handset_split.indexOf( sval );
-					alert("split ind: "+ind);
-					handset_split [ind+1] = laval;
-					handsets[j]['scene']=handset_split.join();
-					
-					return (0);	
-  				},
-				function () {
-					return(1); // Avoid further actions for these radio buttons 
-  				},
-  				'Confirm Change'
-			); // askForm
-			break;
-					
-			default:
-				alert("Sequence action unknown: " + but_id.substr(-2) );
-		}
-	})// on-click handler XXX can be moved to document.ready part of the program
-	
-	
-	// ------SORTABLE---REQUIRES MORE WORK -------
-	// Sortable put at the end of the function
-	// The last() makes sure only the second table is sortable with the scene elements
-	
-	// Note: Unsure if we should use scene_split var, as this function is async!
-	// however, scene_split is in the scope of this function, and contains the
-	// scurrent values on the screen...... but it works!
-	if (jqmobile == 1) {
-		
-		// jmobile handsets are NOT sortable at the moment
-		
-	}
-	else {
-	  $("#gui_handsets tbody").sortable({
-
-		start: function (event, ui) {
-            $(ui.item).data("startindex", ui.item.index());
-        },
-		// Make sure we select the second table!
-		stop: function (event, ui) {
-
-			var my_list = '';
-			// Go over each element and record the id
-			$( "#gui_handsets .scene" ).each(function( index ) {
-				var id = 	$(this ).children().children('.dbuttons').attr('id');	
-				// XXX Assumption that scene id is only 1 digit!!
-				var ind = id.substr(4);
-			// MMM	
-				console.log( "scn: " + hset + " html index: " + index + " scene ind: " + ind );
-				
-				my_list += scene_split [(ind-1)*2] + ',' + scene_split [((ind-1)*2) + 1] + ',' ;
-			});
-			// Now we need to remove the last ","
-			console.log("my_list :" + my_list);
-			my_list = my_list.slice(0,-1);
-			console.log("scene: " + hset + ", " + handsets[hset-1]['name'] + ", my_list: " + my_list );
-			
-			// XXX OOPS, not nice, should look up the index, not assume ind[1] is same as array index 0
-			handsets[hset-1]['scene'] =  my_list;
-        }	 
-	  }).disableSelection();
-	}//else
-	
-	s_handset_id = hset;
-} // activate handset
-
-
-
-
-// --------------------------------- ACTIVATE WEATHER -------------------------------------
-// At the moment I do have 3 temperature/humidity sensors.
-// It is quite good possible to config the sceen so that for 2 or 4 or 6 sensors
-// With 3 we will have a good layout on the screen, otherwise we'll scroll.
-//
-// In next release of LamPI, we should sort the sensors in locations... as we do with
-// rooms. These will not so much the real physical location (probably is), but will be
-// container to assure we have the sensors grouped together as we want...
-//
-function activate_weather(location)
-{
-	// Cleanup work area
-	$( "#gui_messages" ).empty();
-	$( "#gui_content" ).empty();					// Empty our drawing area
-	html_msg = '<div id="gui_weather"></div>';
-	$( "#gui_content" ).append (html_msg);	
-	html_msg = '<table border="0">';
-	$( "#gui_weather" ).append( html_msg );
-	
-	var table = $( "#gui_weather" ).children();		// to add to the table tree in DOM
-	var offbut, onbut;
-	
-	// We want the length not be the weather length but the number of unique locations in the
-	// array weather (which equals actually the number of buttons in the header area)
-	//alert("activate_weather:: location: "+location);
-
-	var wl = 0; 
-	for (var i= 0; i < weather.length; i++)
-	{
-		if (weather[i]['location'] == location)
-		{
-			wl++;									// Determines the number of dials on the active screen
-		}
-	}			
-	//alert("activate_weather:: wl: "+wl);
-	//var wl = weather.length;						// Determines the number of dials on screen
-	var buf = '<tbody>' ;
-	var wi = 100/wl;
-
-	// At the moment we only do temperature and humidity. We can test for other fields here
-	// so that we can fill more rows with dial canvas for those fields (e.g. windspeed).
-	// XXX placeholder
-	
-	// First row; Create the canvasses and make room for the dials..
-	// Temperature, first row of dials	
-	buf += '<tr>';
-	for (var i=0; i< wl; i++) {
-		buf += '<td width="'+wi+'%">';
-        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
-		buf += '</td>';
-	}
-	buf += '</tr>';
-	
-	// This is the second row, with the dials for humidity
-	buf += '<tr>';
-	for (var i=0; i< wl; i++) {
-		var canv = 'canvasRadial'+(wl+i+1)+'';
-		buf += '<td width="'+wi+'%">';
-        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
-		buf += '</td>';
-	}
-	buf += '</tr>';
-	buf += '</tbody></table>';
-	
-	// XXX for windspeed etc. if the row dimensions are larger than 2
-	
-	$(table).append(buf);							// Display the table with canvas
-	//$( "#gui_weather" ).append( buf );
-	
-	// From the demo
-	// XXX When working OK, switch to min version
-	// We load the .js file for steel animation. This is done in jQuery so that once
-	// loaded all functions are available, but the functions are no integral/permanent part
-	// of the code
-	$.getScript("steel/steelseries-min.js", function(){
-	//$.getScript("steel/steelseries.js", function(){
-		
-		// sections are used for:
-		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
-                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
-                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
-
-            // Define one area
-            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
-
-            // Define value gradient for bargraph tempterature
-            tempGrad = new steelseries.gradientWrapper(  -20,
-                                                        40,
-                                                        [ 0, 0.20, 0.40, 0.85, 1],
-                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
-                                                          new steelseries.rgbaColor(0, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-			
-			valGrad = new steelseries.gradientWrapper(  0,
-                                                        100,
-                                                        [ 0, 0.33, 0.66, 0.85, 1],
-                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
-                                                          new steelseries.rgbaColor(0, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-		
-		var radial={};
-		var i=0;
-		for (var j=0; j< weather.length; j++)
-		{
-			if (weather[j]['location'] == location ) 
-			{
-		
-				// temperature
-				radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-								minValue: -20,							// Set the min value on the scale
-								maxValue: 40,
-                            	valueGradient: tempGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['name']+"@"+weather[j]['location'],
-                            	unitString: 'Temp C',
-								threshold: 30,
-                            	lcdVisible: true
-                        });
-				radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-				radial[i].setValueAnimated(weather[j]['temperature']);
-				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-			
-				// humidity radial gauges
-				if (weatheron[j]['humidity'] == "1")
-				{
-					console.log("weatheron humi "+i+" is 1");
-					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-                            	valueGradient: valGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['location'],
-                            	unitString: 'Humidity %',
-                            	lcdVisible: true
-                        });
-					radial[i+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-					radial[i+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-					radial[i+wl].setValueAnimated(weather[j]['humidity']);
-				}
-				else {
-					console.log("weatheron humi "+i+" is 0");
-				}
-			
-				// windspeed radial gauges
-				if (weatheron[j]['windspeed'] == "1")
-				{
-					console.log("weatheron windspeed "+i+" is 1");
-					radial[i+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(i+wl*2+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-                            	valueGradient: valGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['location'],
-                            	unitString: 'Humidity %',
-                            	lcdVisible: true
-                        });
-					radial[i+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-					radial[i+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-					radial[i+wl*2].setValueAnimated(weather[j]['windspeed']);
-				}
-				else {
-					console.log("weatheron windspeed"+i+" is 0");
-				}
-				i++;
-			}
-		}
-		
-		// Once every 2 seconds we update the meters based on the current
-		// value of the weather array (which might change due to incoming messages
-		// over websockets.
-		var id;
-		id = setInterval(function()
-		{
-			// Do work if we are in the weather screen
-			if (s_screen == "weather" )
-			{
-				var i = 0;
-				for (var j=0; j< weather.length; j++) 
-				{
-					if (weather[j]['location'] == location)
-					{
-						radial[i].setValueAnimated(weather[j]['temperature']); 
-						if (weatheron[j]['humidity'] == "1") {
-							radial[i+wl].setValueAnimated(weather[j]['humidity']);
-						}
-						if (weatheron[j]['windspeed'] == "1") {
-							radial[i+wl].setValueAnimated(weather[j]['windspeed']);
-						}
-						if (weatheron[j]['winddirection'] == "1") {
-							radial[i+wl].setValueAnimated(weather[j]['winddirection']);
-						}
-						i++;
-					}
-				}
-				// Make a new connection and start registering the various actions,
-				// State 0: Not ready (yet), connection to e established
-				// State 1: Ready
-				// State 2: Close in progress
-				// State 3: Closed
-				var state = w_sock.readyState;
-				if (state != 1) 
-				{
-					console.log("Websocket:: error. State is: "+state);
-					message("Websocket:: error. State is: "+state);
-					//w_sock = new WebSocket(w_uri);
-				}
-			}
-			else
-			{
-				// Kill this timer temporarily
-				clearInterval(id);
-				message("Suspend Dials");
-			}
-		}, 2000);		// 2 seconds (in millisecs)
-		
-	});
-}
-
 // -------------------------------------------------------------------------------
 // Activate the Settings screen for a certain setting
 // identified with sid.
@@ -5345,8 +5070,216 @@ function activate_setting(sid)
 			myAlert("Config encountered internal error: unknown button "+sid);
 		
 	}
-}// activate_settings
+}
 
+// --------------------------------- ACTIVATE WEATHER -------------------------------------
+// At the moment I do have 3 temperature/humidity sensors.
+// It os quite good possible to config the sceen so that for 2 or 4 or 6 sensors
+// With 3 we will have a good layout on the screen, otherwise we'll scroll.
+//
+// In next release of LamPI, we should sort the sensors in locations... as we do with
+// rooms. These will not so much the real physical location (probably is), but will be
+// container to assure we have the sensors grouped together as we want...
+//
+function activate_weather(wid)
+{
+	// Cleanup work area
+	$( "#gui_messages" ).empty();
+	$( "#gui_content" ).empty();					// Empty our drawing area
+	html_msg = '<div id="gui_weather"></div>';
+	$( "#gui_content" ).append (html_msg);	
+	html_msg = '<table border="0">';
+	$( "#gui_weather" ).append( html_msg );
+	
+	var table = $( "#gui_weather" ).children();		// to add to the table tree in DOM
+
+	var offbut, onbut;
+	var wl = weather.length;						// Determines the number of dials on screen
+	var buf = '<tbody>' ;
+	var wi = 100/wl;
+
+	// At the moment we only do temperature and humidity. We can test for other fields here
+	// so that we can fill more rows with dial canvas for those fields (e.g. windspeed).
+	// XXX placeholder
+	
+	// Temperature, first row of dials	
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		buf += '<td width="'+wi+'%">';
+        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	
+	// Humidity
+	// This is the second row, with the dials for humidity
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		var canv = 'canvasRadial'+(wl+i+1)+'';
+		buf += '<td width="'+wi+'%">';
+        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	buf += '</tbody></table>';
+	
+	// XXX for windspeed etc. if the row dimensions are larger than 2
+	
+	$(table).append(buf);							// Display the table with canvas
+	//$( "#gui_weather" ).append( buf );
+	
+	// From the demo
+	// XXX When working OK, switch to min version
+	// We load the .js file for steel animation. This is done in jQuery so that once
+	// loaded all functions are available, but the functions are no integral/permanent part
+	// of the code
+	$.getScript("steel/steelseries-min.js", function(){
+	//$.getScript("steel/steelseries.js", function(){
+		
+		// sections are used for:
+		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
+
+            // Define one area
+            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+
+            // Define value gradient for bargraph tempterature
+            tempGrad = new steelseries.gradientWrapper(  -20,
+                                                        40,
+                                                        [ 0, 0.20, 0.40, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+			
+			valGrad = new steelseries.gradientWrapper(  0,
+                                                        100,
+                                                        [ 0, 0.33, 0.66, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+		
+		var radial={};
+		for (var j=0; j< wl; j++)
+		{
+			
+			// temperature
+			radial[j] = new steelseries.RadialBargraph('canvasRadial'+(j+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: -20,							// Set the min value on the scale
+								maxValue: 40,
+                            	valueGradient: tempGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['name']+"@"+weather[j]['location'],
+                            	unitString: 'Temp C',
+								threshold: 30,
+                            	lcdVisible: true
+                        });
+			radial[j].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+			radial[j].setValueAnimated(weather[j]['temperature']);
+			radial[j].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+			
+			// humidity radial gauges
+			if (weatheron[j]['humidity'] == "1")
+			{
+				console.log("weatheron "+j+" is 1");
+				radial[j+wl] = new steelseries.RadialBargraph('canvasRadial'+(j+wl+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+                            	valueGradient: valGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['location'],
+                            	unitString: 'Humidity %',
+                            	lcdVisible: true
+                        });
+				radial[j+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+				radial[j+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+				radial[j+wl].setValueAnimated(weather[j]['humidity']);
+			}
+			else {
+				console.log("weatheron "+j+" is 0");
+			}
+			
+			// windspeed radial gauges
+			if (weatheron[j]['windspeed'] == "1")
+			{
+				console.log("weatheron "+j+" is 1");
+				radial[j+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(j+wl*2+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+                            	valueGradient: valGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['location'],
+                            	unitString: 'Humidity %',
+                            	lcdVisible: true
+                        });
+				radial[j+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+				radial[j+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+				radial[j+wl*2].setValueAnimated(weather[j]['windspeed']);
+			}
+			else {
+				console.log("weatheron "+j+" is 0");
+			}
+		}
+		
+		// Once every 2 seconds we update the meters based on the current
+		// value of the weather array (which might change due to incoming messages
+		// over websockets.
+		var id;
+		id = setInterval(function()
+		{
+			// Do work if we are in the weather screen
+			if (s_screen == "weather" )
+			{
+				for (var j=0; j< wl; j++) {
+					radial[j].setValueAnimated(weather[j]['temperature']); 
+					if (weatheron[j]['humidity'] == "1") {
+						radial[j+wl].setValueAnimated(weather[j]['humidity']);
+					}
+					if (weatheron[j]['windspeed'] == "1") {
+						radial[j+wl].setValueAnimated(weather[j]['windspeed']);
+					}
+					if (weatheron[j]['winddirection'] == "1") {
+						radial[j+wl].setValueAnimated(weather[j]['winddirection']);
+					}
+				}
+				// Make a new connection and start registering the various actions,
+				// State 0: Not ready (yet), connection to e established
+				// State 1: Ready
+				// State 2: Close in progress
+				// State 3: Closed
+				var state = w_sock.readyState;
+				if (state != 1) {
+					
+					console.log("Websocket:: error. State is: "+state);
+					message("Websocket:: error. State is: "+state);
+					w_sock = new WebSocket(w_uri);
+				}
+			}
+			else
+			{
+				// Kill this timer temporarily
+				clearInterval(id);
+				message("Suspend Dials");
+			}
+		}, 2000);		// 2 seconds (in millisecs)
+		
+	});
+	
+	// Do specific LamPI work
+	//
+	switch (wid) {
+		case "0":
+		break;
+		default:
+			// myAlert("Weather button: "+wid);
+	}
+}
 
 // --------------------------------- BUTTONS ----------------------------------------------
 //

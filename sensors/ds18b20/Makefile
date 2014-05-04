@@ -59,9 +59,9 @@ sensor:	$(OBJ)
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:
-	@cp sensor $(INSTALL)/LamPI-sensor
-	chown root $(INSTALL)/LamPI-sensor
-	chmod u+s $(INSTALL)/LamPI-sensor
+	@cp sensor $(INSTALL)/1w-sensor
+	chown root $(INSTALL)/1w-sensor
+	chmod u+s $(INSTALL)/1w-sensor
 
 clean:
 	@echo "[Clean]"
