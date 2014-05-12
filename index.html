@@ -8,7 +8,7 @@
 
 <h1>LamPI Introduction</h1>
 <h5>LamPI is a Home Automation project for switching equipment in the house over 444 MHz transmitters/receivers on a RaspberryPI. It started as an alternative to the klikaanklikuit interface that I used to control the lights in out house. But LamPI now supports other brands of receivers as well, and as of release 1.8 it does support weather sensors as well.</h5>
-<p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, documentation on http://platenspeler.github.io</p>
+<p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
 <h3>Control your lights and switches</h3>
 <p>This is where I developed LamPI for initially. It will control your light switches and your dimmers and your other switches as well (so your stereo too). </p>
 <p><img src="gh-pages/screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
@@ -17,10 +17,11 @@
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
 <p>Actually, what you see below is just a small example of what &quot;steel&quot; can do for your project. The library is highly customizable so you can make your own background, color an other settings if you like.</p>
 <p>What you see below is the first version  for LamPI 1.8 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms.</p>
-<p>The definitions of sensors are stored in a configuration file.</p>
+<p>The definitions of sensors are stored in the configuration file database.cfg.</p>
 <p><img src="gh-pages/screenshots/weather_screen_1.JPG" width="966" height="637"></p>
 <p>Apart from the latest sensor info, or even near-real-time information received, I like to add support for historical charts etc. At the moment, all sensor readings are stored in a log file, and also in the MySQL database. </p>
 <p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can take a few days before I answer..</p>
+<p>&nbsp;</p>
 <h1>LamPI Introduction</h1>
 <p>The goal of my project was to provide an easy interface to the family to control the lights in our house. We had klikaanklikuit.nl switches and we have an iPad (and some Android phones and Laptops) and want to control our light switches with an easy-to-use GUI interface. This meant that I needed at least 2 components: A component that would control transmitter and receiver and handle low-level device commands, and a GUI in JavaScript/jQuery that would handle the human interaction. In order to store configuration information and for timing commands and unattended use, we would also need a daemon process serving in the background as well as a database (written in MySQL) to store configuration information.</p>
 <p>Although I would expect that you like to use the complete package, it is quite good possible to only use the RaspberryPI transmitter and receiver shell executables (see below)</p>

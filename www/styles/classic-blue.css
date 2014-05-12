@@ -378,9 +378,14 @@
 		.play_button {
 			background-color:#0FF;
 			min-height:30px;
-			width:30px;
+			min-width:60px;
 		}
-				
+		.stop_button {
+			background-color:#F66;
+			min-height:30px;
+			min-width:60px
+		}
+		
 	/* General Defnitions */
 		
 		/* The element making up the slider. The jquery definition is even much more complex*/

@@ -1014,8 +1014,7 @@ function start_LAMP(){
 				
 			break;
 				
-			// Remove the current scene. Means: Remove from the scenes
-			// array, and reshuffle the array. 
+			// Remove the current handset. Means: Remove from the handset array, and shuffle the array. 
 			// As there are multiple records with the same id, we need to make a 
 			// list first, and after selection delete all records with that id.
 			//
@@ -3346,13 +3345,13 @@ function activate_scene(scn)
 					+ '<td colspan="2">'
 					+ '<input type="submit" id="Fx'+scene_id+'" value="X" class="dbuttons del_button">'
 					+ '<input type="submit" id="Fr'+scene_id+'" value="+" class="dbuttons new_button">'
-					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons play_button">'
 					+ '</td>'
 					+ '<td colspan="2"><input type="input"  id="Fl'+scene_id+'" value= "'+scene_name+'" class="dlabels"></td>' 
 					
 					+ '<td><input type="submit" id="Fc'+scene_id+'" value="STOP" class="dbuttons">'
-					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons"></td>'
-					+ '</thead>'
+					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons">'
+					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons play_button">'
+					+ '</td></thead>'
 					;
 			$(table).append(but);
 			$(table).append('<tbody>');
@@ -3475,6 +3474,7 @@ function activate_scene(scn)
 					// DELETE scene action, ONE of the actions in the seq!!!
 					case "Fx":
 						if (debug > 2) alert("Activate_screen:: Delete Fx button pressed");
+						
 						var msg = "Deleted actions ";
 						// Go over each TR element with id="scene" and record the id
 						// We need to go reverse, as removing will mess up higher indexes above,
@@ -3718,14 +3718,11 @@ function activate_timer(tim)
 			var but =  '<thead>'	
 					+ '<tr class="switch">'
 					+ '<td><input type="submit" id="'+timer_id+'Fe" value="Store" class="dbuttons play_button" style="min-width:100px;"></td>'
-					
-					// + '<input type="submit" id="' + timer_id + 'Fq" value=">" class="dbuttons play_button" >'
-					+ '</td>'
 					+ '<td><input type="input"  id="'+timer_id+'Fl" value="'+timer_name+'" class="dlabels"></td>' 
 					+ '<td>'
-					//+ '<input type="submit" id="' + timer_id + 'Fx" value="X" class="dbuttons del_button" >'
+					+ '<input type="submit" id="' + timer_id + 'Fx" value="Cancel Once" class="dbuttons stop_button" >'
 					//+ '<input type="submit" id="' + timer_id + 'Fr" value="+" class="dbuttons new_button" >'
-					+ '</thead>'
+					+ '</td></thead>'
 					;
 			$(table).append(but);
 			$(table).append('<tbody>');
@@ -3916,7 +3913,7 @@ function activate_timer(tim)
 			str += '</div></td><br></tr>';
 			$(table).append(str); 
 			
-			// We have to setup am event handler for this screen.
+			// We have to setup am event handler for this timer screen.
 			// After all, the user might like to change things and press some buttons
 			// NOTE::: This handler runs asynchronous! So after click we need to sort out for which device :-)
 			//
@@ -3934,8 +3931,9 @@ function activate_timer(tim)
 				switch (but_id.substr(-2))
 				{					
 					//
-					// STORE button !!! 
+					// STORE timer button !!! 
 					// THIS ONE IS IMPORTANT. We'll LET THE USER PLAY UNTIL HE PRESSES THIS BUTTON!!!
+					// So this mans that changes will not be final to the database until this button is pressed.
 					case "Fe":	
 						var arr = $.map($('.days :input:checkbox:checked'), 
 									function(e, i) {
@@ -3973,7 +3971,8 @@ function activate_timer(tim)
 						+ ", startd: " + timer['startd'] + "\n"
 						+ ", endd: " + timer['endd'] + "\n"
 						+ ", days: " + timer['days'] + "\n"				// Undefined
-						+ ", months: " + timer['months'] + "\n"			// Undefined
+						+ ", months: " + timer['months'] + "\n"
+						+ ", skip: " + timer['skip'] + "\n"				// Skip one time
 						;
 						// alert(str);
 						send_2_dbase( "store_timer", timer); 
@@ -3985,17 +3984,41 @@ function activate_timer(tim)
 						//message_device("timer", timer_cmd );
 					break;
 						
-					// DELETE timer button
+					// CANCEL DELETE timer, but instead for timers and for this application we use 
+					// Cancel Once
 					case "Fx":
+						$( '.timbut' ).removeClass( 'hover' );
+						$('#Fx').addClass( 'hover' );
 					// Do we want confirmation?
-						var timer_cmd = '!FxP"' + timer['name'] + '"';
-						alert("Delete current Sequence: " + timer['name']
-							+ "\ntimer cmd: " + timer_cmd
-							  );
-						message_device("timer", timer_cmd);
-						// XXX Still need to delete something....
-						// send_2_dbase( "delete_timer", timer);
-					break;
+					//	var timer_cmd = '!FxP"' + timer['name'] + '"';
+					//	alert("Delete current Sequence: " + timer['name']
+					//		+ "\ntimer cmd: " + timer_cmd
+					//		  );
+					//	message_device("timer", timer_cmd);
+					//	XXX Still need to delete something....
+					//	send_2_dbase( "delete_timer", timer);
+					
+						myConfirm('You are about to cancel this timer. If you continue, the system ' 
+							+ 'will for one time skip this timer action', 
+							// Confirm
+							function () {
+								// DO nothing....
+								// Maybe make the background red during device selection or blink or so
+								// with recording in the message area ...
+								message('Skipping');
+							// Cancel	
+  							}, 
+							function () {
+								message("Not Skipping"); // Avoid further actions for these radio buttons 
+								return(0);
+  							},
+  							'Cancel this timer once?'
+						);
+						timer['skip']="1";
+						set_timer(s_timer_id,timer);
+						send_2_dbase( "store_timer", timer);
+						$('#Fx').removeClass( 'hover' );
+					break;//Cancel
 					
 					// Recording
 					case "Fr":
@@ -4389,7 +4412,7 @@ function activate_handset(hset)
 				// Not Applicable for the ICS-1000 controller
 				// So we need not to do the next lines for ICS-1000
 				// var handset_cmd = '!FeP"' + handset['name'] + '"=' + handset['scene'];
-				// message_device("scene", handset_cmd );
+				// message_device("handset", handset_cmd );
 			break;
 
 			//
@@ -5010,7 +5033,7 @@ function activate_setting(sid)
 			var debug_help = "<br> \
 								This parameter describes which controller we will use to send lamp commands to the devices. \
 								The ICS-1000 is a safe choice in case you have one. For users that have a Raspberry PI\
-								and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php \
+								and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php) \
 								it's much more fun to use the latter. Remember to pair your device with either or both.\
 								<br /><br> \
 					";

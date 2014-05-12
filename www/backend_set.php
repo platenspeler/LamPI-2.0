@@ -37,6 +37,53 @@ $apperr = "";	// Global Error. Just append something and it will be sent back
 $appmsg = "";	// Application Message (from backend to Client)
 
 
+/** ---------------------------------------------------------------------------------- 
+ * Check if a client IP is in our Server subnet
+ *
+ * @param string $client_ip
+ * @param string $server_ip
+ * @return boolean
+ *
+ * Original function taken from internet, but modified to read server address from ifconfig
+ * It provides a solution, even for multiple adpters, provided they are all in same subnet.
+ * If we use PHP as a server, then we are NOT sure about the used IP address, 
+ * especially if we rely on /etc/hosts as a guide (127.0.1.1)
+ * as we might manually set the IP address in /etc/network/interfaces
+ * Therefore, best is to use ifconfig output and scan for that interface that has a Bcast
+ * next to the inet address.
+ */
+function clientInSameSubnet($client_ip=false,$server_ip=false) {
+	global $log;
+    if (!$client_ip)
+        $client_ip = $_SERVER['REMOTE_ADDR'];
+    //if (!$server_ip) {
+    //    $server_ip = $_SERVER['SERVER_ADDR'];	// For a daemon, this does NOT work
+	//}
+    // Extract broadcast and netmask from ifconfig
+    if (!($p = popen("/sbin/ifconfig","r"))) return false;
+    $out = "";
+    while(!feof($p))
+        $out .= fread($p,1024);
+    
+    $match  = "/^.*inet addr:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Bcast:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Mask:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/im";
+	
+    if (!preg_match($match,$out,$regs)) {
+		$log->lwrite("clientInSameSubnet preg_match failed");
+        return false;
+	}
+	$log->lwrite("clientInSameSubnet:: Inet: ".$regs[1].", Bcast: ".$regs[2].", Mask: ".$regs[3],3);
+	$server_ip = $regs[1];
+    $bcast = ip2long($regs[2]);
+    $smask = ip2long($regs[3]);
+    $ipadr = ip2long($client_ip);
+	if ($client_ip == '127.0.0.1') return(1);				// localhost is local subnet too.
+    $nmask = $bcast & $smask;
+    return (($ipadr & $smask) == ($nmask & $smask));
+}
+
+
 /*	======================================================================================	
 	Function write complete database to file
 	
@@ -187,14 +234,14 @@ function fill_database($cfg)
 	// Timers
 	//  
 	if (!$mysqli->query("DROP TABLE IF EXISTS timers") ||
-    	!$mysqli->query("CREATE TABLE timers(id INT, name CHAR(20), scene CHAR(20), tstart CHAR(20), startd CHAR(20), endd CHAR(20), days CHAR(20), months CHAR(20) )") )
+    	!$mysqli->query("CREATE TABLE timers(id INT, name CHAR(20), scene CHAR(20), tstart CHAR(20), startd CHAR(20), endd CHAR(20), days CHAR(20), months CHAR(20), skip INT )") )
 	{
     	echo "Table creation timers failed: (" . $mysqli->errno . ") " . $mysqli->error;
 	}
 	// Insert Timers
 	for ($i=0; $i < count($timers); $i++)
 	{
-		if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months ) VALUES ('" 
+		if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months, skip ) VALUES ('" 
 							. $timers[$i][id]. "','" 
 							. $timers[$i][name]. "','"
 							. $timers[$i][scene]. "','"
@@ -202,7 +249,8 @@ function fill_database($cfg)
 							. $timers[$i][startd]. "','"
 							. $timers[$i][endd]. "','"
 							. $timers[$i][days]. "','"
-							. $timers[$i][months]. "')"
+							. $timers[$i][months]. "','"
+							. $timers[$i][skip]. "')"
 							) 
 			)
 		{
@@ -382,7 +430,8 @@ function print_database($cfg)
 	for ($i=0; $i < count($timers); $i++) {
 		echo("index: $i id: ". $timers[$i][id].", name: ".$timers[$i][name]);
 		echo(", scene: ". $timers[$i][scene].", startd: ".$timers[$i][startd].", endd: ".$timers[$i][endd]);
-		echo(", tstart: ". $timers[$i][tstart].", days: ".$timers[$i][days].", months: ".$timers[$i][months]."\n");
+		echo(", tstart: ". $timers[$i][tstart].", days: ".$timers[$i][days].", months: ".$timers[$i][months]);
+		echo(", skip: ". $timers[$i][skip]."\n");
 	}
 	echo("\n");
 	
@@ -647,6 +696,7 @@ function post_parse()
 	} // for
 } // function
 
+
 /*	=======================================================================================	
 	function get_parse. 
 	Parse the URL  $_GET for commands
@@ -701,6 +751,12 @@ function get_parse()
 		exit(0);
 	break;	
 	
+	case "print":
+		$cfg = load_database();
+		print_database($cfg);
+		exit(0);
+	break;
+	
 	// Create the weather table (if not exist)
 	//
 	case "weather":
@@ -733,27 +789,32 @@ function get_parse()
 } // Func
 
 
-/*	=======================================================================================	
-	MAIN PROGRAM
-
-	=======================================================================================	*/
+// =======================================================================================	
+//	MAIN PROGRAM
+//
+//	=======================================================================================	
 
 $ret = 0;
 $cfg = 0;
 
-// Parse the URL sent by client
+// ----------------------------------------------------------------------------------------
+// PARSE COMMAND LINE AND CALLING PROGRAM $_GET AND $_POST COMMANDS
+//
 // post_parse will parse the commands that are sent by the java app on the client
 // $_POST is used for data that should not be sniffed from URL line, and
 // for changes sent to the devices
 $ret = post_parse();
 
-// Parse the URL sent by client
 // get_parse will parse more than just the commands that are sent by the java app on the client
 // it will also respond to other $_GET commands if you call the php file directly
 // The URL commands are shown in the get_parse function
 if ($testing == 1) $ret = get_parse(); 
 
-// Do Processing
+// ----------------------------------------------------------------------------------------
+// PROCESS RESULTING ACTIONS FROM CALLING AJAX PROGRAM
+// 
+// MIND: If program called as URL on browser, look in get_parse for more 
+// information.
 // XXX Needs some cleaning and better/consistent messaging specification
 // could also include the setting of debug on the client side
 switch($action)

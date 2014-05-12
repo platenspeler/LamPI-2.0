@@ -34,7 +34,7 @@
 #include "sensor.h"
 
 #define MAX_TIME 90  
-#define DHT11PIN 7 					// == GPIO pin 4
+#define DHT11PIN 0 					// == GPIO pin 17
 
 
 

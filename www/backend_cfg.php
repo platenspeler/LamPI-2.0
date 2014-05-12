@@ -27,30 +27,39 @@
 	$dbhost = "192.168.2.11";				// standard this should be "localhost"
 
 // USER ADMIN SETTINGS (could be in database too, but this is easy as well)
+// In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'user1',
-						'password' => '12345' , 
+						'login' => 'maarten',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'user2',
-						'password' => '12345' , 
+						'login' => 'laurens',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'user3',
-						'password' => '12345' , 
+						'login' => 'marloes',
+						'password' => '5143' , 
+						'server' => '' ,
+						'trusted' => '1'
+					),
+					array (
+						'login' => 'annemarie',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '2'
 					) 
 			);
+	
 // Are we still debugging or testing or operational? 
 // $_GET is not allowed in operational!!
 // Set to 0 for operational, and to 1 for testing
 	$testing=1;
+	
 // Set to 1 in order to fake any communication to devices
 	$fake=0;					
 //

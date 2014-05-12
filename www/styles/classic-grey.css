@@ -334,11 +334,11 @@
 		.dimrow {
 				background-color:#AAA;
 
-		}	
+		}
 		/* A switch element, so just ON/OFF button */
 		.switch {
 			background-color:#AAA;
-		}		
+		}
 
 	
 	/* Scene definitions */
@@ -359,26 +359,26 @@
 		}
 
 	/* Handset Definitions */
-	
+
 		/* A row of handset */
 		.handset {
 			background-color:#AAA;	
 		}
-		
+
 		.handset:nth-child(odd) {
 			background-color:#999;
 		}
-	
-	
-	
+
+
+
 	/* Buttons for adding, removing and help */
-	
+
 		.new_button {
 			background-color:#6F6;
 			min-height:30px;
 			width:30px;
 		}
-		
+
 		.del_button {
 			background-color:#F66;
 			min-height:30px;
@@ -392,7 +392,13 @@
 		.play_button {
 			background-color:#0FF;
 			min-height:30px;
-			width:30px;
+			min-width:60px;
+		}
+		
+		.stop_button {
+			background-color:#F66;
+			min-height:30px;
+			min-width:60px
 		}
 				
 	/* General Defnitions */

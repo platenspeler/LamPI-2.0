@@ -1,6 +1,6 @@
 #
 # Makefile:
-#	LamPI - WiringPI Compatable sensor library for the Raspberry Pi
+#	LamPI - WiringPI Compatable receiver library for the Raspberry Pi
 #	
 #
 #	Copyright (c) 2013 Maarten Westenberg
@@ -32,53 +32,38 @@ LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 INSTALL = /home/pi/exe
 
-SRC	= dht22.c \
-	dht11.c 
+SRC	= 
     
 # Should not alter anything below this line
 ###############################################################################
 
-OBJ=$(SRC:.c=.o)
+all:	sniffer livolo lights kopou kaku
 
-BINS=$(SRC:.c=)
+sniffer:	./sniffer/sniffer
+	cd sniffer; make
 
-all:	$(BINS)
+livolo:	./livolo/livolo
+	cd livolo; make
 
-readme:
-	@cat README.TXT
-	@echo "    $(BINS)" | fmt
-	@echo ""
+lights: ./lights/action
+	cd lights; make
 
-really-all:	$(BINS)
+kopou: ./kopou/kopou
+	cd kopou; make
 
-sensor:	sensor.o
-	@echo [link sensor]
-	@$(CC) -o $@ sensor.o $(LDFLAGS) $(LDLIBS)
+kaku: ./kaku/kaku
+	cd kaku; make
 
-dht11:	dht11.o
-	@echo [link dht11]
-	@$(CC) -o $@ dht11.o $(LDFLAGS) $(LDLIBS)
-
-dht22:	dht22.o
-	@echo [link dht22]
-	@$(CC) -o $@ dht22.o $(LDFLAGS) $(LDLIBS)
-
-.c.o:
-	@echo [CC] $<
-	@$(CC) -c $(CFLAGS) $< -o $@
-
-install:
-	@cp sensor $(INSTALL)/LamPI-sensor
-	chown root $(INSTALL)/LamPI-sensor
-	chmod u+s $(INSTALL)/LamPI-sensor
+install: 
+	cd sniffer; make install
+	cd livolo; make install
+	cd lights; make install
+	cd kopou; make install
+	cd kaku; make install
 
 clean:
 	@echo "[Clean]"
 	@rm -f $(OBJ) *~ core tags $(BINS)
-
-tags:	$(SRC)
-	@echo [ctags]
-	@ctags $(SRC)
 
 depend:
 	makedepend -Y $(SRC)

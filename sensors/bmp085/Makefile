@@ -32,8 +32,7 @@ LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 INSTALL = /home/pi/exe
 
-SRC	= dht22.c \
-	dht11.c 
+SRC	= testBMP085.c smbus.c
     
 # Should not alter anything below this line
 ###############################################################################
@@ -42,7 +41,7 @@ OBJ=$(SRC:.c=.o)
 
 BINS=$(SRC:.c=)
 
-all:	$(BINS)
+all:	sensor
 
 readme:
 	@cat README.TXT
@@ -51,26 +50,18 @@ readme:
 
 really-all:	$(BINS)
 
-sensor:	sensor.o
+sensor:	$(OBJ)
 	@echo [link sensor]
-	@$(CC) -o $@ sensor.o $(LDFLAGS) $(LDLIBS)
-
-dht11:	dht11.o
-	@echo [link dht11]
-	@$(CC) -o $@ dht11.o $(LDFLAGS) $(LDLIBS)
-
-dht22:	dht22.o
-	@echo [link dht22]
-	@$(CC) -o $@ dht22.o $(LDFLAGS) $(LDLIBS)
-
+	@$(CC) -o $@ $(OBJ) $(LDFLAGS) $(LDLIBS)
+    
 .c.o:
 	@echo [CC] $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:
-	@cp sensor $(INSTALL)/LamPI-sensor
-	chown root $(INSTALL)/LamPI-sensor
-	chmod u+s $(INSTALL)/LamPI-sensor
+	@cp sensor $(INSTALL)/i2c-sensor
+	chown root $(INSTALL)/i2c-sensor
+	chmod u+s $(INSTALL)/i2c-sensor
 
 clean:
 	@echo "[Clean]"

@@ -7,8 +7,6 @@ require_once( '../www/backend_cfg.php' );
 // - Login and Cookies
 // - Device Commununication functions
 
-
-
 /*
  *************************** DATABASE FUNCTIONS *********************************
 
@@ -46,7 +44,6 @@ error_reporting(E_ERROR | E_PARSE | E_NOTICE);				// For a daemon, suppress warn
 
 header("Cache-Control: no-cache");
 header("Content-type: application/json");					// Input and Output are XML coded
-
 
 session_start();
 if (!isset($_SESSION['debug']))	{ $_SESSION['debug']=1; }
@@ -127,7 +124,7 @@ function load_database()
 	}
 	mysqli_free_result($query);
 
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months FROM timers";
+	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$timers[] = $row ;
@@ -382,11 +379,11 @@ function delete_room($room)
 }
 
 
-/* --------------------------------------------------------------------------------
-* Function read scene from MySQL
-*
-* Lookup the scene with the corresponding name
-* ----------------------------------------------------------------------------------- */
+//	--------------------------------------------------------------------------------
+//	Function read scene from MySQL
+//
+//	Lookup the scene with the corresponding name
+//	-----------------------------------------------------------------------------------
 function read_scene($name)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -462,10 +459,10 @@ function add_scene($scene)
 }
 
 
-/*	-----------------------------------------------------------------------------------
-*	Store the scene record in the MySQL database
-*	
-*	-----------------------------------------------------------------------------------	*/
+//	-----------------------------------------------------------------------------------
+//	Store the scene record in the MySQL database
+//	
+//	-----------------------------------------------------------------------------------
 function store_scene($scene)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -499,12 +496,12 @@ function store_scene($scene)
 }
 
 
-/*	-----------------------------------------------------------------------------------
-	Delete a scene record from the database. This is one of the element functions
-	needed to synchronize the database with the memory storage in the client, and
-	prevents information loss between reloads of the screen.
-	
-	-----------------------------------------------------------------------------------	*/
+//	-----------------------------------------------------------------------------------
+//	Delete a scene record from the database. This is one of the element functions
+//	needed to synchronize the database with the memory storage in the client, and
+//	prevents information loss between reloads of the screen.
+//	
+//	-----------------------------------------------------------------------------------
 function delete_scene($scene)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -550,7 +547,7 @@ function add_timer($timer)
 		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return (-1);
 	}
-	if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months) VALUES ('" 
+	if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months, skip) VALUES ('" 
 							. $timer[id]. "','" 
 							. $timer[name]. "','"
 							. $timer[scene]. "','"
@@ -558,7 +555,8 @@ function add_timer($timer)
 							. $timer[startd]. "','"
 							. $timer[endd]. "','"
 							. $timer[days]. "','"
-							. $timer[months]. "')"
+							. $timer[months]. "','"
+							. $timer[skip]. "')"
 							) 
 			)
 	{
@@ -572,10 +570,10 @@ function add_timer($timer)
 	return(12);
 }
 
-/*	-----------------------------------------------------------------------------------
-	Store the scene object in the database
-	
-	-----------------------------------------------------------------------------------	*/
+//	-----------------------------------------------------------------------------------
+//	Store the scene object in the database
+//	
+//	-----------------------------------------------------------------------------------
 function store_timer($timer)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -589,9 +587,9 @@ function store_timer($timer)
 		return (-1);
 	}
 //
-	$test = "UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}' WHERE id='$timer[id]' ";
+	$test = "UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE id='$timer[id]' ";
 	$apperr .= $test;
-	if (!mysqli_query($mysqli,"UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}' WHERE  id='$timer[id]' " ))
+	if (!mysqli_query($mysqli,"UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE  id='$timer[id]' " ))
 	{
 		$apperr .= "Error: Store timer, ";
 		$apperr .= "mysqli_query error" ;
@@ -607,12 +605,12 @@ function store_timer($timer)
 	return(13);
 }
 
-/*	-----------------------------------------------------------------------------------
-	Delete a timer record from the database. This is one of the element functions
-	needed to synchronize the database with the memory storage in the client, and
-	prevents information loss between reloads of the screen.
-	XXX Maybe we shoudl work with addr+unit+val instead of id+unit+val
-	-----------------------------------------------------------------------------------	*/
+//-----------------------------------------------------------------------------------
+//	Delete a timer record from the database. This is one of the element functions
+//	needed to synchronize the database with the memory storage in the client, and
+//	prevents information loss between reloads of the screen.
+//	XXX Maybe we shoudl work with addr+unit+val instead of id+unit+val
+//	-----------------------------------------------------------------------------------
 function delete_timer($timer)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -642,7 +640,7 @@ function delete_timer($timer)
 //
 // Add a handset object as received from the ajax call and update mySQL
 //
-// ----------------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
 function add_handset($handset)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -682,10 +680,10 @@ function add_handset($handset)
 }
 
 
-/*	-----------------------------------------------------------------------------------
-*	Store the handset record in the MySQL database
-*	
-*	-----------------------------------------------------------------------------------	*/
+// -----------------------------------------------------------------------------------
+//	Store the handset record in the MySQL database
+//	
+//	-----------------------------------------------------------------------------------
 function store_handset($handset)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
@@ -867,6 +865,7 @@ function parse_controller_cmd($cmd_str)
 * In the first release of daemon command, it is used to send scene commands to the daemon,
 * that will be parsed and then the individual commands in the scene will be inserted in the run 
 * queue.
+*
 * XXX timer commands will be handled by the daemon itself as it parses the timer database
 * about every minute for changed or new scene items.
 * So the Queue is used for scenes (run now, or a time from now and for timers (run on some
@@ -919,8 +918,8 @@ function send_2_daemon($cmd)
 
 	// Get IP for this host ... As this is the webserver, we can find out which address to use
 	//$ip = $_SERVER['SERVER_ADDR'];
-	$ip = '192.168.2.51';
-	//$ip = '127.0.0.1';
+	//$ip = '192.168.2.51';
+	$ip = '127.0.0.1';
 	if (socket_connect($rsock, $ip, $rport) === false)			
     {
        socket_close($rsock);

@@ -972,9 +972,6 @@ function load_scene($name)
  -------------------------------------------------------------------------------------*/
 function load_timers()
 {
-	global $appmsg;
-	global $apperr;
-	
 	$config = array();
 	$timers = array();
 	
@@ -987,11 +984,11 @@ function load_timers()
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno . ") ".$mysqli->connect_error);
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
 		return(-1);
 	}
 	
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months FROM timers";
+	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$timers[] = $row ;
@@ -1851,8 +1848,8 @@ while (true):
 		$queue->q_print();
 	}
 	
-	// XXX Should index not be $j?
-	for ($i=0; $i<count($queue); $i++) {
+	// XXX MMM QQQ Should index not be $j instead of $i?
+	for ($j=0; $j<count($queue); $j++) {
 		// Queue records contain scene name, timers (in secs) and commands (ready for kaku_cmd)
 		// New records are put to the end of the queue, with timer being the secs to wait from initialization
 		if ($debug > 1) $log->lwrite("main:: Handling queue, timestamp : ".date('[d/M/Y:H:i:s]',$tim),2);
@@ -1867,7 +1864,7 @@ while (true):
 		{
 			// For every item ...
 			// Do we have the latest list of devices??
-			// run-a-command-to-get-the-latest-list-of-devices;;;;;
+			// run-a-command-to-get-the-latest-list-of-devices;;
 			
 			// What to do if the command is all off. We have to expand the command to include all
 			// the devices currently in the room. Since all off might be a popular command in scene and timer
@@ -1966,7 +1963,7 @@ while (true):
 							.$device['id'].", room: ".$device['room'].", val: ".$device['val']);
 	
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
-					$dlist->upd($device);						// Write new value to database
+					$dlist->upd($device);							// Write new value to database
 			
 					$bcst = array (							// build broadcast message
 						// First part of the record specifies this message type and characteristics
@@ -1985,7 +1982,7 @@ while (true):
 									.",".$bcst['action'].">");
 					}
 			
-					$sock->s_bcast($answer);			// broadcast this command back to all connected clients
+					$sock->s_bcast($answer);				// broadcast this command back to all connected clients
 					// XXX We need to define a json message format that is easier on the client.
 					
 					// Actually, broadcasting to all clients could include
@@ -1997,14 +1994,13 @@ while (true):
 					$log->lwrite("main:: NO DEFINED ACTION: ".$items[$i]['action']);
 			}//switch	
 
-		}//for
+		}//for i
 		
-	}//for
+	}//for j
 	if ($debug >= 3) {
 		$log->lwrite("main:: queue finished ");
 		$queue->q_print();
 	}
-
 	
 	
 	
@@ -2016,7 +2012,7 @@ while (true):
 	// What influences the timing are sensors of weather stations, but that is compensated for ..
 	
 	$log->lwrite("main:: Entering the SQL Timers section",3);
-	$timers = load_timers();				// This is a call to MSQL	
+	$timers = load_timers();					// This is a call to MSQL	
 	$tim = time();
 	// mktime(hour,minute,second,month,day,year,is_dst) NOTE is_dst daylight saving time
 	// For EVERY object in the timer array, look whether we should take action
@@ -2066,13 +2062,17 @@ while (true):
 		if ($debug > 2) $log->lwrite ("DEBUG MONTH : ".$i." ".substr($months,@date('n')-1,1) );
 		if ($debug > 2) $log->lwrite ("DEBUG DAY :   ".$i." ".substr($days,  @date('N')-1,1) );
 		
+		// Look of we have to skip this execution because either month, day of week or
+		// cancel once is active. If so, we write to log and do not further execute this timer
+		
 		if (substr($timers[$i]['months'],@date('n')-1,1) == "x" ) {
-			if ($debug > 1) $log->lwrite ("This month is blocked from timer execution");
+			$log->lwrite ("This month is blocked from timer execution",1);
 		}
 		else
 		if ( substr($timers[$i]['days'],@date('N')-1,1) == "x" ) {
-			if ($debug > 1) $log->lwrite ("main:: Today is blocked from timer execution");
+			$log->lwrite ("main:: Today is blocked from timer execution",1);
 		}
+		
 		// If the stoptime has passed, we do not have to do anything.
 		// Only if some long-lasting programs would still be running in the background on the queue(naah)
 		else
@@ -2093,6 +2093,13 @@ while (true):
 			if ($time_last_run > $secs_today ) {
 				// We have already started at least one loop before
 				// $log->lwrite("Timer ". $timers[$i]['name']." has been started already\n");
+			}
+			// Need to make sure ONLY when time > timer sttime
+			// Need to push skip value back to database so next time we tun again !!!
+			else if ( $timers[$i]['skip'] == "1" ) {
+				$log->lwrite ("main:: Cancel Once execution was active",1);
+				$timers[$i]['skip'] = "0";
+				store_timer($timers[$i]);
 			}
 			else {
 				// make the command and queue it (in step 1)

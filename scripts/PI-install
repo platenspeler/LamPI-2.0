@@ -30,6 +30,7 @@ if [ $LINUX = "y" ]; then
     apt-get install php5-mysql
 	apt-get install apache2
     apt-get install phpmyadmin
+    apt-get install i2c-tools
 
 	echo "All LAMP packages have been installed"
 	echo ""
@@ -81,6 +82,7 @@ sudo /etc/init.d/apache2 restart
 # Make the w1 bus modules load at system startup
 sudo echo 'w1-gpio' >> /etc/modules
 sudo echo 'w1-therm' >> /etc/modules
+#sudo echo 'i2c-dev' >> /etc/modules
 
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe

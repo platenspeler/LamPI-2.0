@@ -84,7 +84,8 @@ switch($action)
 		$appmsg .= "\nkaku: ".$action.", dmon_msg: ".$dmon_msg;
 		$ret = send_2_daemon($dmon_msg);
 		//$ret = kaku_cmd($dmon_msg); 
-	break;	
+	break;
+	
 	case "action":
 		$appmsg .= "\naction: ".$action.", dmon_msg: ".$dmon_msg;
 		$ret = send_2_daemon($dmon_msg);
