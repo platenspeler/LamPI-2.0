@@ -7,27 +7,42 @@ export DISPLAY=:0
 EXEDIR="/home/pi/exe"; export EXEDIR
 SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 SENSOR="1w-sensor"; export SENSOR
+HOSTNAME="localhost"; export HOSTNAME
+PORTNUMBER="5000"; export PORTNUMBER
 #
 LOGDIR="/home/pi/log"; export LOGDIR
 LOGFILE="$LOGDIR/$0.log"; export LOGFILE
 PID=""; export PID
-#
-#
+
+# If we specify the -r (restart) argument on the commandline
+# we first kill the running program and then start again
 if [ "$1" = "-r" ]; then
 	echo "`/bin/date`:: Kill previous version of $SENSOR" >> $LOGFILE 2>&1
 	pkill $SENSOR
 fi
+
+HOSTNAME=`grep -Po '(?<=HOSTNAME=).*' $SCRIPTDIR/PI-config.txt`
+if [ $? = 0 ]; then
+	echo "HOSTNAME found in config file: $HOSTNAME"
+    
+else
+	echo "HOSTNAME not found in config file"
+fi
+
+# Load the required module for the 1-wire sensor program
 #
 cat /proc/modules | fgrep w1_therm > /dev/null
 if [ $? = 0 ]; then
 	echo "Module loaded"
 else
-	sudo modprobe w1_them
+	sudo modprobe w1_therm
     sudo modprobe w1_gpio
 fi
 
-
+# Execute the program
+# 
 cd $EXEDIR
 echo "---------------------------------------------------" >> $LOGFILE 2>&1
 echo "`date`:: Starting $SENSOR" >> $LOGFILE 2>&1
-nohup ./$SENSOR -d -v >> $LOGFILE 2>&1 &
+
+nohup ./$SENSOR -d -v -h $HOSTNAME >> $LOGFILE 2>&1 &

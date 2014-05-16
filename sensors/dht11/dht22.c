@@ -78,6 +78,7 @@ static volatile int p_index = 0;				// Counter of pulses in interrupt routine.
 
 int statistics [I_MAX_ROWS][I_MAX_COLS];
 // Declarations for Sockets
+int socktcnt = 0;
 int sockfd;	
 fd_set fds;
 
@@ -209,7 +210,10 @@ int open_socket(char *host, char *port) {
 	if ((sockfd = open_socket(hostname,port)) < 0) {
 		fprintf(stderr,"Error opening socket for host %s. Exiting program\n\n", hostname);
 		exit (1);
-	};
+	}
+	else if (debug) {
+		printf("daemon mode:: Success\n");
+	}
 	FD_ZERO(&fds);
 	FD_SET(sockfd, &fds);
 
@@ -242,7 +246,6 @@ void sensor_interrupt (void)
 	// Record this time
 	//
 	pulse_array[p_index++] = edgeTimeStamp[1] - edgeTimeStamp[0];
-	
 	return;
 }
 
@@ -263,9 +266,11 @@ int dht22_read_old(int r)
 	uint8_t j,i,k;
 	uint8_t linex;
 	//struct timespec tim;
-	int attempts = 100;
+	int attempts = 0;
+	int result = 0;
+	char snd_buf[256];
 	
-	while (-- attempts >= 0)
+	while ((result == 0) && (attempts++ < 1000))
 	{
 		j = 0;
 		//tim.tv_sec = 0;
@@ -330,7 +335,7 @@ int dht22_read_old(int r)
 		//
 		// RESULTS SECTION
 		//
-		if (verbose)
+		if (debug)
 		{
 			printf("\n");
   			linex = 3;
@@ -344,7 +349,7 @@ int dht22_read_old(int r)
 				linex--;
 			}
 			printf("\n");
-				if (j<40) {
+			if (j<40) {
 				printf("ERROR: Not 40 bits but %d: ",j);
 				printf("hum:%d.%d | temp:%d.%d\n",
 				 	dht22_val[0],dht22_val[1],dht22_val[2],dht22_val[3]);
@@ -355,14 +360,39 @@ int dht22_read_old(int r)
 		// verify cheksum and print the verified data  
 		humidity    = (float)(dht22_val[0]*256+ dht22_val[1])/10;
 		temperature = (float)(dht22_val[2]*256+ dht22_val[3])/10;
+		
 		if((j>=40)&&(dht22_val[4]==((dht22_val[0]+dht22_val[1]+dht22_val[2]+dht22_val[3])& 0xFF)))  
-		{  
+		{
+			// Successful read of the sensor
 			printf("%2d, humidity: %2.1f; temperature: %2.1f; ORG. ", r+1, humidity, temperature); 
-			return(attempts); 
+			if (dflg) {
+				// Daemon, output to socket
+				sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"dht22\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\",\"windspeed\":\"%d\",\"winddirection\":\"%d\"}", 
+				socktcnt%1000,
+				"0",									// address
+				0,									// channel
+				(int) temperature,
+				(int) (temperature-(int)temperature)*10,
+				(int) humidity,
+				0,									// windspeed
+				0);									// winddirection
+					
+				// Do NOT use check_n_write_socket as weather stations will not
+				// send too many repeating messages (1 or 2 will come in one transmission)
+				//
+				if (write(sockfd, snd_buf, strlen(snd_buf)) == -1) {
+					fprintf(stderr,"socket write error\n");
+				}	
+				socktcnt++;
+				delay(200);
+						
+				if (verbose) printf("Buffer sent to Socket: %s\n",snd_buf);
+			}
+			result = 1;
 		}  
 		else {  
 			if (verbose) {
-				printf("Invalid Data: ");
+				printf("Invalid Checksum Data: ");
 				printf("%2d, humidity: %2.1f; temperature: %2.1f; ORG. ", r+1, humidity, temperature);
 			}
 		}
@@ -387,10 +417,11 @@ int dht22_read_int(int r)
 	uint8_t j,i;
 	uint8_t linex;
 	int time_interval = 0;
-	int attempts = 100;
+	int attempts = 0;
+	int result = 0;
 	
 	// We want at least ONE successful read of the sensor values.
-	while (--attempts >= 0) 
+	while ((result == 0)  && (attempts++ < 1000))
 	{
 		j=0;
 		stop_ints = 1;								// Disable interrupts for the moment
@@ -431,7 +462,7 @@ int dht22_read_int(int r)
 		{
 			delayMicroseconds(5);
 			time_interval = micros() - start_time;
-			if ( time_interval > 80000 )
+			if ( time_interval > 12000 )			// 40 bits * (50+75) usec max = 6000 usec
 			{
 				if (debug) printf("\n\nERROR: Timeout, p_index: %d, interval: %d uSec\n", 
 					p_index, time_interval);
@@ -494,7 +525,7 @@ int dht22_read_int(int r)
 		{
 			
 			printf("%2d, humidity: %3.1f; temperature: %3.1f; INT. ", r+1, humidity, temperature);
-			return(attempts);
+			result = 1;
 		}  
 		else 
 		{  
@@ -504,7 +535,7 @@ int dht22_read_int(int r)
 		}
 		//delay(1100);			// Really necessary?
 	}//success
-	return(-1);
+	return(attempts);
 } 
 
 
@@ -564,7 +595,8 @@ int main(int argc, char **argv)
 	int repeats = 1;						// We can repeat readings
 	int attempts = 0;						// How many attempts were necessary to be successful
 	
-	char *hostname = "localhost";			// Default setting for our host == this host
+	// char *hostname = "localhost";			// Default setting for our host == this host
+	char *hostname = "0.0.0.0";				// Default setting for our host == this host
 	char *port = PORT;						// default port, 5000
 	
     extern char *optarg;
@@ -678,6 +710,11 @@ int main(int argc, char **argv)
 	// MAIN LOOP
 	// 
 	delay(500);								// Wait 2 secs before starting
+	
+	// We will initialize the interrupt handler to only react to a falling edge.
+	// SO as every bit consists of a high pulse of 50 and a low pulse of either 28 or 75 usec
+	// when we measure the falling edge only a 50+28 means a 0 and a 50+75usec flank means 1
+	//
 	if (iflg) {
 		wiringPiISR (DHT22PIN, INT_EDGE_FALLING, &sensor_interrupt);
 	}
@@ -686,20 +723,24 @@ int main(int argc, char **argv)
 	{  
 		if (iflg) {
 		// Use an interrupt routing, less resource consuming
-			attempts = 100 - dht22_read_int(i);
+			attempts = dht22_read_int(i);
 		}
 		else if (wflg) {
 		// Make use of the special library for these devices in wiringPI
-			attempts = 100 - dht22_read_wiring(i);
+			attempts = dht22_read_wiring(i);
 		}
 		else {
 		// Use the brute force method and wait all reads out
-			attempts = 100 - dht22_read_old(i); 
+			attempts = dht22_read_old(i); 
 		}	
 		
 		printf(" It took %d attempts to read\n",attempts);
 		delay(2000);							// wait 2.0 secs
 	}
 	
+	// Close the socket to the daemon
+	if (close(sockfd) == -1) {
+		perror("Error closing socket to daemon");
+	}
 	exit(EXIT_SUCCESS); 
 }  

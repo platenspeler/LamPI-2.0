@@ -52,6 +52,9 @@ Up to 4 archives are maintained (a few days!) and then the system will delete th
 The script runs wen the crontab line is fired. In general, running once a day or maybe
 a few times a day is enough. 
 
+PI-1w
+-----
+Contains the 1-wire sensor program for LamPI
 
 PI-clr
 ------

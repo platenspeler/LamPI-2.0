@@ -1,6 +1,6 @@
 #!/bin/sh
 # This is the simple installer script for LamPI
-# (c) M. Westenberg, 2013
+# (c) M. Westenberg, 2013, 2014
 #
 LINUX="y"; export LINUX
 WIRING="y"; export WIRING
@@ -29,15 +29,25 @@ if [ $LINUX = "y" ]; then
     apt-get install mysql-client
     apt-get install php5-mysql
 	apt-get install apache2
-    apt-get install phpmyadmin
+#   apt-get install phpmyadmin
+	apt=get install rrdtool
     apt-get install i2c-tools
 
 	echo "All LAMP packages have been installed"
 	echo ""
 fi
-
-
 echo "Finished installing Linux packages"
+
+# -------------------------------------------------------------
+# Some more administration to be done for modules
+#
+
+# Make sure that the database is in place
+# Make sure that /etc/modprobe.d/raspi.conf contains # in front of i2c lines
+
+
+
+
 # -------------------------------------------------------------
 # Download, Install and build the wiringPI library of Gordon
 #
@@ -67,13 +77,15 @@ fi
 cd /home/pi
 
 # The command below will FAIL if the PI_install script is put in /home/pi/scripts or
-# if the /home/pi directory is not empty
+# if the /home/pi directory is not empty. For safety we therefore copy to /tmp first.
+
 rm -rf /tmp/effe
 mkdir /tmp/effe
 git clone git://github.com/platenspeler/LamPI-1.9 /tmp/effe
 cd /tmp/effe; tar cf - . | ( cd /home/pi; tar xpf - )
 rm -rf /tmp/effe
 
+# Set the apache base directory
 sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
 sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
 sudo mv /tmp/effe /etc/apache2/sites-available/default
@@ -82,13 +94,17 @@ sudo /etc/init.d/apache2 restart
 # Make the w1 bus modules load at system startup
 sudo echo 'w1-gpio' >> /etc/modules
 sudo echo 'w1-therm' >> /etc/modules
-#sudo echo 'i2c-dev' >> /etc/modules
+sudo echo 'i2c-bcm2708' >> /etc/modules
+sudo echo 'i2c-dev' >> /etc/modules
 
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe
 
+
+
 # --------------------------------------------------------------
 # Fix the .exe directory
+# And build the executables from source
 #
 cd /home/pi/receivers/sniffer; make
 sudo make install
@@ -104,6 +120,8 @@ sudo make install
 
 cd /home/pi/receivers/lights; make
 sudo make install
+
+
 
 # --------------------------------------------------------------
 # Setup the crontab so that daemon and receiver are enabled.

@@ -69,7 +69,8 @@
 
 // Port Settings for the LamPI Daemon (!) LamPI-daemon.php file
 	$rcv_daemon_port = "5000";										
-    $snd_daemon_port = "5001";								
+    $snd_daemon_port = "5001";	
+	$rcv_udp_port	 = "5002";
 //
 // Server listens to ALL incoming hosts. So if we want to limit access
 // XXX We have to build an accept/authorization mechanism in the daemon
