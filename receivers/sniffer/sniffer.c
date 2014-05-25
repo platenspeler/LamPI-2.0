@@ -506,8 +506,8 @@ int wt440h(int p_length)
 				{
 					// Fill the Json buffer, 0 for empty value...
 					sprintf(snd_buf, 
-					 "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"wt440h\",\"type\":\"json\",\"address\":\"%d\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\",\"windspeed\":\"%d\",\"winddirection\":\"%d\"}", 
-						socktcnt%1000,address,channel,temperature/10,temperature%10,humidity,0,0);
+					 "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"wt440h\",\"type\":\"json\",\"address\":\"%d\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
+						socktcnt%1000,address,channel,temperature/10,temperature%10,humidity,-1,-1,-1);
 					
 					// Do NOT use check_n_write_socket as weather stations will not
 					// send too many repeating messages (1 or 2 will come in one trasmission)
@@ -1810,6 +1810,7 @@ int main (int argc, char **argv)
 					
 					// Do some basic checks to avoid hanging of the daemon
 					// XXX Needs more checks
+					
 					if (stop_ints == 1) {
 						fprintf(stderr,"ERROR sniffer.c:: in daemon mode, stop_ints == 1");
 						stop_ints = 0;							// Unlock interrupt handler

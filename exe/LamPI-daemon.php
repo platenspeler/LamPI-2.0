@@ -92,9 +92,11 @@ class Logging {
     // declare log file and file pointer as private properties
     private $log_file, $fp;
     // set log file (path and name)
+	
     public function lfile($path) {
         $this->log_file = $path;
     }
+	
     // write message to the log file
     public function lwrite($message,$dlevel=false) {
 		global $debug;
@@ -112,10 +114,12 @@ class Logging {
         // write current time, script name and message to the log file
         fwrite($this->fp, "$time ($script_name) $message" . PHP_EOL);
     }
+	
     // close log file (it's always a good idea to close a file when you're done with it)
     public function lclose() {
         fclose($this->fp);
     }
+	
     // open log file (private method)
     private function lopen() {
         // in case of Windows set default log file
@@ -285,9 +289,10 @@ class Queue {
 
 class Sock {
 	
+	public	$usock = 0;					// UDP Receive Socket
 	public	$rsock = 0;					// Receive socket of the server
 	public	$ssock = 0;					// Sendto Socket; often ;ast socket rcvd on, so THE socket to reply to
-	public $clientIP;					// Refer to $sock-> or $this->
+	public	$clientIP;					// Refer to $sock-> or $this->
 	private $read = array();			// The object for socket_select, contains array of data sockets
 	private $wait = 1;					// Timeout value for socket_select. Changed dynamically!
 	
@@ -441,6 +446,100 @@ class Sock {
 		return $text;
 	}//s_unmask
 	
+	
+	//
+	//	Open the UDP server socket as an internal function
+	//
+	private function s_uopen() {
+		global $debug;
+		global $log;
+		global $rcv_daemon_port;
+		global $udp_daemon_port;
+		global $serverIP;
+		
+		$address= $serverIP;
+		
+		if ($debug > 0) $log->lwrite("s_uopen:: Opening UDP Socket on IP ".$address.":".$udp_daemon_port);
+		
+		$this->usock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+		//if (!$this->usock)
+        //	die('Unable to create AF_UNIX socket');
+			
+    	//if (!socket_set_option($this->usock, SOL_SOCKET, SO_BROADCAST, 1)) 		// Re-use the port, 
+		if (!socket_set_option($this->usock, SOL_SOCKET, SO_REUSEADDR, 1)) 		// Re-use the port,
+    	{ 
+			$log->lwrite("s_uopen:: socket_set_option failed:: ".socket_strerror(socket_last_error($this->usock)) ); 
+			return(-1); 
+   		}
+		// Set listen port on any address
+		if (!socket_bind($this->usock, $address, $udp_daemon_port))
+		{
+			$log->lwrite("s_uopen:: socket_bind failed:: ".socket_strerror(socket_last_error($this->usock)));
+			socket_close($this->usock);
+			return (-1);
+		}	
+
+		if ($debug > 0) $log->lwrite("s_uopen:: receive socket opened ok on port: ".$udp_daemon_port);
+		return(0);
+	}
+	
+	//
+	// s_urecv. 
+	// Main UDP receiver code for all messages on all socket connections to clients
+	// $this->read contains the modified read array of socket to read
+	//
+	public function s_urecv() {
+		global $log;
+		global $debug;
+		global $udp_daemon_port;
+		global $serverIP;
+		
+		$buf = '';
+		$name = '';
+		$len = 512;
+		$usec = 10000;
+		
+		$i1=time();
+
+		
+		if (!is_resource($this->usock)) {
+            $this->s_uopen();
+        }
+
+		if (!($ret=socket_recvfrom ($this->usock, 
+								   $buf ,
+								   $len , 
+								   MSG_DONTWAIT , 
+								   $name, 
+								   $port
+		)	)						)
+		{	
+			$sockerr = socket_last_error($this->usock);
+			
+			switch($sockerr) {
+				
+				case 11:							// EAGAIN
+					$log->lwrite("s_urecv:: no message");
+					return(-1);
+				break;
+				default:
+					$log->lwrite("s_urecv:: ERROR: ".socket_strerror($sockerr) );
+					return(-1);
+				break;
+			}
+		}
+		if ($ret == 0) {
+				$log->lwrite("s_urecv:: No Data to read".$name.":".$port);
+				return(-1);
+		}
+		else {
+			$log->lwrite("s_urecv:: Receiving from: ".$name.":".$port." buf: ".$buf);
+			return($buf);
+		}
+		return(-1);	
+	}// s_urecv	
+	
+	
 	//
 	//	Open the server socket as an internal function
 	//
@@ -448,12 +547,11 @@ class Sock {
 		global $debug;
 		global $log;
 		global $rcv_daemon_port;
-		global $snd_daemon_port;
 		global $serverIP;
 		
 		$address= $serverIP;
 		//$address = gethostbyname($_SERVER['SERVER_NAME']);
-		//$address = $_SERVER['SERVER_ADDR'];		// Open THIS server IP
+		//$address = $_SERVER['SERVER_ADDR'];			// Open THIS server IP
 		
 		if ($debug > 0) $log->lwrite("s_open:: Opening Sockets on IP ".$address.":".$rcv_daemon_port);
 		
@@ -470,8 +568,8 @@ class Sock {
 			socket_close($this->rsock);
 			return (-1);
 		}	
-		// 8 connections is enough?
-		if (socket_listen($this->rsock, 8) === false) {
+		// 10 connections is enough? The silent Max is SOMAXCONN==18 on Raspberry Linux
+		if (socket_listen($this->rsock, 10) === false) {
      		echo "s_open:: socket_listen() failed:: ".socket_strerror(socket_last_error($this->rsock));
 			return (-1);
  		}
@@ -504,7 +602,6 @@ class Sock {
 	public function s_send($cmd_pkg) {
 		global $log;
 		global $debug;
-		global $snd_daemon_port;
 		
 		if (!is_resource($this->ssock)) {
 			$log->lwrite("s_send failed: socket this->ssock not open");
@@ -537,7 +634,13 @@ class Sock {
 		foreach ($this->clients as $key => $client) 
 		{  
 			if (!is_resource($client)) {
-				$log->lwrite("ERROR s_bcast:: failed: socket client not open: ".$this->sockadmin[$key]['ip']);
+				$log->lwrite("ERROR s_bcast:: failed: socket client not open: ".
+							 $this->sockadmin[$key]['ip'].":".
+							 $this->sockadmin[$key]['port']
+				);
+				socket_close($client);					//  This is one of the accepted connections
+				unset($this->clients[$key]);
+				unset($this->sockadmin[$key]);
 				continue;
         	}
 			if ($this->sockadmin[$key]['type'] != 'websocket' ) {
@@ -545,26 +648,34 @@ class Sock {
 									.$this->sockadmin[$key]['ip'].":"
 									.$this->sockadmin[$key]['port'].", type "
 									.$this->sockadmin[$key]['type']." need upgrade?"
-									,3);
+									,1);
 				$message = $cmd_pkg;
+				if (socket_write($client,$message,strlen($message)) === false)
+   				{
+     				$log->lwrite( "ERROR s_bcast:: write failed:: ".socket_strerror(socket_last_error()) );
+					socket_close($client);					//  This is one of the accepted connections
+					unset($this->clients[$key]);
+					unset($this->sockadmin[$key]);
+					continue;
+    			}
+		
+    		$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
+										":".$this->sockadmin[$key]['port']." success",2);
 			}
 			else // Encode the message according to websocket standard
 			{
 				$message = $this->s_encode($cmd_pkg);
-			}
-			
-    		if (socket_write($client,$message,strlen($message)) === false)
-   			{
-     			$log->lwrite( "ERROR s_bcast:: write failed:: ".socket_strerror(socket_last_error()) );
-				socket_close($client);					//  This is one of the accepted connections
-				unset($this->clients[$key]);
-				unset($this->sockadmin[$key]);
-				continue;
-    		}
-		
-    		$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
+				if (socket_write($client,$message,strlen($message)) === false)
+   				{
+     				$log->lwrite( "ERROR s_bcast:: write failed:: ".socket_strerror(socket_last_error()) );
+					socket_close($client);					//  This is one of the accepted connections
+					unset($this->clients[$key]);
+					unset($this->sockadmin[$key]);
+					continue;
+    			}
+				$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
 										":".$this->sockadmin[$key]['port']." success",2);
-			
+			}
 		}
 		return(0);
 	}// s_bcast
@@ -584,6 +695,13 @@ class Sock {
 		$clientPort=0;
 		$clientIP=0;
 		$usec = 10000;
+		
+		// Start with reading the UDP socket
+		if ( ($buf = $this->s_urecv() ) != -1 ) {
+			$log->lwrite("s_recv:: UDP s_urecv returned buffer: ".$buf,3);
+			return($buf);
+		}
+		
 		$i1=time();
 
 		$log->lwrite("s_recv:: calling socket_select, timeout: ".$this->wait,3);
@@ -758,6 +876,8 @@ class Sock {
 		}//for
 		return(-1);	
 	}// s_recv
+	
+
 	
 	// Do we trust the current client?
 	//
@@ -1041,6 +1161,108 @@ function load_handsets()
 	mysqli_close($mysqli);
 	return($handsets);
 }
+
+
+/* -----------------------------------------------------------------------------------
+* CLASS WEATHER
+* 
+* This class contains weather related functions such as "add", "update", "delete", "get"
+* We need weather functions to update the status of weather sensors once the daemon  
+* starts executing commands in the queue.
+*
+* The client will only see these changes if the page is reloaded or weather are
+* reloaded for some reason.
+*/
+class Weather {
+	private $w_list = [];
+	private $mysqli;
+	
+	// SQL connection remains open during the daemon running. 
+	private function sql_open() {
+		global $log;
+		global $dbuser, $dbpass, $dbname, $dbhost;
+		$this->mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+		if ($this->mysqli->connect_errno) {
+			$log->lwrite("sql_open:: failed to connect to MySQL: ("
+						.$this->mysqli->connect_errno.") "
+						 .$this->mysqli->connect_error);
+			return (-1);
+		}
+		return(0);
+	}
+	
+	// Add a new device record/object
+	//
+	public function add() {
+		global $log;
+		if (!is_resource($this->mysqli)) {
+            $this->sql_open();
+        }
+		// XXX Not necessary
+	}
+	
+	// Lookup by address and channel combination
+	//
+	public function get($address, $channel) {
+		global $debug, $log;
+		if (!is_resource($this->mysqli)) {
+            $this->sql_open();
+        }
+		
+		if ($debug>1) $log->lwrite("get:: room: ".$address.", dev: ".$channel);
+		
+		$sqlCommand = "SELECT * FROM weather WHERE address='$address' AND channel='$channel'";
+		$query = mysqli_query($this->mysqli, $sqlCommand) or die (mysqli_error());
+		while ($row = mysqli_fetch_assoc($query)) { 
+			if ($debug>1) $log->lwrite("get:: found weather sensor: ".$row['name']);
+			return($row) ;
+		}
+		$log->lwrite("get:: Did not find weather");
+		mysqli_free_result($query);
+	}
+	
+	// update device object in sql
+	//
+	public function upd($w) {
+		global $log, $weather;
+		if (!is_resource($this->mysqli)) {
+            $this->sql_open();
+        }
+		// Write to log
+		$log->lwrite("Weather upd:: address: ".$w['address'].", channel: ".$w['channel'].", temperature: "
+											.$w['temperature'].", humidity: ".$w['humidity']);
+
+		// Write to SQL
+		$query = "UPDATE weather SET 
+									temperature='".$w['temperature']."',
+									humidity='".$w['humidity']."',
+									windspeed='".$w['windspeed']."',
+									winddirection='".$w['winddirection']."',
+									rainfall='".$w['rainfall']."' 
+												   
+				WHERE address='$w[address]' AND channel='$w[channel]' " ;
+				
+		if (!mysqli_query($this->mysqli, $query))
+		{
+			$log->lwrite( "Weather upd:: mysqli_query error" );
+			return (-1);
+		}
+		return(0);
+	}
+	
+	// Delete a device XXX not yet implemented
+	//
+	public function del($weather) {
+		global $log;
+		if (!is_resource($this->mysqli)) {
+            $this->sql_open();
+        }
+		// XXX NOt implemented yet
+	}
+}// class Weather
+
+
+
 
 /*	-------------------------------------------------------
 	function post_parse()
@@ -1402,13 +1624,12 @@ $wlog = new Logging();						// Weather Log
 
 $queue = new Queue();
 $sock = new Sock();
-$dlist = new Device();
+$dlist = new Device();						// Class for handling of device specific commands
+$wthr = new Weather();						// Class for Weather handling in database
 
 // set path and name of log file (optional)
 $log->lfile('/home/pi/log/LamPI-daemon.log');
 $wlog->lfile('/home/pi/log/LamPI-weather.log');
-
-
 
 
 $log->lwrite("-------------- STARTING DAEMON ----------------------");
@@ -1686,12 +1907,14 @@ while (true):
 						'temperature' => $data['temperature'],
 						'humidity' => $data['humidity'],
 						'windspeed' => $data['windspeed'],
-						'winddirection' => $data['winddirection']
+						'winddirection' => $data['winddirection'],
+						'rainfall' => $data['rainfall']
 					);
+					
+					$wthr->upd($item);
 					
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
-					
 					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],1);
 					$queue->q_insert($item);
 				break;

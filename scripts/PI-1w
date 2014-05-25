@@ -7,8 +7,8 @@ export DISPLAY=:0
 EXEDIR="/home/pi/exe"; export EXEDIR
 SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 SENSOR="1w-sensor"; export SENSOR
-HOSTNAME="localhost"; export HOSTNAME
-PORTNUMBER="5000"; export PORTNUMBER
+HOSTNAME="255.255.255.255"; export HOSTNAME
+PORTNUMBER="5001"; export PORTNUMBER
 #
 LOGDIR="/home/pi/log"; export LOGDIR
 LOGFILE="$LOGDIR/$0.log"; export LOGFILE
@@ -21,13 +21,6 @@ if [ "$1" = "-r" ]; then
 	pkill $SENSOR
 fi
 
-HOSTNAME=`grep -Po '(?<=HOSTNAME=).*' $SCRIPTDIR/PI-config.txt`
-if [ $? = 0 ]; then
-	echo "HOSTNAME found in config file: $HOSTNAME"
-    
-else
-	echo "HOSTNAME not found in config file"
-fi
 
 # Load the required module for the 1-wire sensor program
 #
@@ -39,10 +32,24 @@ else
     sudo modprobe w1_gpio
 fi
 
-# Execute the program
-# 
-cd $EXEDIR
 echo "---------------------------------------------------" >> $LOGFILE 2>&1
 echo "`date`:: Starting $SENSOR" >> $LOGFILE 2>&1
 
-nohup ./$SENSOR -d -v -h $HOSTNAME >> $LOGFILE 2>&1 &
+# Find out whether we have a HOSTNAME in the config file
+# If so, we use that name for the Daemon server instead of localhost
+	TMP=`grep -Po '(?<=^SERVER=).*' $SCRIPTDIR/PI-config.txt`
+	# Find out whether we have a HOSTNAME in the config file
+	# If so, we use that name for the Daemon server instead of localhost
+	if [ $? = 0 ]; then
+		HOSTNAME = $TMP
+		echo "Hostname of server found in config file: $HOSTNAME" >> $LOGFILE 2>&1  
+	else
+		echo "Hostname of server not found in config file" >> $LOGFILE 2>&1
+	fi
+
+# Execute the program
+# 
+cd $EXEDIR
+
+#nohup ./$SENSOR -d -v -h $HOSTNAME -p $PORTNUMBER >> $LOGFILE 2>&1 &
+nohup ./$SENSOR -d -b -h $HOSTNAME -p $PORTNUMBER >> $LOGFILE 2>&1 &

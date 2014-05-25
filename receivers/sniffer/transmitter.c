@@ -227,8 +227,6 @@ int read_socket_and_transmit(int sockfd)
 	char *jbrand;
 	char *jval;
 	char *action;
-//	char *gname;									// Name
-//	int gtype;
 	char buf[MAXDATASIZE];							// For sending and receiving socket messages
 	char *ptr1, *ptr2;
 	
@@ -274,15 +272,15 @@ int read_socket_and_transmit(int sockfd)
 	while ((rc = select(sockfd+1, &fds, NULL, NULL, &timeout)) > 0)
 	{
 		  // Look at the filedescriptor, and see if this socket is selected
-		  if (FD_ISSET(sockfd, &fds)) 
+		  if (FD_ISSET(sockfd, &fds))
 		  {
-			if (debug==1) printf("daemon_mode:: Message ready waiting on socket\n");
+			if (debug==1) printf("read_socket_and_transmit:: Message ready waiting on socket\n");
 				
 			rc = read(sockfd, buf, MAXDATASIZE); 
 			if (rc == 0) {
 				// Read error, break and establish new connection if necessary
 				// If we break, we will automatically do a PING to check
-				if (verbose == 1) printf("daemon_mode:: read error, connection lost?\n");
+				if (verbose == 1) printf("read_socket_and_transmit:: read error, connection lost?\n");
 				close(sockfd);
 				break;
 			}
@@ -292,7 +290,7 @@ int read_socket_and_transmit(int sockfd)
 			}
 			
 			buf[rc]=0;									// Terminate a string
-			printf("------------------------------------------------\nBuf read:: <%s>\n",buf);
+			printf("\n------------------------------------------------\nBuf read:: <%s>\n",buf);
 			
 			ptr1 = buf;	
 			cJSON *root;
@@ -303,7 +301,7 @@ int read_socket_and_transmit(int sockfd)
 				
 				root = cJSON_ParseWithOpts((const char*) ptr1,(const char **)&ptr2,0);		
 				if (root == 0) {
-					fprintf(stderr,"daemon_mode:: cJSON_ParseWithOps returned error\n");
+					fprintf(stderr,"read_socket_and_transmit:: read: cJSON_ParseWithOps returned error, Buf: %s\n", ptr1);
 					
 					// If the parsing failed, it COULD be that we did miss part of the message
 					// we can read another message and concatenate it to the end of this message
@@ -376,7 +374,7 @@ next:
 				// and loop again.
 			
 				if ((ptr2 - buf) < rc) {
-					// printf("daemon_mode:: Unparsed data in buf: %d chars, first char: %c\n",(buf+rc-ptr2), *ptr2);
+					// printf("read_socket_and_transmit:: Unparsed data in buf: %d chars, first char: %c\n",(buf+rc-ptr2), *ptr2);
 					ptr1 = ptr2;
 					ptr2 = NULL;
 				}

@@ -1169,6 +1169,7 @@ function start_LAMP(){
 	}); // weather
 
 
+
 // ----------------------------------------------------------------------------
 // WEATHER and Sensors
 //	*** Handle the Command Weather (CW) buttons (add, delete, help)
@@ -1181,8 +1182,8 @@ function start_LAMP(){
 		selected = $(this);
 		$( '.cw_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
-		value=$(this).val();								// Value of the button
-		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		value=$(this).val();						// Value of the button
+		id = $(e.target).attr('id');				// should be id of the button (array index substract 1)
 		switch (id)
 		{	
 			// Add a new Weather station. 
@@ -1213,7 +1214,7 @@ function start_LAMP(){
 				
 				// Now we have an index either empty slot in between scene records, or append the current array
 				if ( ind > max_weather ) {
-					alert("Unable to add more handsets");
+					alert("Unable to add more Weather sensors");
 					return(-1);
 				}
 				
@@ -1266,14 +1267,14 @@ function start_LAMP(){
 						// And add the line to the #gui_devices section
 						// Go to the new scene
 						s_handset_id = ind;
-						// activate_handset(new_hndset_id);
+						// activate_handset(new_handset_id);
 						// XXX Better would be just to add one more button and activate it in #gui_header !!
-						init_handsets("init");
+						init_weather("init");
 						return(1);	//return(1);
 						
 					// Cancel	
   					}, function () {
-							activate_handset (s_handset_id);
+							activate_weather (s_weather_id);
 						return(1); // Avoid further actions for these radio buttons 
   					},
   					'Confirm Create'
@@ -1290,16 +1291,16 @@ function start_LAMP(){
 			case "Del":
 				
 				var list = [];
-				var str = '<label for="val_1">Delete Handset: </label>'
+				var str = '<label for="val_1">Delete Weather: </label>'
 						+ '<select id="val_1" value="val_1" >' ;   // onchange="choice()"
 				
 				// Allow selection, but first let the user make a choice
 				// Make sure every name only appears once
-				var hset_list=[];
-				for (i=0; i< handsets.length; i++) {
-					if ( $.inArray(handsets[i]['id'],hset_list) == -1) {
-						str += '<option>' + handsets[i]["name"] + '</option>';
-						hset_list[hset_list.length]= handsets[i]['id'];
+				var weather_list=[];
+				for (i=0; i< weather.length; i++) {
+					if ( $.inArray(weather[i]['id'],weather_list) == -1) {
+						str += '<option>' + weather[i]["name"] + '</option>';
+						weather_list[weather_list.length]= weather[i]['id'];
 					}
 				}
 				str += '</select>';
@@ -1327,14 +1328,14 @@ function start_LAMP(){
 						for (var i=handsets.length-1; i>=0; i--) {
 							if (debug>2) alert("working with i: "+i+", handset id: "+handsets[i]['name']);
 							if (handsets[i]['name'] == sname) {
-								// Is the room empty? Maybe we do not care, 
-								//everything for weather is IN the record itself
+								// Is the array empty? Maybe we do not care, 
+								//everything for hendset is IN the record itself
 								var handset_id = handsets[i]['id'];
 								// Removed is an array too, one element only
 								var removed = handsets.splice(i ,1);
 								if ( persist > 0 ) {
 									console.log(removed[0]);
-									// Remove the weather from MySQL
+									// Remove the handset from MySQL
 									send_2_dbase("delete_weather", removed[0]);
 									if (debug>1)
 										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
@@ -1342,10 +1343,10 @@ function start_LAMP(){
 							}
 						}
 						
-						// As we do not know which room will be first now
-						// If there are no handsets, we are in trouble I guess
-						s_handset_id = handsets[0]['id'];
-						init_handsets("init");
+						// As we do not know which weather record will be first now
+						// If there are no weather, we are in trouble I guess
+						s_weather_id = weather[0]['id'];
+						init_weather("init");
 						return(1);						
 					// Cancel	
   					}, function () {
@@ -2555,7 +2556,7 @@ function init_weather(cmd)
 		
 		if (s_weather_id == "") { 
 			s_weather_id = weather[0]['location']; 
-			//alert("init_weather:: id: "+s_weather_id);
+			//alert("init_weather:: loc id: "+s_weather_id);
 		}
 		
 		var weather_list=[];
@@ -4818,8 +4819,11 @@ function activate_weather(location)
 		{
 			if (weather[j]['location'] == location ) 
 			{
-		
+
 				// temperature
+				// XXX We assume that we ALWAYS have a temperature as part of the sensor
+				// reading. This may NOT be true in which case the radial below needs to be
+				// conditional as with the humidity
 				radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
                             	gaugeType: steelseries.GaugeType.TYPE4,
                             	size: 201,
@@ -4837,9 +4841,9 @@ function activate_weather(location)
 				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
 			
 				// humidity radial gauges
-				if (weatheron[j]['humidity'] == "1")
+				if (weather[j]['humidity'] > -1)
 				{
-					console.log("weatheron humi "+i+" is 1");
+					//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
                             	gaugeType: steelseries.GaugeType.TYPE4,
                             	size: 201,
@@ -4854,13 +4858,15 @@ function activate_weather(location)
 					radial[i+wl].setValueAnimated(weather[j]['humidity']);
 				}
 				else {
-					console.log("weatheron humi "+i+" is 0");
+					console.log("weather humi "+i+" is false");
 				}
 			
 				// windspeed radial gauges
-				if (weatheron[j]['windspeed'] == "1")
+				// XXX Make sure that the gauge is defined above
+				// before making this selectable
+				if (weather[j]['windspeed'] > 0)
 				{
-					console.log("weatheron windspeed "+i+" is 1");
+					console.log("weather windspeed "+i+" is true");
 					radial[i+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(i+wl*2+1), {
                             	gaugeType: steelseries.GaugeType.TYPE4,
                             	size: 201,
@@ -4875,13 +4881,13 @@ function activate_weather(location)
 					radial[i+wl*2].setValueAnimated(weather[j]['windspeed']);
 				}
 				else {
-					console.log("weatheron windspeed"+i+" is 0");
+					console.log("weather windspeed "+i+" is false");
 				}
 				i++;
 			}
 		}
 		
-		// Once every 2 seconds we update the meters based on the current
+		// Once every 2 seconds we update the gauge meters based on the current
 		// value of the weather array (which might change due to incoming messages
 		// over websockets.
 		var id;
@@ -4895,14 +4901,22 @@ function activate_weather(location)
 				{
 					if (weather[j]['location'] == location)
 					{
-						radial[i].setValueAnimated(weather[j]['temperature']); 
-						if (weatheron[j]['humidity'] == "1") {
+						radial[i].setValueAnimated(weather[j]['temperature']);
+						
+						if (weather[j]['humidity'] > "-1") {
+							console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 							radial[i+wl].setValueAnimated(weather[j]['humidity']);
 						}
-						if (weatheron[j]['windspeed'] == "1") {
+						else {
+							console.log("set humidity: "+weather[j]['humidity']);
+						}
+						
+						if (weather[j]['windspeed'] > "-1") {
+							console.log("windspeed");
 							radial[i+wl].setValueAnimated(weather[j]['windspeed']);
 						}
-						if (weatheron[j]['winddirection'] == "1") {
+						if (weather[j]['winddirection'] > "-1") {
+							console.log("winddirection");
 							radial[i+wl].setValueAnimated(weather[j]['winddirection']);
 						}
 						i++;

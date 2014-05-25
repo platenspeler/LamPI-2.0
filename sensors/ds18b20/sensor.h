@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2013 Maarten Westenberg, mw12554@hotmail.com 
+  Copyright (c) 2013, 2014 Maarten Westenberg, mw12554@hotmail.com 
  
   This software is licensed under GNU license as detailed in the root directory
   of this distribution and on http://www.gnu.org/licenses/gpl.txt
@@ -15,6 +15,9 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
 */
+
+// This file is both for definitions and for general functions declarations
+// that can be used by sensors in this directory
 
 #ifndef sensor__h
 #define sensor__h
@@ -39,6 +42,8 @@ extern "C"
 // Default port setting
 //
 #define PORT "5000" 							// the port client will be connecting to 
+#define UDPPORT "5001"
+
 
 // Define Pulse /timing for devices
 //
@@ -99,23 +104,260 @@ extern "C"
 
 
 
-// External JSON functions in transmitter.c or cJSON.c
+// External JSON functions in cJSON.c
 //
-
-extern int dtransmit(char *brand, char *gaddr, char *uaddr, char *val);
-extern int daemon_mode(char *hostname, char* port);
-
-
-// Cross declarations of functions
-//
-extern int open_socket(char *host, char *port);
-extern int read_socket_and_transmit(int sockfd);
-
 extern int verbose;
 extern int debug;
-extern int socktcnt;
+extern int socktcnt;							// Count the messages to the server
 extern int sockerr;
-extern int sockfd;
+extern int sockfd;								// The socket number/id for the server
+
+
+
+/*
+ *********************************************************************************
+ * Get In Addr
+ *
+ * get sockaddr, IPv4 or IPv6: These new way of dealing with sockets in Linux/C 
+ * makes use of structs.
+ *********************************************************************************
+ */
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+
+/*
+ *********************************************************************************
+ * Open UDP Socket
+ *********************************************************************************
+ */
+int open_udp_socket() {
+
+	int sockfd;  
+    //struct sockaddr_in myaddr;
+	int broadcastPermission;
+	
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
+	{
+		perror("cannot create socket"); 
+		return (-1); 
+	}
+	broadcastPermission = 1;
+		
+	if (setsockopt(sockfd, 
+			SOL_SOCKET, SO_BROADCAST, 
+			(void *) &broadcastPermission, 
+			sizeof(broadcastPermission) ) < 0) 
+	{
+		perror("open_udp_socket:: ");
+	}
+	return(sockfd);
+}
+
+
+/*
+ *********************************************************************************
+ * Open TCP Socket
+ * The socket is used both by the sniffer and the transmitter program.
+ * Standard communication is on port 5000 over websockets.
+ *********************************************************************************
+ */
+int open_tcp_socket(char *host, char *port) {
+
+	int sockfd;  
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    char s[INET6_ADDRSTRLEN];
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	
+    if ((rv = getaddrinfo(host, port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s %s\n", host, gai_strerror(rv));
+        return -1;
+    }
+
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+	
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+			fprintf(stderr,"Address: %s, ", (char *) p->ai_addr);
+            perror("client: connect");
+            continue;
+        }
+        break;
+    }
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to connect\n");
+        return -1;
+    }
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+    printf("client: connecting to %s\n", s);
+
+    freeaddrinfo(servinfo); // all done with this structure
+	
+	return(sockfd);
+}
+
+
+
+
+/*
+ *********************************************************************************
+ * socket_open() function
+ * In daemon mode, the interrupt handler will itself post completed messages
+ * to the main LamPI-daemon php program. In order to not spend too much wait time 
+ * in the main program, we can either sleep or (which is better) listen to the 
+ * LamPI-daemoan process for incoming messages to be sent to the transmitter.
+ *
+ * These messages could be either PINGs or requests to the transmitter to send
+ * device messages to the various receiver programs.
+ * XXX We could move this function to a separate .c file for readibility
+ *********************************************************************************
+ */
+ 
+ int socket_open(char * hostIP, char* port, int mode) 
+ {
+ 	fd_set fds;
+	// ---------------- FOR DAEMON USE, OPEN SOCKETS ---------------------------------
+	// If we choose daemon mode, we will need to open a socket for communication
+	// This needs to be done BEFORE enabling the interrupt handler, as we want
+	// the handler to send its code to the LamPI-daemon process 
+	
+	if (mode == SOCK_DGRAM) {
+	
+		if ((sockfd = open_udp_socket()) < 0) {
+			fprintf(stderr,"Error opening UDP socket for host %s. Exiting program\n\n", hostIP);
+			exit (1);
+		}
+		else if (verbose) {
+			printf("daemon mode:: Success opening ocket\n");
+		}
+	}
+	else {
+		// Open a TCP socket
+		if ((sockfd = open_tcp_socket(hostIP,port)) < 0) {
+			fprintf(stderr,"Error opening TCP socket for host %s. Exiting program\n\n", hostIP);
+			exit (1);
+		}
+		else if (verbose) {
+			printf("daemon mode:: Success connecting TCP to %s:%s\n",hostIP,port);
+		}
+		FD_ZERO(&fds);
+		FD_SET(sockfd, &fds);
+	}
+	return(sockfd);
+}
+
+
+/*
+ *********************************************************************************
+ * buf_2_server
+ * Send a message buffer to the server over either TCP or UDP
+ *********************************************************************************
+ */
+int buf_2_server(int sockfd, 
+				char * serverIP,			// HostIP, eg 255.255.255.255
+				char * port,				// Port number, eg 5001
+				char * snd_buf,
+				int mode )
+{
+	
+	// Daemon, output to socket
+
+	if (mode == SOCK_STREAM) 
+	{	
+		
+					
+		// Do NOT use check_n_write_socket as weather stations will not
+		// send too many repeating messages (1 or 2 will come in one transmission)
+		//
+		if (write(sockfd, snd_buf, strlen(snd_buf)) == -1) {
+			fprintf(stderr,"socket write error\n");
+			return(-1);
+		}	
+
+		delay(200);			
+		if (verbose) printf("Buffer sent to TCP Socket: %s\n",snd_buf);
+
+	}
+	
+	// If this is an UDP connections
+	//
+	else {
+		// hostIP and port are global variables. Must be changed later!
+		
+		struct sockaddr_in servaddr; 			// server address */
+		short s_port = atoi(port);				// Instead of port 5000, use port 5001 as standard
+		
+		/* fill in the server's address and data, in this case 0 */ 
+		
+		memset((char*)&servaddr, 0, sizeof(servaddr)); 
+		servaddr.sin_family = AF_INET; 
+		servaddr.sin_port = htons(s_port);
+		servaddr.sin_addr.s_addr = inet_addr(serverIP);
+		
+		printf("UDP dest: %s , port: %d\n", serverIP, s_port);
+		
+		if (sendto(sockfd, snd_buf, strlen(snd_buf), 0, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+	 		perror("sendto failed"); 
+			return(-1); 
+		}
+		printf("buf_2_server:: serverIP: %s:%s, buf: %s\n", serverIP, port, snd_buf);
+	}
+	return(1);
+}
+
+
+/*
+ *********************************************************************************
+ * send_2_server
+ * Send a message buffer to the server over either TCP or UDP
+ *********************************************************************************
+ */
+int send_2_server(int sockfd,	
+				char * hostip,
+				char * port,			
+				int mode,					// Either SOCK_STREAM or SOCK_DGRAM
+				char * address,
+				long channel, 
+				float temperature,
+				float humidity,
+				int windspeed,
+				int winddirection,
+				int rainfall
+				)
+{
+	char snd_buf[256];
+	// Daemon, output to socket
+	
+	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"dht22\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
+				socktcnt%1000,
+				address,							// address
+				channel,							// channel
+				temperature,						// temperature
+				humidity,							// humidity
+				windspeed,							// windspeed
+				winddirection,						// winddirection
+				rainfall);							// rainfall
+				
+	socktcnt++;
+	
+	buf_2_server(sockfd, hostip, port, snd_buf, mode);
+	return (1);
+}
 
 
 #ifdef __cplusplus

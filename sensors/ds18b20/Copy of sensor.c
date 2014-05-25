@@ -83,6 +83,109 @@ int init_statistics(int statistics[I_MAX_ROWS][I_MAX_COLS])
 	return(0);
 } 
 
+/*
+ *********************************************************************************
+ * Get In Addr
+ *
+ * get sockaddr, IPv4 or IPv6: These new way of dealing with sockets in Linux/C 
+ * makes use of structs.
+ *********************************************************************************
+ */
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+/*
+ *********************************************************************************
+ * Open Socket
+ * The socket is used both by the sniffer and the transmitter program.
+ * Standard communication is on port 5000 over websockets.
+ *********************************************************************************
+ */
+int open_socket(char *host, char *port) {
+
+	int sockfd;  
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    char s[INET6_ADDRSTRLEN];
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((rv = getaddrinfo(host, port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s %s\n", host, gai_strerror(rv));
+        return -1;
+    }
+
+    // loop through all the results and connect to the first we can
+	
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+	
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+			fprintf(stderr,"Address: %s, ", (char *) p->ai_addr);
+            perror("client: connect");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "client: failed to connect\n");
+        return -1;
+    }
+
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+    freeaddrinfo(servinfo); // all done with this structure
+	
+	return(sockfd);
+}
+
+
+/*
+ *********************************************************************************
+ * DAEMON mode
+ * In daemon mode, the interrupt handler will itself post completed messages
+ * to the main LamPI-daemon php program. In order to not spend too much wait time 
+ * in the main program, we can either sleep or (which is better) listen to the 
+ * LamPI-daemoan process for incoming messages to be sent to the transmitter.
+ *
+ * These messages could be either PINGs or requests to the transmitter to send
+ * device messages to the various receiver programs.
+ * XXX We could move this function to a separate .c file for readibility
+ *********************************************************************************
+ */
+ 
+ int daemon_mode(char *hostname, char* port) 
+ {
+	// ---------------- FOR DAEMON USE, OPEN SOCKETS ---------------------------------
+	// If we choose daemon mode, we will need to open a socket for communication
+	// This needs to be done BEFORE enabling the interrupt handler, as we want
+	// the handler to send its code to the LamPI-daemon process 
+	
+	// Open a socket
+	if ((sockfd = open_socket(hostname,port)) < 0) {
+		fprintf(stderr,"Error opening socket for host %s. Exiting program\n\n", hostname);
+		exit (1);
+	};
+	FD_ZERO(&fds);
+	FD_SET(sockfd, &fds);
+
+	return(0);
+}
+
 
 /*
  *********************************************************************************
@@ -165,11 +268,11 @@ int main(int argc, char **argv)
 	int errflg = 0;
 	int repeats = 1;
 	int temp = 0;
-	int mode = SOCK_STREAM;					// Datagram is standard
-	float temperature;						// 
+	int temp_int, temp_frac;				// interger and fracture part for temperature
 	
-	char *hostname = "255.255.255.255";		// Default setting for our host == this host
-	char *port = UDPPORT;					// default port, 5000
+	char *hostname = "localhost";			// Default setting for our host == this host
+	char *port = PORT;						// default port, 5000
+	char snd_buf[256];
 	
     extern char *optarg;
     extern int optind, optopt;
@@ -180,46 +283,43 @@ int main(int argc, char **argv)
 	// -p <port> ; Portnumber for daemon socket
 	// -v ; Verbose, Give detailed messages
 	//
-    while ((c = getopt(argc, argv, ":bc:dh:p:r:stvx")) != -1) {
+    while ((c = getopt(argc, argv, ":c:dh:p:r:stvx")) != -1) {
         switch(c) {
-			case 'b':						// Broadcasting and UDP mode
-				mode = SOCK_DGRAM;
-			break;
-			case 'c':
-				cflg = 1;					// Checks
-				checks = atoi(optarg);
-			break;
-			case 'd':						// Daemon mode, cannot be together with test?
-				dflg = 1;
-			break;
-			case 'h':						// Socket communication
-           		dflg++;						// Need daemon flag too, (implied)
-				hostname = optarg;
-			break;
-			case 'p':						// Port number
-            	port = optarg;
-				dflg++;						// Need daemon flag too, (implied)
-			break;
-			case 'r':						// repeats
-				repeats = atoi(optarg);
-			break;
-			case 's':						// Statistics
-				sflg = 1;
-			break;
-			case 't':						// Test Mode, do debugging
-				debug=1;
-			break;
-			case 'v':						// Verbose, output long timing/bit strings
-				verbose = 1;
-			break;
-			case ':':       				// -f or -o without operand
-				fprintf(stderr,"Option -%c requires an operand\n", optopt);
-				errflg++;
-			break;
-			case '?':
-				fprintf(stderr, "Unrecognized option: -%c\n", optopt);
-				errflg++;
-			break;
+
+		case 'c':
+			cflg = 1;					// Checks
+			checks = atoi(optarg);
+		break;
+		case 'd':						// Daemon mode, cannot be together with test?
+			dflg = 1;
+		break;
+		case 'h':						// Socket communication
+            dflg++;						// Need daemon flag too, (implied)
+			hostname = optarg;
+		break;
+		case 'p':						// Port number
+            port = optarg;
+           dflg++;						// Need daemon flag too, (implied)
+        break;
+		case 'r':						// repeats
+			repeats = atoi(optarg);
+		break;
+		case 's':						// Statistics
+			sflg = 1;
+		break;
+		case 't':						// Test Mode, do debugging
+			debug=1;
+		break;
+		case 'v':						// Verbose, output long timing/bit strings
+			verbose = 1;
+		break;
+		case ':':       				// -f or -o without operand
+			fprintf(stderr,"Option -%c requires an operand\n", optopt);
+			errflg++;
+		break;
+		case '?':
+			fprintf(stderr, "Unrecognized option: -%c\n", optopt);
+            errflg++;
         }
     }
 	
@@ -229,7 +329,7 @@ int main(int argc, char **argv)
 	
     if (errflg) {
         fprintf(stderr, "usage: argv[0] (options) \n\n");
-		fprintf(stderr, "-b\t\t; Broadcast mode. Use UDP broadcast mode\n");
+		
 		fprintf(stderr, "-d\t\t; Daemon mode. Codes received will be sent to another host at port 5000\n");
 		fprintf(stderr, "-s\t\t; Statistics, will gather statistics from remote\n");
 		fprintf(stderr, "-t\t\t; Test mode, will output received code from remote\n");
@@ -243,7 +343,6 @@ int main(int argc, char **argv)
 	if (verbose == 1) {
 		printf("The following options have been set:\n\n");
 		printf("-v\t; Verbose option\n");
-		if (mode == SOCK_DGRAM) printf("USP Broadcast mode\n");
 		if (statistics>0)	printf("-s\t; Statistics option\n");
 		if (dflg>0)			printf("-d\t; Daemon option\n");
 		if (debug)			printf("-t\t; Test and Debug option");
@@ -271,47 +370,50 @@ int main(int argc, char **argv)
 		if ((dir = opendir (SPATH)) != NULL) {
 			/* print all the files and directories within directory */
 			while ((ent = readdir (dir)) != NULL) {
-			
 				if (verbose) printf ("%s\n", ent->d_name);
 				// 28 is the prefix for ds18b20
 				if (strncmp(ent->d_name,"28",2) == 0)
 				{
 					temp = ds18b20_read(ent->d_name);
-					temperature = (float) temp/1000;		// must be float
+					temp_int = temp/1000;
+					temp_frac = temp%1000;
 					
 					if (dflg) {
 						// If we are in daemon mode, initialize sockets etc.
-						if ((sockfd = socket_open(hostname, port, mode)) == -1) {
-							fprintf(stderr,"socket_open failed\n");
-							exit(1);
-						}
-						
+						daemon_mode(hostname, port);
 						// Daemon, output to socket
-						send_2_server(
-							sockfd,	
-							hostname,				// Actually HostIP
-							port,			
-							mode,					// Either SOCK_STREAM or SOCK_DGRAM
-							ent->d_name,			// Address
-							0, 						// Channel
-							temperature,			// temperature
-							-1,						// humidity (-1 == no value)
-							-1,						// Windspeed (-1 == no value)
-							-1,						// Winddirection (-1 == no value)
-							-1						// Rainfall
-						);
+						sprintf(snd_buf, 					 "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\",\"windspeed\":\"%d\",\"winddirection\":\"%d\"}", 
+						socktcnt%1000,
+						ent->d_name,
+						0,
+						temp_int,
+						temp_frac,
+						0,
+						0,
+						0);
+					
+						// Do NOT use check_n_write_socket as weather stations will not
+						// send too many repeating messages (1 or 2 will come in one transmission)
+						//
+						if (write(sockfd, snd_buf, strlen(snd_buf)) == -1) {
+							fprintf(stderr,"socket write error\n");
+						}	
+						socktcnt++;
+						delay(200);
 						
-						printf("Sent to host: %s:%s, temp: %2.1f\n", hostname, port, temperature);
+						if (verbose) printf("Buffer sent to Socket: %s\n",snd_buf);
+						else printf("Sent to host: %s, temperature: %d.%d\n", hostname, temp_int, temp_frac);
 					}
 					else {
 					// Commandline
 						if (temp > 0) {
-							printf("Temperature for dev %s: %2.1f\n", ent->d_name, temperature);
+							printf("Temperature for dev %s: %d.%d\n",
+								ent->d_name, temp/1000,temp%1000);
 						}
 						else {
 							temp = -temp;
 							printf("Temperature for dev %s: -%d.%d\n",
-											ent->d_name, temp/1000,temp%1000);
+								ent->d_name, temp/1000,temp%1000);
 						}
 					}
 				}

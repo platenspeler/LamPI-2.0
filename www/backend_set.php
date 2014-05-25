@@ -469,10 +469,14 @@ function print_database($cfg)
 	echo("Count of weather: " . count($weather) . "\n");
 	for ($i=0; $i < count($weather); $i++) {
 		echo("index: $i id: ".$weather[$i][id]
-				.", name: ".$weather[$i][name].", location: ".$weather[$i][location]
-				.", brand: ".$weather[$i][brand].", address: ".$weather[$i][address]
-				.", channel: ".$weather[$i][channel].", temperature: ".$weather[$i][temperature]
-				.", humidity: ".$weather[$i][humidity].", windspeed: ".$weather[$i][windspeed]
+				.", name: ".$weather[$i][name]
+				.", location: ".$weather[$i][location]
+				.", brand: ".$weather[$i][brand]
+				.", address: ".$weather[$i][address]
+				.", channel: ".$weather[$i][channel]
+				.", temperature: ".$weather[$i][temperature]
+				.", humidity: ".$weather[$i][humidity]
+				.", windspeed: ".$weather[$i][windspeed]
 				.", winddirection: ".$weather[$i][winddirection]
 				.", rainfall: ".$weather[$i][rainfall]."\n");
 	}

@@ -42,7 +42,7 @@ extern "C"
 // Define Pulse /timing for devices
 //
 #define P_ACTION_SHORT	120
-#define P_AUTO	500								// Pulse time for Auto mode, must be little lower than pulse_long
+#define P_AUTO	500								// Pulse time for Auto mode, little lower than pulse_long
 #define P_ACTION 150							// Pulse time for Action/Impulse receivers
 #define P_KAKU 260								// Pulse time for Kaku receivers
 #define ACTION_MAX_SHORT 280
@@ -100,15 +100,6 @@ extern "C"
 
 // External JSON functions in transmitter.c or cJSON.c
 //
-
-extern int dtransmit(char *brand, char *gaddr, char *uaddr, char *val);
-extern int daemon_mode(char *hostname, char* port);
-
-
-// Cross declarations of functions
-//
-extern int open_socket(char *host, char *port);
-extern int read_socket_and_transmit(int sockfd);
 
 extern int verbose;
 extern int debug;

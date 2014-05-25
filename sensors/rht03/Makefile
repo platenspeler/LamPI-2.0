@@ -68,9 +68,9 @@ dht22:	dht22.o
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:
-	@cp sensor $(INSTALL)/LamPI-sensor
-	chown root $(INSTALL)/LamPI-sensor
-	chmod u+s $(INSTALL)/LamPI-sensor
+	@cp dht22 $(INSTALL)/rht03-sensor
+	chown root $(INSTALL)/rht03-sensor
+	chmod u+s $(INSTALL)/rht03-sensor
 
 clean:
 	@echo "[Clean]"

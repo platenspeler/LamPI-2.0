@@ -11,13 +11,13 @@ SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 LOGDIR="/home/pi/log"; export LOGDIR
 #
 cd $LOGDIR
-for i in LamPI-receiver LamPI-daemon PI-rcv PI-run PI-1w
+for i in LamPI-receiver LamPI-daemon PI-rcv PI-run PI-1w PI-rht03
 do
 	mv $LOGDIR/$i.3.log $LOGDIR/$i.4.log
 	mv $LOGDIR/$i.2.log $LOGDIR/$i.3.log
 	mv $LOGDIR/$i.1.log $LOGDIR/$i.2.log
 	mv $LOGDIR/$i.log   $LOGDIR/$i.1.log
-    	cp /dev/null $LOGDIR/$i.log
+    cp /dev/null $LOGDIR/$i.log
 done
 #
 # Restart the daemons

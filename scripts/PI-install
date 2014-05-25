@@ -78,7 +78,7 @@ cd /home/pi
 
 # The command below will FAIL if the PI_install script is put in /home/pi/scripts or
 # if the /home/pi directory is not empty. For safety we therefore copy to /tmp first.
-
+#
 rm -rf /tmp/effe
 mkdir /tmp/effe
 git clone git://github.com/platenspeler/LamPI-1.9 /tmp/effe
@@ -86,17 +86,27 @@ cd /tmp/effe; tar cf - . | ( cd /home/pi; tar xpf - )
 rm -rf /tmp/effe
 
 # Set the apache base directory
+#
 sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
 sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
 sudo mv /tmp/effe /etc/apache2/sites-available/default
 sudo /etc/init.d/apache2 restart
 
 # Make the w1 bus modules load at system startup
+#
 sudo echo 'w1-gpio' >> /etc/modules
 sudo echo 'w1-therm' >> /etc/modules
 sudo echo 'i2c-bcm2708' >> /etc/modules
 sudo echo 'i2c-dev' >> /etc/modules
 
+# Set the modeprobe.d
+#
+sudo sed 's|blacklist|#blacklist|g' /etc/modprobe.d/raspi-blacklist.conf > /tmp/effe
+sudo mv /etc/modprobe.d/raspi-blacklist.conf /etc/modprobe.d/raspi-blacklist.conf.org
+sudo mv /tmp/effe /etc/modprobe.d/raspi-blacklist.conf
+
+#
+#
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe
 
@@ -134,7 +144,7 @@ if [ $CRONTAB = "y" ]; then
   echo "Setting up crontab"
   crontab -u pi -l | grep "PI-run" > /dev/null
   if [ $? = 0 ]; then
-	echo "-- Crontab already contains LamPI PI=run commands"
+	echo "-- Crontab already contains LamPI PI-run commands"
   else
 	echo "-- Crontab adding LamPI commands"
 	crontab -u pi -l > /tmp/effe
@@ -142,6 +152,7 @@ if [ $CRONTAB = "y" ]; then
     echo "* * * * * cd /home/pi/scripts && sh ./PI-rcv" >> /tmp/effe
     echo "0 2 * * * cd /home/pi/scripts && sh ./PI-log" >> /tmp/effe
     echo "* * * * * cd /home/pi/scripts && sh ./PI-1w"  >> /tmp/effe
+    echo "*/5 * * * * cd /home/pi/scripts && sh ./PI-rht03" >> /tmp/effe
     crontab -u pi /tmp/effe
   fi
   
