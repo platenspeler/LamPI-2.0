@@ -61,7 +61,6 @@
 //
 var fake=0;													// Set to 1 if we fake communication 
 
-
 //
 // WebSocket definitions
 //
@@ -69,21 +68,24 @@ var w_url = location.host; 								// URL of webserver
 var w_svr = 'LamPI-daemon.php';							// webserver filename
 var w_port = '5000'; 									// port
 var w_uri;
-var w_sock;
-var w_tcnt =0;											// Transaction counter
+var w_sock;												// Socket variable
+var w_tcnt = 0;											// Transaction counter
 
 // ----------------------------------------------------------------------------
 // Mobile settings, used for Android or other jQueryMobile device
+// The three settings below determine what GUI libraries to use
+// and how to communicate with the daemon.
 //
-var phonegap=0;											// Standard setting, no phonegap
-var jqmobile=0;											// This specifies what jQuery library fill be used
-var murl='';
+var phonegap=0;											// Phonegap setting, init to no phonegap
+var jqmobile=0;											// This specifies what jQuery library file be used
+var dynamicIP=1;										// Use a static IP for daemon or a dynamicIP (standard)
+var murl='';											// For Phonegap and Ajax usage, build a url. DO NOT CHANGE!
 
 // ----------------------------------------------------------------------------
 // 
 //
 var skin = "";
-var debug = "1";										// debug is level. Higher values >0 means more debug
+var debug = "1";										// debug level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
 var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
@@ -204,6 +206,7 @@ var weather={};			// The administration of weather receivers, and their last val
 var weatherdb={};		// An array with ALL historical values for the weather station (Ouch)
 var weatheron={};		// determines which fields of the weather record are used for THIS sensor
 						// It is used to fill and display the dials in the weather screen
+var energy={};			// Energy sensors and values
 var settings={};		// Set debug level and backup/restore the configuration
 
 // ---------------------------------------------------------------------------------
@@ -1498,8 +1501,6 @@ function start_LAMP(){
 	// Controller must be Raspberry for websockets to work
 	// Also, phonegap does not yet (!) support websockets for older Android phones
 	//
-	//if ( (settings[1]['val'] == 1) && ( phonegap != 1 ) ) 				
-	//{
 		// Make a new connection and start registering the various actions,
 		// State 0: Not ready
 		// State 1: Ready
@@ -1521,8 +1522,8 @@ function start_LAMP(){
 			console.log("Websocket:: socket closed, reopening socket "+w_uri);
 			alert("Connection closed by server");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-			// w_sock = WebSocket(w_uri);
-			// console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			w_sock = WebSocket(w_uri);
+			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
@@ -1542,7 +1543,7 @@ function start_LAMP(){
 			
 			
 			var rcv = JSON.parse(ev.data);		//PHP sends Json data
-			console.log("Websocket:: message action: "+rcv.action);
+			if (debug >= 2) console.log("Websocket:: message action: "+rcv.action);
 			
 			// First level of the json message is equal for all
 			var tcnt   = rcv.tcnt; 				// message transaction counter
@@ -1691,13 +1692,17 @@ function start_LAMP(){
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
 						//alert("Support for localstorage");
-  						uname= window.localStorage.getItem("uname");		// username
-						pword= window.localStorage.getItem("pword");		// pin
-						//alert("Support for localstorage, uname: "+uname);
+  						//uname= window.localStorage.getItem("uname");		// username
+						uname= localStorage.getItem("uname");		// username
+						pword= localStorage.getItem("pword");		// pin
+						if (debug>=2) console.log("Support for localstorage, uname: "+uname);
+						alert("Username: "+uname);
+						if (uname == null) uname = "";
+						if (pword == null) uname = "";
  					}
 					else {
   						// Sorry! No Web Storage support..
-						//alert("No local storage");
+						if (debug>=2) console.log("No local storage in browser");
 						uname="login";
 						pword="****";
  					}
@@ -1707,7 +1712,7 @@ function start_LAMP(){
 					
 					askForm('<form id="addRoomForm"><fieldset>'		
 					+ '<p>Since your computer is outside the network, we ask '
-					+ 'you to logon to the system and prove your identity</p>'
+					+ 'you to logon to the system and prove your identity </p>'
 					+ '<label for="val_1">Login: </label>'
 					+ '<input type="text" name="val_1" id="val_1" value="'+uname+'" class="text ui-widget-content ui-corner-all" />'
 					+ '<br />'
@@ -1730,20 +1735,22 @@ function start_LAMP(){
 							password:  ret[1],
 						}
 						console.log(login_msg);
-						//alert("Submit login: "+ret[0]+", password: "+ret[1] );
+						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
 						if(typeof(Storage)!=="undefined")
   						{
-  						// Code for localStorage/sessionStorage.
-  						window.localStorage.setItem("uname",uname);
-						window.localStorage.setItem("pword",pword);
-						//window.localStorage.setItem("saddr",saddr);
+  							// Code for localStorage/sessionStorage.
+  							localStorage.setItem("uname",uname);
+							localStorage.setItem("pword",pword);
+							//window.localStorage.setItem("saddr",saddr);
  						}				
 						// Send the password back to the daemon
+						message("Login and Password sent to server",1);
 						w_sock.send(JSON.stringify(login_msg));
 						return(1);									//return(1);
 						
-					// Cancel	
+						// Cancel	
   					}, function () {
+						if (debug >= 2) alert("Submit login Cancelled");
 						return(0); 									// Avoid further actions for these radio buttons 
   					},
   					'Confirm Login'
@@ -1757,12 +1764,8 @@ function start_LAMP(){
 			//return(0);
 		};// on-message
 		
-		console.log("Websocket:: readyState: "+w_sock.readyState);
-		
-	//}//raspi and !phonegap	
+		console.log("Websocket:: readyState: "+w_sock.readyState);	
 	}//function init_websockets
-
-
 
 
 	// --------------------- MAIN -----------------------------------------
@@ -1771,7 +1774,7 @@ function start_LAMP(){
 	
 	if ( jqmobile == 1 ) 
 	{
-	  if (phonegap == 1)
+	  if (( phonegap == 1) && (dynamicIP == 1))
 	  {
 		// ----------------------------------------------------------------------------------------
 		// When device is ready, confirm certain parameters in the device
@@ -1788,9 +1791,9 @@ function start_LAMP(){
 		//html_msg = '<div id="onLinePopup"></div>';
 		
 		if(typeof(Storage)!=="undefined") {
-			var uname= window.localStorage.getItem("uname");		// username
-			var pword= window.localStorage.getItem("pword");		// pin
-			var saddr= window.localStorage.getItem("saddr");		// Server address
+			var uname= localStorage.getItem("uname");		// username
+			var pword= localStorage.getItem("pword");		// pin
+			var saddr= localStorage.getItem("saddr");		// Server address
 		}
 		else {
 			alert("no localStorage");
@@ -1849,10 +1852,10 @@ function start_LAMP(){
 				var pword = $("#pword").val();
 				murl = "http://"+saddr+"/";			// XXX Have to check the url for too many / chars
 				
-				if(typeof(Storage)!=="undefined") {
-					window.localStorage.setItem("uname",uname);
-					window.localStorage.setItem("saddr",saddr);
-					window.localStorage.setItem("pword",pword);
+				if(typeof(Storage) !== "undefined") {
+					localStorage.setItem("uname",uname);
+					localStorage.setItem("saddr",saddr);
+					localStorage.setItem("pword",pword);
 				}
 				// alert("Submit, saddr: "+saddr);
 				// setTimeout(cancelFunc, 50);
@@ -1913,7 +1916,8 @@ function start_LAMP(){
 		}
 	  }
 	  
-	  // No Phonegap, jqMobile == 1
+	  // (Phonegap == 0 || dynamicIP == 0 ) && jqMobile == 1  (index3.html)
+	  //
 	  else
 	  {
 		var ret = load_database("init");
@@ -1928,7 +1932,8 @@ function start_LAMP(){
 		// If we are here, we need to be sure that we have all parameters for networking etc.
 	}
 	
-	// if not jqMobile: 
+	// jqMobile == 0 (index.html)
+	//
 	// The solution is to start init_lamps, init_rooms and init_menu 
 	// in the result function of the AJAX call in load_database
 	// Upon success, we know that we have read the whole database, and have all buttons etc.
@@ -1938,6 +1943,7 @@ function start_LAMP(){
 		if (ret<0) {
 			alert("Error:: loading database failed");
 		}
+		// If controller == RASPI and phonegap == 0
 		if ((settings[1]['val'] == 1) && ( phonegap != 1 )) 				
 		{
 			init_websockets();			// For regular web based operations we start websockets here
@@ -1945,6 +1951,7 @@ function start_LAMP(){
 	}
 
 }); // Doc Ready end
+
 } //start_LAMP() function end
 
 
@@ -2668,6 +2675,10 @@ function init_menu(cmd)
 		// Do we have weather definitions in database.cfg file?
 		if (weather.length > 0) {
 			but += '<tr class="switch"><td><input type="submit" id="M6" value= "Weather" class="hm_button"></td>'
+		}
+		// Do we have energy definitions in database.cfg file?
+		if (energy.length > 0) {
+			but += '<tr class="switch"><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
 		}
 		// Do we have energy records in database.cfg?
 		but += '<tr><td></td>'
@@ -4904,21 +4915,23 @@ function activate_weather(location)
 						radial[i].setValueAnimated(weather[j]['temperature']);
 						
 						if (weather[j]['humidity'] > "-1") {
-							console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+							//console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 							radial[i+wl].setValueAnimated(weather[j]['humidity']);
 						}
 						else {
-							console.log("set humidity: "+weather[j]['humidity']);
+							console.log("not set humidity: "+weather[j]['humidity']);
 						}
 						
-						if (weather[j]['windspeed'] > "-1") {
-							console.log("windspeed");
+						if (weather[j]['windspeed'] >= 0) {
+							console.log("windspeed: " + weather[j]['windspeed']);
 							radial[i+wl].setValueAnimated(weather[j]['windspeed']);
 						}
-						if (weather[j]['winddirection'] > "-1") {
+						
+						if (weather[j]['winddirection'] >= 0) {
 							console.log("winddirection");
 							radial[i+wl].setValueAnimated(weather[j]['winddirection']);
 						}
+						
 						i++;
 					}
 				}
@@ -5105,7 +5118,7 @@ function activate_setting(sid)
 			}
 		break;
 
-		// sql, do we want to make use of sql or sync to an array at the backend.
+		// SQL, do we want to make use of sql or sync to an array at the backend.
 		// In this case, we either need to save to files (often) or only accept persist to be "relaxed"
 		// For the moment, files are NOT supported in combination with persist == "Strict"
 		case "2":
@@ -5210,7 +5223,7 @@ function activate_setting(sid)
 			
 		break;
 		
-		// Since 1.4 we use it for skin/style selection
+		// SKIN Since 1.4 we use it for skin/style selection
 		// 
 		case "4":
 			$( "#gui_content" ).empty();
@@ -5282,12 +5295,12 @@ function activate_setting(sid)
 			})
 			
 			// XXX make sure we write this to the mysql backend too!
-				
-				
-				
+	
 		break;	
 		
-		case "5": // Backup and Restore
+		// Backup and Restore
+		//
+		case "5": 
 		
 			$( "#gui_content" ).empty();
 			html_msg = '<div id="gui_backup"></div>';
@@ -5378,9 +5391,62 @@ function activate_setting(sid)
 			})
 		break; //5
 		
+		// Console
+		//
+		case "6": 
+		
+			$( "#gui_content" ).empty();
+			html_msg = '<div id="gui_console"></div>';
+			$( "#gui_content" ).append (html_msg);
+		
+			html_msg = '<table border="0">';
+			$( "#gui_console" ).append( html_msg );
+			var table = $( "#gui_console" ).children();		// to add to the table tree in DOM
+			
+			// First table contains special button "ALL OFF"
+			// Start writing the table code to DOM
+	
+			var but = '<thead><tr class="switch">' ;
+			
+			but += '<input type="submit" id="Rx" value="X" class="dbuttons del_button" >'
+				+ '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
+				+ '</td>'
+			;
+			but += '<td class="filler" align="center">'+room_name+'</td>';
+			
+			if (jqmobile == 1) {
+				but += '<td><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+			}
+			else {
+				but +='<td></td>';					// Because in non jqmobile dimmers display value in this column
+				but += '<td colspan="2"><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+			}
+			$(table).append(but);
+			$(table).append('</tr>');
+			
+			// Create a few buttons and call backend_set.php directly!!
+			// Cosmetically not the most beutiful solution but it works great for the moment
+			var but =  ''	
+					+ '<thead><tr class="switch">'
+					+ '<td colspan="2">'
+					+ 'Select your console function ' 
+					+ '</td></tr></thead>'
+					;
+			$(table).append(but);
+			
+			var debug_help = "<br> \
+						This page provides you with a console function.<br>\
+						It allows you to get and set information about the running system,\
+						such as log files.<br>\
+						NOTE: This function is in draft at the moment.<br/>\
+					";
+
+				
+			
+		break; //6
+		
 		default:
 			myAlert("Config encountered internal error: unknown button "+sid);
-		
 	}
 }// activate_settings
 
@@ -5397,9 +5463,7 @@ function activate_setting(sid)
 function room_button(id, val, hover) 
 {
 			var but = ''
-//			+ '<td>'
 			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hr_button ' + hover + '">'
-//			+ '</td>'
 			return (  but );
 }
 
@@ -5413,9 +5477,8 @@ function scene_button(id, val, hover)
 			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hs_button ' + hover + '">'
 			return (  but );	
 }
-
 //
-//
+// Menu button
 //
 function menu_button(id, val, hover) 
 {
@@ -5425,7 +5488,6 @@ function menu_button(id, val, hover)
 			+ '</td>'
 			return (  but );	
 }
-
 //
 // Print a timer button
 //
@@ -5468,7 +5530,7 @@ function setting_button(id, val, hover)
 }
 
 // ------------------------------------- DEVICES -----------------------------------------
-
+//
 // STORE_DEVICE
 // Store the value of the device_id in the GUI back in the devices object 
 // Local on the client. The daemon will as of release 1.4 take care of syncing the value
@@ -5662,10 +5724,10 @@ function set_timer(tim_id,timer)
 	return(-1);		
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
 //	Handle incoming device requests, translate to a standard message and send to device by AJAX
 //
-//	Input: The id of the calling button (!). Which will for ICS in general be the same id as the real device name
+//	Input: The id of the calling button (!). Which for ICS in general is the same id as the real device name
 //			in the ICS appliance. 
 // 			The Value of the button pressed
 //
@@ -5958,10 +6020,8 @@ function load_database(dbase_cmd)
 				alert("Timeout connecting to database on "+sqlServer);
 			return(-1);
          }
-	});
-			
+	});		
 }
-
 
 
 // -----------------------------------------------------------------------------------	
@@ -6003,7 +6063,7 @@ function message_device(action, controller_cmd)
 						+' <br>Status: ' + data.status 
 						+', Return: ' + data.appmsg
 						;
-						if (debug > 0) {
+						if (debug >= 2) {
 							but += "\nAppErr: " + data.apperr;
 						}
 						message(but);
@@ -6018,7 +6078,7 @@ function message_device(action, controller_cmd)
 					break;
 				}
 
-          		if (debug>1) {
+          		if (debug>=2) {
 
           			myAlert('message_device: ' + action
 						  + '\ntransaction:' + data.tcnt

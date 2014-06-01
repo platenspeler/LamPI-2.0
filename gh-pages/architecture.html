@@ -91,25 +91,26 @@
   <li>The main Loop for the daemon with globally three stages:
     <ol>
       <li>Reading the Sockets; for incoming requests from the clients and incoming messages from sensors or handsets.</li>
-      <li>Run Queue; The queue where all runnable commands (received from timers and over sockets) are in is read and if it is time, the command is popped off the queue and the command messages is forwarded to the transceiver which will send the command to the 433MHz devices</li>
+      <li>Run Queue; The queue where all runnable commands (received from timers and over sockets) are in is read and if it is time, the command is popped off the queue and the command messages is forwarded to the transceiver which will send the command to the 433MHz devices in our home.</li>
       <li>Timer section. It will read the MySQL database and if there are timers that expire, it will read the scene with actions associated with that timer and after breaking down each of the device commands in that scene, these device commands are put in the run queue for the daemon</li>
     </ol>
   </li>
 </ul>
 <p>Note: The run queue might also consist of more complex commands such as &quot;All Off&quot; in a room. If such a complex command is encountered on the Run Queue it is replaced with the individual device &quot;OFF&quot; commands which are then each added to the Run Queue instead.</p>
 <h3>Stage 1: Reading the Sockets</h3>
-<p>In the first stage of the Main Loop, we read sockets and process incoming messages and reply where necessary to connected GUI clients an daemon programs (receivers). For the GUI clients we make use of websockets, which is a more secure and protected service using a 2-step connection mechanism. For the receivers (433, 1-wire etc sensors) we use a simple interface which is not based on websockets.</p>
+<p>In the first stage of the Main Loop, we read sockets and process incoming messages and reply where necessary to connected GUI clients and daemon programs (receivers). For the GUI clients we make use of websockets, which is a more secure and protected service using a 2-step connection mechanism. For the receivers (433, 1-wire etc sensors) we use a simple interface which is not based on websockets. If we receive an incoming GUI message telling us that the used changed the setting of a remote dimmer, than the message will be decoded an put in the run-queue of ready-to-run device commands. In stage 2 (below) the run queue will be handled and we will take care of messages/commands tha are ready to run.</p>
 <p>The LamPI-daemon.php process will accept both websocket and normal connect requests and we will make note of the type of device connecting. This is important, as incoming messages from sensors need to be forwarded to the connect GUI clients but most likely we do NOT forward to other receivers. </p>
+<p>As of release 1.9.3 the default communication protocol for sensors is UDP broadcast (SOCK_DGRAM). The advantage for using a connectionless broadcast messaging protocol outweigh the drawbacks of UDP, which is that it is less reliable and one might miss a transmission. As messages sent by sensors are mostly shorter in size than a few hundred bytes, we do not really need a connection-based protocol that is reliable. After all, we are not making a tcp service for transmitting magebytes of data, and should we miss a message than within one or two minutes the next sensor message will be transmitted.</p>
 <h3>Stage 2: Reading the run queue</h3>
 <p>The run queue is defined by the QUEUE class and defined in the LamPI-daemon.php file. The Queue consists of messages that are all defined in the same sort of syntax that is used by the ICS-1000 device, but extended with some new message definitions that we use for connected handsets, sensors etc.</p>
 <p>A special case are the &quot;All Off&quot; scene commands. If we encounter such a command next in the queue, the scene message is replace by a room &quot;device OFF&quot; command for every device in that room. </p>
 <h3>Stage 3: Reading Timers (and put ready commands in run queue)</h3>
-<p>When starting this stage in the daemon loop, we start reading the database and load the timers array with the latest values in the database. This prevents us from taking actionas based on database information that could already be out of date.</p>
-<p>If we find a timer that is runnable, we take the scene command inside that timer and put it on the run queue. </p>
+<p>When starting this stage in the daemon loop, we start reading the database and load the timers array with the latest values in the database. This prevents us from taking actions based on database information that could already be out of date.</p>
+<p>If we find a timer that is runnable, we take the scene command inside that timer and put it on the run queue. It will then be taken off the queue in teh next loop of the program in step 2.</p>
 <p>&nbsp;</p>
 <h1><a name="lampigui"></a>The LamPI.js GUI</h1>
 <p>The LamPI-x.y.js file contains (most of) the front end of the LamPI application. It contains Javascript code in combination with a lot of jQuery functions that will shield the complex Ajax functions from the user and expands the code with useful widgets and buttons.</p>
-<p>&nbsp;</p>
+<p>The LamPI Javascript program with with regular browser programs in which it will make use of jQuery UI function. Alternatively, when using the android client, the program will make use of jQuery Mobile libraries that are optimized for use in mobile devices such as Android clients.</p>
 <h1><a name="android"></a>Android Clients</h1>
 <p>Android code is in beta, but as you can see in the LamPI-x.y.js file, significant parts are already there and the code is usable. </p>
 <ul>

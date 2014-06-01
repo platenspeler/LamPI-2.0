@@ -44,7 +44,7 @@
 /* DIVS for just one element */
 		#wrapper {
 			position: relative;
-			top: 10px;
+			top: 1px;
 			width: 460px;
 			height: 700px;
 			margin: auto;
@@ -57,10 +57,11 @@
 /* The header header section defined */
 		#gui_menu {
 			position: absolute;
-			left: 5px;
-			top: 5px;
+			left: 1px;
+			top: 1px;
 			width: 450px;
 			height: 100px;
+			border: 1px solid black;
 			background-color:#09F;
 		}
 		
@@ -70,7 +71,7 @@
 			width: 450px;
 			height: 75px;
 ;			margin: auto;
-			left: 5px;
+			left: 1px;
 			margin-top: 0px;
 			border: 1px solid black;
 			text-align: center;

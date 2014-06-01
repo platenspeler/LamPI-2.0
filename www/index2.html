@@ -55,7 +55,7 @@
     
     <script src="LamPI-1.9.js"></script> 
 
-	<meta name="viewport" content="width=device-width, initial-scale=0.8, minimum-scale=0.8, maximum-scale=1.0 user-scalable=no ">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.8, maximum-scale=1.6 user-scalable=yes ">
     
 <style type="text/css">	
 	/* Moved to a dedicated .css file */
@@ -68,15 +68,21 @@
 
 var wr = location.pathname;
 var ind = wr.lastIndexOf('/');
-if ((ind != -1) && (ind != 0)) murl = wr.substr(0,ind)+"/";
-else murl = '';
+if ((ind != -1) && (ind != 0)) {
+	murl = wr.substr(0,ind)+"/";
+}
+else {
+	murl = 'http://192.168.2.51/';
+}
 s_controller = murl + 'backend_rasp.php';
 
 jqmobile=1;												// We use the jquerymobile libs and css settings
-phonegap=1;												// NO phonegap, we simulate mobile version in browser
+phonegap=1;												// phonegap, we simulate Android PhoneGap version in browser
+dynamicIP=0;											// No dynamic IP, use a ficed IP for the daemon
 fake=0;
 debug=1;
 
+if (debug>=2) alert("dynamicIP is: "+dynamicIP+", s_controller is: "+s_controller);
 //if (debug>0) alert("controller: "+s_controller+"\nhost: "+location.host+"\nmurl: "+murl);
 
 //if (window.File && window.FileReader && window.FileList && window.Blob ) {
@@ -106,6 +112,10 @@ start_LAMP();
         </div>
 <!-- This is where the buttons for the lamps/dimmers go -->
 		<div id="gui_content">
+        	<div data-role="page" id="page2">
+			<div id="popup">
+			</div>
+			</div>
         </div>
 	</div>       
 <!-- This is the message/comment area -->                         
@@ -117,11 +127,7 @@ start_LAMP();
 </div> 
 <!-- wrapper --> 
 
-<div data-role="page" id="page2">
-<div id="popup">
 
-</div>
-</div>
 
 <!-- popup -->
 </body>

@@ -57,6 +57,16 @@ $brands = array();
 $weather= array();
 
 /** --------------------------------------------------------------------------------------
+	RRDTOOL
+	The class for rrdtool functions. Creat a rrtool database and add data to it.
+	
+*/
+class Rrd {
+	
+}
+
+
+/** --------------------------------------------------------------------------------------
 	Some user related functions needed for credential checking etc.
 	The class is extensible
 */
@@ -76,6 +86,7 @@ class User {
 		}
 		return(0);
 	}
+	
 }
 
 /** --------------------------------------------------------------------------------------
@@ -205,7 +216,6 @@ function clientInSameSubnet($client_ip=false,$server_ip=false) {
 class Queue {
 	
 	private $q_list = [];
-	
 	// Insert based on timing. This takes extra time initially, but makes our live later easier
 	// We know then that all actions in queue are sorted on time, first coming soonest
 	public function q_insert($item) {
@@ -291,14 +301,14 @@ class Sock {
 	
 	public	$usock = 0;					// UDP Receive Socket
 	public	$rsock = 0;					// Receive socket of the server
-	public	$ssock = 0;					// Sendto Socket; often ;ast socket rcvd on, so THE socket to reply to
-	public	$clientIP;					// Refer to $sock-> or $this->
+	public	$ssock = 0;					// Sendto Socket; often last socket rcvd on, so THE socket to reply to
+	public	$clientIP;					// Refer to with either $sock-> or $this->
+	public	$clients = array();			// Array of sockets containing the real "accepted" clients
+	public	$sockadmin = array();		// contains name, ip, type of client etc data
+	
 	private $read = array();			// The object for socket_select, contains array of data sockets
 	private $wait = 1;					// Timeout value for socket_select. Changed dynamically!
-	
-	public $clients = array();			// Array of sockets containing the real "accepted" clients
-	public $sockadmin = array();		// contains name, ip, type of client etc data
-	
+
 	//
 	//handshake new client. Also called upgrade of a websocket connection request
 	// Websites:
@@ -519,21 +529,21 @@ class Sock {
 			switch($sockerr) {
 				
 				case 11:							// EAGAIN
-					$log->lwrite("s_urecv:: no message");
+					$log->lwrite("s_urecv:: no message",2);
 					return(-1);
 				break;
 				default:
-					$log->lwrite("s_urecv:: ERROR: ".socket_strerror($sockerr) );
+					$log->lwrite("s_urecv:: ERROR: ".socket_strerror($sockerr),1);
 					return(-1);
 				break;
 			}
 		}
 		if ($ret == 0) {
-				$log->lwrite("s_urecv:: No Data to read".$name.":".$port);
+				$log->lwrite("s_urecv:: No Data to read".$name.":".$port,2);
 				return(-1);
 		}
 		else {
-			$log->lwrite("s_urecv:: Receiving from: ".$name.":".$port." buf: ".$buf);
+			$log->lwrite("s_urecv:: Receiving from: ".$name.":".$port." buf: ".$buf,2);
 			return($buf);
 		}
 		return(-1);	
@@ -607,18 +617,35 @@ class Sock {
 			$log->lwrite("s_send failed: socket this->ssock not open");
 			return(-1);
         }
+		socket_getpeername($this->ssock, $clientIP, $clientPort);
+		//$akey = array_keys($this->clients, $this->ssock);
+		//$ckey = $akey[0];
+		if (false === ( $ckey = array_search($this->ssock, $this->clients))) {
+			$log->lwrite("s_send:: ERROR Key not found for current socket. ip: ".$clientIP.":".$clientPort);
+			return(-1);
+		}
+		else {
+			$log->lwrite("s_send:: Key ".$ckey." found for current socket. ip: ".$clientIP.":".$clientPort,2);
+		}
+		// If this is a websocket, make sure to encode first
+		if ($this->sockadmin[$ckey]['type'] == 'websocket')
+		{
+			$log->lwrite("s_send:: websocket, encoding message. ip: ".$clientIP.":".$clientPort,2);
+			$message = $this->s_encode($cmd_pkg);
+		}
+		else {
+			$log->lwrite("s_send:: Not a websocket. ".$clientIP.":".$clientPort,2);
+			$message = $cmd_pkg;
+		}
+		//
 		$log->lwrite("s_send:: writing message <".$cmd_pkg.">",3);				
-    	if (socket_write($this->ssock,$cmd_pkg,strlen($cmd_pkg)) === false)
+    	if (socket_write($this->ssock, $message, strlen($message)) === false)
    		{
-     		$log->lwrite( "s_recv:: socket_write failed:: ".socket_strerror(socket_last_error()) );
+     		$log->lwrite( "s_send:: socket_write failed:: ".socket_strerror(socket_last_error()) );
 			socket_close($this->ssock);					//  This is one of the accepted connections
 			return(-1);
     	}
-		
-    	if ($debug > 1) {
-			socket_getpeername($this->ssock, $clientIP, $clientPort);
-			$log->lwrite("s_send:: socket_write to IP: ".$clientIP.":".$clientPort." success");
-		}
+		$log->lwrite("s_send:: socket_write to IP: ".$clientIP.":".$clientPort." success",1);
 		return(0);
 	}// s_send
 	
@@ -648,7 +675,7 @@ class Sock {
 									.$this->sockadmin[$key]['ip'].":"
 									.$this->sockadmin[$key]['port'].", type "
 									.$this->sockadmin[$key]['type']." need upgrade?"
-									,1);
+									,2);
 				$message = $cmd_pkg;
 				if (socket_write($client,$message,strlen($message)) === false)
    				{
@@ -659,7 +686,7 @@ class Sock {
 					continue;
     			}
 		
-    		$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
+    			$log->lwrite("s_bcast:: raw socket_write to IP: ".$this->sockadmin[$key]['ip'].
 										":".$this->sockadmin[$key]['port']." success",2);
 			}
 			else // Encode the message according to websocket standard
@@ -673,7 +700,7 @@ class Sock {
 					unset($this->sockadmin[$key]);
 					continue;
     			}
-				$log->lwrite("s_bcast:: socket_write to IP: ".$this->sockadmin[$key]['ip'].
+				$log->lwrite("s_bcast:: web socket_write to IP: ".$this->sockadmin[$key]['ip'].
 										":".$this->sockadmin[$key]['port']." success",2);
 			}
 		}
@@ -738,7 +765,7 @@ class Sock {
 		
 		// New connections? (coming from a previous call of socket_select() in $read)
 		// Incoming connect request comes in on server socket rsock only
-		if ($debug>2) $log->lwrite("s_recv:: checking for new connections in this->read");
+		$log->lwrite("s_recv:: checking for new connections in this->read",2);
 		if (in_array($this->rsock, $this->read)) 
 		{
 			$log->lwrite("s_recv:: server rsock to accept new connection ",3);
@@ -786,7 +813,7 @@ class Sock {
 		// As we handle incoming messages immediately. Set the sender socket in private var
 		// so the s_Send command knows where to send response to for last message
 		
-		if ($debug>2) $log->lwrite("s_recv:: checking for data on sockets of this->read");
+		$log->lwrite("s_recv:: checking for data on sockets of this->read",3);
 		foreach ($this->read as $key => $client) 
 		{
 				$akey = array_keys($this->clients, $client);	// Key in the client array (and admin array)
@@ -846,7 +873,7 @@ class Sock {
 				$log->lwrite("s_recv:: ckey: ".$ckey.", clientIP: ".$clientIP,3);
 				$log->lwrite("s_recv:: ckey: ".$ckey.", this clientIP: ".$this->clientIP,3);
 				$log->lwrite("s_recv:: sockettype: ".$this->sockadmin[$ckey]['type'],3);
-				$log->lwrite("s_recv:: sockadmin ip: ".$this->sockadmin[$ckey]['ip'].", trusted:".$this->sockadmin[$ckey]['trusted'],2);
+				$log->lwrite("s_recv:: sockadmin ip: ".$this->sockadmin[$ckey]['ip'].", trusted:".$this->sockadmin[$ckey]['trusted'],3);
 				
 				$this->clientIP = $this->sockadmin[$ckey]['ip'];
 				if ($this->sockadmin[$ckey]['type'] == 'websocket' ) 
@@ -870,7 +897,7 @@ class Sock {
 				// Unknown type (I guess)
 				else {
 					$i2=time();
-					$log->lwrite("ERROR s_recv:: Unknown type buf from IP: ".$clientIP.":".$clientPort
+					$log->lwrite("ERROR s_recv:: Unknown type buf ".$this->sockadmin[$ckey]['type']."from IP: ".$clientIP.":".$clientPort
 									.", buf: <".$buf.">, in ".($i2-$i1)." seconds",2);
 				}
 		}//for
@@ -887,6 +914,10 @@ class Sock {
 		global $log;
 		
 		$akey = array_keys($this->clients, $this->ssock);
+		if (count($akey) == 0) {
+			$log->lwrite("s_trusted:: Socket not present anymore in client array",3);
+			return(0);
+		}
 		$ckey = $akey[0];
 		$log->lwrite("s_trusted:: ckey: ".$ckey." checking clientIP: ".$this->clientIP,3);
 		$log->lwrite("s_trusted:: ckey: ".$ckey." checking sockadmin IP: ".$this->sockadmin[$ckey]['ip'],3);
@@ -972,12 +1003,12 @@ class Device {
             $this->sql_open();
         }
 		$dev_id = "D".$dev_nr;
-		if ($debug>1) $log->lwrite("get:: room: ".$room_id.", dev: ".$dev_id);
+		$log->lwrite("get:: room: ".$room_id.", dev: ".$dev_id,2);
 		
 		$sqlCommand = "SELECT * FROM devices WHERE id='$dev_id' AND room='$room_id'";
 		$query = mysqli_query($this->mysqli, $sqlCommand) or die (mysqli_error());
 		while ($row = mysqli_fetch_assoc($query)) { 
-			if ($debug>1) $log->lwrite("get:: found device: ".$row['name']);
+			$log->lwrite("get:: found device: ".$row['name'],2);
 			return($row) ;
 		}
 		$log->lwrite("get:: Did not find device");
@@ -1746,7 +1777,7 @@ while (true):
 //		This is why timers and scenes live in same space in ICS-1000. Scenes are
 //		just timers without start time
 
-	if ($debug>0) $log->lwrite("------------------ Loop ------------------------");
+	$log->lwrite("------------------ Loop ------------------------",1);
 
 	$tim = time();				// Get seconds since 1970. Timestamp
 	$qtim = $queue->q_tim();
@@ -1838,10 +1869,66 @@ while (true):
 				$log->lwrite("main:: Rcv json msg: <".$msg.">");
 			}
 			
-			// Check if this is a trusted Internal IP connection. Every address inside our homenetwork
-			// is trusted. Trstlevel needs to be larger than 0 to pass
+			// Check if this is a trusted Internal IP connection. Every address inside our home network
+			// is trusted. Trustlevel needs to be larger than 0 to pass.
+			// If we receive a message and our trustlevel is too low, we will not continue until
+			// the user first "repairs" that trust. As a result, the last command from the client
+			// will probably be lost, as all communication is async ...
 			//
-			if ( $sock->s_trusted() > 0 ) {
+			if ( $sock->s_trusted() <= 0 ) 
+			{
+				// Here is when we do not trust the client
+				// It could be however that the client just sent his login data, therefore
+				// we check for these first
+				//
+				$log->lwrite("main:: external client ".$sock->clientIP." not trusted",3);
+				
+				// If user has aleady set local storage/cookie for this IP for the password, 
+				// he/she will be done quickly
+				//
+				if ($data['action'] == "login" ){
+					$log->lwrite("main:: received login request from ip ".$sock->clientIP.
+							", action: ".$data['action'].", login: ".$data['login'].", password: ".$data['password'],2);
+					if (User::pwcheck($data) > 0)
+					{
+							$akey = array_keys($sock->clients, $sock->ssock);
+							$ckey = $akey[0];
+							$sock->sockadmin[$ckey]['trusted'] = "1" ;
+							$sock->sockadmin[$ckey]['login'] = $data['login'];
+							$log->lwrite("main:: Password Correct, user: ".$sock->sockadmin[$ckey]['login']." @ IP: ".$sock->sockadmin[$ckey]['ip'],2);
+							$i = $pos+1;
+							if ($pos >= strlen($buf)) break;
+							continue;
+					}
+					else
+					{
+						$log->lwrite("main:: Incorrect Password for user: ".$data['login']." IP: ".$sock->sockadmin[$ckey]['ip'],1);
+						// So what are we going to do when we receive a wrong password
+					}
+				}
+				
+				// If we do NOT have a cookie, we need to use a login form 
+				// cause only if we connect from remote, we'll need to login first
+				// This is async, we only write the request, the answer will arrive in time
+				// 
+				$logmsg = array (
+							'tcnt' => $tcnt."",
+							'action' => 'login',
+							'type' => 'raw'
+				);
+				if ( false === ($message = json_encode($logmsg)) ) {
+					$log->lwrite("ERROR main:: json_encode failed: <".$logmsg['tcnt'].", ".$logmsg['action'].">");
+				}
+				$log->lwrite("Json encoded login: ".$message,2);
+				// $answer = $sock->s_encode($message);
+				if ( $sock->s_send($message) == -1) {
+					$log->lwrite("ERROR main:: failed writing login message on socket");
+				}
+				$log->lwrite("main:: writing message on socket OK",2);
+			}
+			
+			// Else we trust the client
+			else {
 				$log->lwrite("main:: client is trusted: ".$sock->clientIP,2);
 			
 				// Compose ACK reply for the client that sent us this message.
@@ -1853,17 +1940,20 @@ while (true):
 					'action' => "ack",
 					'message' => "OK"
 				);
-				if ( false === ($tmp = json_encode($reply)) ) {
+				if ( false === ($message = json_encode($reply)) ) {
 					$log->lwrite("ERROR main:: json_encode reply: <".$reply['tcnt'].",".$reply['action'].">",1);
 				} 
-				$answer = $sock->s_encode($tmp);			// Websocket encode
-				$log->lwrite("main:: json reply data: <".$tmp."> len: ".strlen($tmp).":".strlen($answer),2);
-					
-				if ( $sock->s_send($answer) == -1) {
+				// First check whether this is necessary. Some raw sockets are not websockets encoded
+				// XXX $answer = $sock->s_encode($tmp);			// Websocket encode
+				$log->lwrite("main:: json reply : <".$message."> len: ".strlen($message),2);
+
+				// Send the reply	
+				if ( $sock->s_send($message) == -1) {
 					$log->lwrite("ERROR main:: failed writing answer on socket");
 				}
-			
+				//
 				// Take action on the message based on the action field of the message
+				//
 				switch ($data['action']) 
 				{
 				case "ping":
@@ -1910,27 +2000,27 @@ while (true):
 						'winddirection' => $data['winddirection'],
 						'rainfall' => $data['rainfall']
 					);
-					
+
 					$wthr->upd($item);
-					
+
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
-					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],1);
+					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],2);
 					$queue->q_insert($item);
 				break;
-				
+
 				case "energy":
 					// Energy cation message received
 					// XXX tbd
-					$log->lwrite("main:: q_insert action: ".$item['action'],1);
+					$log->lwrite("main:: action: ".$item['action'],1);
 				break;
-				
+
 				case "sensor":
 					// Received a message from a sensor
 					// XXX tbd
-					$log->lwrite("main:: q_insert action: ".$item['action'],1);
+					$log->lwrite("main:: action: ".$item['action'],1);
 				break;
-				
+
 				case "login":
 					// Received a message for login. As the server will initiate this request
 					// and as we do the client is still untrusted, this will probably never happen.
@@ -1938,70 +2028,18 @@ while (true):
 					// 
 					$log->lwrite("main:: login request: ".$data['login'].", password".$data['password'],1);
 				break;
-				
+
+				case "admin":
+					// Handling of interfaces
+					$log->lwrite("main:: Received admin message: ".$data['action']);
+					
+				break;
+
 				default:
 					$log->lwrite("ERROR main:: json data type: <".$data['type']
 									."> not found using raw message");
 					$cmd = $data['message'];
 				}
-		
-				
-			}
-			// Here is when we do not trust the client
-			// It could be however that the client just sent his login data, therefore
-			// we check for these first
-			//
-			else {
-				
-				
-				$log->lwrite("main:: external client ".$sock->clientIP."not trusted",3);
-				
-				// If user has set local storage/cookie for this IP for the password, 
-				// he/she will be cone quickly
-				if ($data['action'] == "login" ){
-					$log->lwrite("main:: received login request from ip ".$sock->clientIP.
-							", action: ".$data['action'].", login: ".$data['login'].", password: ".$data['password'],3);
-					if (User::pwcheck($data) > 0)
-					{
-							$akey = array_keys($sock->clients, $sock->ssock);
-							$ckey = $akey[0];
-							$sock->sockadmin[$ckey]['trusted'] = "1" ;
-							$sock->sockadmin[$ckey]['login'] = $data['login'];
-							$log->lwrite("main:: Password Correct, user: ".$sock->sockadmin[$ckey]['login']." @ IP: ".$sock->sockadmin[$ckey]['ip'],2);
-							$i = $pos+1;
-							if ($pos >= strlen($buf)) break;
-							continue;
-					}
-					else
-					{
-						$log->lwrite("main:: Incorrect Password for user: ".$data['login']." IP: ".$sock->sockadmin[$ckey]['ip'],1);
-					}
-				}
-				
-				// If we do NOT have a cookie, we need to use a login form 
-				// cause only if we connect from remote, we'll need to login first
-				// QQQQ
-				$logmsg = array (
-							'tcnt' => $tcnt."",
-							'action' => 'login',
-							'type' => 'raw'
-				);
-				if ( false === ($message = json_encode($logmsg)) ) {
-					$log->lwrite("ERROR main:: json_encode failed: <".$logmsg['tcnt'].",".$logmsg['action'].">");
-				}
-				$log->lwrite("Json encoded: ".$message,2);
-				$answer = $sock->s_encode($message);
-				if ( $sock->s_send($answer) == -1) {
-					$log->lwrite("ERROR main:: failed writing login message on socket");
-				}
-				$log->lwrite("main:: writing message on socket OK",2);
-						
-				// If the login failed, we will close the connection
-				//$this->s_close($ckey);
-				//unset($this->clients[$ckey]);
-				//unset($this->sockadmin[$ckey]);
-						//return(-1);
-				//continue;
 			}
 			
 			// Advance the index in current buffer (multiple messages may be possible in
@@ -2009,7 +2047,7 @@ while (true):
 			//
 			$i = $pos+1;
 			if ($pos >= strlen($buf)) break;
-		}
+		}// while !end of encoded string read
 		
 		// test for empty message
 		if (strlen($data) == 0) 
@@ -2017,7 +2055,6 @@ while (true):
 			$log->lwrite("main:: s_recv returned empty data object",3);
 			break;
 		}
-		
 		// normal raw socket, no websocket but use json to encode the response
 		// But json encode in ICS format
 		//
@@ -2025,10 +2062,19 @@ while (true):
 		{
 			if ($debug>=1) $log->lwrite("ERROR main:: Rcv raw data cmd on rawsocket: <".$data.">");
 			list ($tcnt, $cmd) = explode(',' , $data);
-			if (strcmp($cmd, "PING") === 0) {
+			// 
+			// Messages start with a tcnt number, then a command, Then an argument all comma separated
+			switch ($cmd) {
+				case "PING":
 					$log->lwrite("main:: PING received",2);
-					break;
+				break;
+				
+				default:
+					$log->lwrite("main:: Unknown command received: ".$cmd,2);
+					continue;
+				break;
 			}
+
 			$reply = array (
 				'tcnt' => $tcnt."",
 				'action' => "ack",
@@ -2052,7 +2098,7 @@ while (true):
 			$log->lwrite("main:: raw cmd to parse: ".$cmd,2);
 			message_parse($cmd);
 		}
-	}
+	}// while not EOF s_recv
 
 
 	// --------------------------------------------------------------------------------
@@ -2183,7 +2229,7 @@ while (true):
 					}
 					
 					$log->lwrite("sql device upd: ".$device['name'].", id: "
-							.$device['id'].", room: ".$device['room'].", val: ".$device['val']);
+							.$device['id'].", room: ".$device['room'].", val: ".$device['val'],2);
 	
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
 					$dlist->upd($device);							// Write new value to database
@@ -2205,7 +2251,7 @@ while (true):
 									.",".$bcst['action'].">");
 					}
 			
-					$sock->s_bcast($answer);				// broadcast this command back to all connected clients
+					$sock->s_bcast($answer);				// broadcast this command back to connected clients
 					// XXX We need to define a json message format that is easier on the client.
 					
 					// Actually, broadcasting to all clients could include
@@ -2368,5 +2414,4 @@ endwhile;// ========= END OF LOOP ==========
  
 // close log file
 $log->lclose();
- 
 ?>

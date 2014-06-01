@@ -25,6 +25,6 @@ done
 cd $SCRIPTDIR
 ./PI-run -r
 sleep 5
-./PI_rcv -r
+./PI-rcv -r
 
 # echo "PI-log:: All log files moved"

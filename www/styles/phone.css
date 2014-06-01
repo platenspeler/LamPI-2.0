@@ -52,7 +52,7 @@
 			height: auto;
 			min-height: 533px;
 			margin: auto;
-			padding: 5px;
+			padding: 1px;
 			margin-top: 1px;
 			border: 1px solid black;
 			background-color:#60F;
@@ -61,19 +61,20 @@
 /* The header header section defined */
 		#gui_menu {
 			position: relative;
-			top: 3px;
-			width: 98%;
+			top: 1px;
+			width: 99%;
 			height: auto;
 			margin: auto;
-			padding-bottom:3px;
-			margin_bottom:3px;
+			padding-bottom:1px;
+			border: 1px solid black;
+			margin_bottom:1px;
 			background-color:#09F;
 		}
 		
 		#gui_header {
 			position: relative;
 			top: 3px;
-			width: 98%;
+			width: 99%;
 			height: auto;
 			margin: auto;
 			margin-top: 0px;
@@ -87,12 +88,12 @@
 		*/
 		#gui_content {
 			position: relative;
-			top: 3px;
-			width: 98%;
+			top: 1px;
+			width: 99%;
 			height: 415px;
 			margin: auto;
 			padding: 1px;
-			margin-top: 3px;
+			margin-top: 1px;
 			border: 1px solid black;
 			text-align: center;
 			color:#FFF;

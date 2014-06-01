@@ -61,7 +61,6 @@
 //
 var fake=0;													// Set to 1 if we fake communication 
 
-
 //
 // WebSocket definitions
 //
@@ -69,21 +68,24 @@ var w_url = location.host; 								// URL of webserver
 var w_svr = 'LamPI-daemon.php';							// webserver filename
 var w_port = '5000'; 									// port
 var w_uri;
-var w_sock;
-var w_tcnt =0;											// Transaction counter
+var w_sock;												// Socket variable
+var w_tcnt = 0;											// Transaction counter
 
 // ----------------------------------------------------------------------------
 // Mobile settings, used for Android or other jQueryMobile device
+// The three settings below determine what GUI libraries to use
+// and how to communicate with the daemon.
 //
-var phonegap=0;											// Standard setting, no phonegap
-var jqmobile=0;											// This specifies what jQuery library fill be used
-var murl='';
+var phonegap=0;											// Phonegap setting, init to no phonegap
+var jqmobile=0;											// This specifies what jQuery library file be used
+var dynamicIP=1;										// Use a static IP for daemon or a dynamicIP (standard)
+var murl='';											// For Phonegap and Ajax usage, build a url. DO NOT CHANGE!
 
 // ----------------------------------------------------------------------------
 // 
 //
 var skin = "";
-var debug = "1";										// debug is level. Higher values >0 means more debug
+var debug = "1";										// debug level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
 var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
@@ -101,8 +103,8 @@ var s_room_id =1;										// Screen room_id
 var s_scene_id =1;
 var s_timer_id = 1;
 var s_handset_id = 1;
-var s_weather_id = 1;
-var s_setting_id = "0";
+var s_weather_id = '';									// Init empty
+var s_setting_id = 0;
 var s_recorder = '';									// recording of all user actions in a scene. 
 var s_recording = 0;									// Set to 1 to record lamp commands
 
@@ -114,7 +116,7 @@ var max_scenes = 16;									// max nr of scenes. ICS-1000 has 20
 var max_devices = 16;									// max nr. of devices per room. ICS-1000 has 6
 var max_timers = 16;
 var max_handsets = 8;
-var max_weather = 4;									// Maximum number of weather stations receivers
+var max_weather = 8;									// Maximum number of weather stations receivers
 
 // Actually, sum of timers and scenes <= 20 for ICS-1000
 
@@ -705,7 +707,7 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.cs_button' ).removeClass( 'hover' );
+		$( '.ct_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
 		value=$(this).val();								// Value of the button
 		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
@@ -912,7 +914,7 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.cs_button' ).removeClass( 'hover' );
+		$( '.ch_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
 		value=$(this).val();								// Value of the button
 		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
@@ -1014,8 +1016,7 @@ function start_LAMP(){
 				
 			break;
 				
-			// Remove the current scene. Means: Remove from the scenes
-			// array, and reshuffle the array. 
+			// Remove the current handset. Means: Remove from the handset array, and shuffle the array. 
 			// As there are multiple records with the same id, we need to make a 
 			// list first, and after selection delete all records with that id.
 			//
@@ -1151,8 +1152,28 @@ function start_LAMP(){
 	}); // Handler for remotes handsets
 
 
+// ------------------------------------------------------------------------------
+// Weather
+// Handle the Header Weather (=remote) selection buttons
+// This function deals with the weather buttons diaplayed in the header section.
+// If the user selects one of these buttons, the corresponding weather screen is activated.
+//
+	$("#gui_header").on("click", ".hw_button", function(e){
+			e.preventDefault();
+//			e.stopPropagation();
+			selected = $(this);
+						
+			value=$(this).val();								// Value of the button
+			id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+			$( '.hw_button' ).removeClass( 'hover' );
+			$( this ).addClass ( 'hover' );
+			activate_weather(id);
+	}); // weather
+
+
+
 // ----------------------------------------------------------------------------
-// WEATHER
+// WEATHER and Sensors
 //	*** Handle the Command Weather (CW) buttons (add, delete, help)
 // This function implements the small action buttons (add, delete, help) in the upper right corner
 // of the screen.
@@ -1161,10 +1182,10 @@ function start_LAMP(){
 		e.preventDefault();
 //		e.stopPropagation();
 		selected = $(this);
-		$( '.cs_button' ).removeClass( 'hover' );
+		$( '.cw_button' ).removeClass( 'hover' );
 		$( this ).addClass ( 'hover' );
-		value=$(this).val();								// Value of the button
-		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		value=$(this).val();						// Value of the button
+		id = $(e.target).attr('id');				// should be id of the button (array index substract 1)
 		switch (id)
 		{	
 			// Add a new Weather station. 
@@ -1195,7 +1216,7 @@ function start_LAMP(){
 				
 				// Now we have an index either empty slot in between scene records, or append the current array
 				if ( ind > max_weather ) {
-					alert("Unable to add more handsets");
+					alert("Unable to add more Weather sensors");
 					return(-1);
 				}
 				
@@ -1248,14 +1269,14 @@ function start_LAMP(){
 						// And add the line to the #gui_devices section
 						// Go to the new scene
 						s_handset_id = ind;
-						// activate_handset(new_hndset_id);
+						// activate_handset(new_handset_id);
 						// XXX Better would be just to add one more button and activate it in #gui_header !!
-						init_handsets("init");
+						init_weather("init");
 						return(1);	//return(1);
 						
 					// Cancel	
   					}, function () {
-							activate_handset (s_handset_id);
+							activate_weather (s_weather_id);
 						return(1); // Avoid further actions for these radio buttons 
   					},
   					'Confirm Create'
@@ -1263,7 +1284,7 @@ function start_LAMP(){
 				
 			break;
 				
-			// Remove the current scene. Means: Remove from the scenes
+			// Remove the current weather. Means: Remove from the weather
 			// array, and reshuffle the array. 
 			// As there are multiple records with the same id, we need to make a 
 			// list first, and after selection delete all records with that id.
@@ -1272,16 +1293,16 @@ function start_LAMP(){
 			case "Del":
 				
 				var list = [];
-				var str = '<label for="val_1">Delete Handset: </label>'
+				var str = '<label for="val_1">Delete Weather: </label>'
 						+ '<select id="val_1" value="val_1" >' ;   // onchange="choice()"
 				
 				// Allow selection, but first let the user make a choice
 				// Make sure every name only appears once
-				var hset_list=[];
-				for (i=0; i< handsets.length; i++) {
-					if ( $.inArray(handsets[i]['id'],hset_list) == -1) {
-						str += '<option>' + handsets[i]["name"] + '</option>';
-						hset_list[hset_list.length]= handsets[i]['id'];
+				var weather_list=[];
+				for (i=0; i< weather.length; i++) {
+					if ( $.inArray(weather[i]['id'],weather_list) == -1) {
+						str += '<option>' + weather[i]["name"] + '</option>';
+						weather_list[weather_list.length]= weather[i]['id'];
 					}
 				}
 				str += '</select>';
@@ -1289,9 +1310,9 @@ function start_LAMP(){
 				// The form returns 2 arguments, we only need the 1st one now
 				var frm='<form><fieldset>'
 					+ '<br>DRAFT:</br>'
-					+ '<br />You are planning to delete a handset from the system. If you do so, all actions '
-					+ 'associated with the handset must be deleted too.\n'
-					+ 'Please start with selecting a handset from the list.<br /><br />'
+					+ '<br />You are planning to delete a sensor from the system. If you do so, all actions '
+					+ 'associated with the sensor must be deleted too.\n'
+					+ 'Please start with selecting a sensor from the list.<br /><br />'
 					+ str
 					+ '<br />'
 					+ '</fieldset></form>';
@@ -1309,29 +1330,29 @@ function start_LAMP(){
 						for (var i=handsets.length-1; i>=0; i--) {
 							if (debug>2) alert("working with i: "+i+", handset id: "+handsets[i]['name']);
 							if (handsets[i]['name'] == sname) {
-								// Is the room empty? Maybe we do not care, 
-								//everything for scene is IN the record itself
+								// Is the array empty? Maybe we do not care, 
+								//everything for hendset is IN the record itself
 								var handset_id = handsets[i]['id'];
 								// Removed is an array too, one element only
 								var removed = handsets.splice(i ,1);
 								if ( persist > 0 ) {
 									console.log(removed[0]);
-									// Remove the room from MySQL
-									send_2_dbase("delete_handset", removed[0]);
+									// Remove the handset from MySQL
+									send_2_dbase("delete_weather", removed[0]);
 									if (debug>1)
 										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
 								}
 							}
 						}
 						
-						// As we do not know which room will be first now
-						// If there are no handsets, we are in trouble I guess
-						s_handset_id = handsets[0]['id'];
-						init_handsets("init");
+						// As we do not know which weather record will be first now
+						// If there are no weather, we are in trouble I guess
+						s_weather_id = weather[0]['id'];
+						init_weather("init");
 						return(1);						
 					// Cancel	
   					}, function () {
-							activate_handset (s_handset_id);
+						activate_weather (s_weather_id);
 						return(1); // Avoid further actions for these radio buttons 
   					},
   					'Confirm Delete Handset'
@@ -1467,10 +1488,10 @@ function start_LAMP(){
 	});	// CC Config Handler
 
 
-// ----------------------------------------------------------------------------------------
-//	Init websockets communication
-//	Especially the handlers for websockets etc, that need to test the state of the connection
-//	
+	// ----------------------------------------------------------------------------------------
+	//	Init websockets communication
+	//	Especially the handlers for websockets etc, that need to test the state of the connection
+	//	
 	function init_websockets() {
 	// ** These are the handlers for websocket communication.
 	// ** We only use either websockets or regular/normal sockets called by .ajax/php handlers
@@ -1479,14 +1500,13 @@ function start_LAMP(){
 	// Controller must be Raspberry for websockets to work
 	// Also, phonegap does not yet (!) support websockets for older Android phones
 	//
-	//if ( (settings[1]['val'] == 1) && ( phonegap != 1 ) ) 				
-	//{
 		// Make a new connection and start registering the various actions,
 		// State 0: Not ready
 		// State 1: Ready
 		// State 2: Close in progress
 		// State 3: Closed
-		
+	// Apparently, after closing the socket will reopen automatically (in a while)
+	//
 		var urlParts = w_url.split(':');					// remove the calling port number
 		console.log("init_websockets:: Splitting url and port: "+urlParts[0]);
 		w_uri = "ws://"+urlParts[0]+":"+w_port;				// and add the port number of server
@@ -1499,10 +1519,10 @@ function start_LAMP(){
 		};
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed, reopening socket "+w_uri);
+			alert("Connection closed by server");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
 			w_sock = WebSocket(w_uri);
 			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
-			// w_sock = new WebSocket(w_uri);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
@@ -1512,7 +1532,7 @@ function start_LAMP(){
 		
 		// This is one of the most important functions of this program: It receives asynchronous
 		// messages from the daemon and needs to process them for the GUI.
-		// ALL(!) Messages are in json format, bu type field defines whether the content is also
+		// ALL(!) Messages are in json format, but type field defines whether the content is also
 		// in json or in ICS format (for historical and backward compatibility reasons).
 		//
 		w_sock.onmessage = function(ev) 
@@ -1522,7 +1542,7 @@ function start_LAMP(){
 			
 			
 			var rcv = JSON.parse(ev.data);		//PHP sends Json data
-			console.log("Websocket:: message action: "+rcv.action);
+			if (debug >= 2) console.log("Websocket:: message action: "+rcv.action);
 			
 			// First level of the json message is equal for all
 			var tcnt   = rcv.tcnt; 				// message transaction counter
@@ -1604,25 +1624,16 @@ function start_LAMP(){
 				// If the weather station is not present in the array, we will not show its values !!!
 				// The weather stations that we allow for receiving are specified in the 
 				// database.cfg file (and in the database).
-				// Next versions of the GUI should allow ore dynamic specification of sensors
+				
 				case 'weather':
-					var location;
-					var name;
-					var address		= rcv.address;
-					var channel		= rcv.channel;
-					var temperature = rcv.temperature;
-					var humidity 	= rcv.humidity;
-					var brand		= rcv.brand;
-					var windspeed   = rcv.windspeed;
-					var winddirection = rcv.winddirection;
-					//var rainfall = rcv.rainfall;
-					var j;
 					
+					var j;
 					// Compare address and channel to identify a weather sensor
+					// Decided not to use the name for this :-)
 					for (j = 0; j<weather.length; j++ )
 					{
-       					if (( weather[j]['address'] == address ) &&
-							( weather[j]['channel'] == channel ))
+       					if (( weather[j]['address'] == rcv.address ) &&
+							( weather[j]['channel'] == rcv.channel ))
   						{
 							// return value of the object
 							break;
@@ -1633,11 +1644,12 @@ function start_LAMP(){
 					// and partly needs to be filled with the latest sensor values received.
 					if (j<weather.length)
 					{
-						weather[j]['temperature']=temperature;
-						weather[j]['humidity']=humidity;
-						weather[j]['windspeed']=windspeed;
-						weather[j]['winddirection']=winddirection;
-						location = weather[j]['location']; // XXX why ????
+						weather[j]['temperature']=rcv.temperature;
+						weather[j]['humidity']=rcv.humidity;
+						weather[j]['windspeed']=rcv.windspeed;
+						weather[j]['winddirection']=rcv.winddirection;
+						weather[j]['rainfall']=rcv.rainfall;
+						
 						var msg="";
 						// Only send for the just received sensor
 						//for (j=0;j<weather.length;j++)
@@ -1645,10 +1657,11 @@ function start_LAMP(){
 							msg += "Weather "+weather[j]['name']+"@ "+weather[j]['location'];
 							msg += ": temp: "+weather[j]['temperature'];
 							msg += ", humi: "+weather[j]['humidity']+"%<br\>";
-							console.log("Weather @ "+weather[j]['location']+": temp: "+weather[j]['temperature']
+							
+							console.log("Weather @ "+weather[j]['location']
+								+": temp: "+weather[j]['temperature']
 								+", humi: "+weather[j]['humidity']+"%");
 						//}
-
 						message(msg);
 					}
 				break;
@@ -1671,19 +1684,26 @@ function start_LAMP(){
 				//
 				case 'user':
 				case 'login':
+					var uname;
+					var pword;
+					
 					//var msg   = rcv.message;
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
 						//alert("Support for localstorage");
-  						var uname= localStorage.getItem("uname");		// username
-						var pword= localStorage.getItem("pword");		// pin
-						//alert("Support for localstorage, uname: "+uname);
+  						//uname= window.localStorage.getItem("uname");		// username
+						uname= localStorage.getItem("uname");		// username
+						pword= localStorage.getItem("pword");		// pin
+						if (debug>=2) console.log("Support for localstorage, uname: "+uname);
+						alert("Username: "+uname);
+						if (uname == null) uname = "";
+						if (pword == null) uname = "";
  					}
 					else {
   						// Sorry! No Web Storage support..
-						//alert("No local storage");
-						var uname="login";
-						var pword="****";
+						if (debug>=2) console.log("No local storage in browser");
+						uname="login";
+						pword="****";
  					}
 					
 					//var saddr= window.localStorage.getItem("saddr");		// Server address
@@ -1691,7 +1711,7 @@ function start_LAMP(){
 					
 					askForm('<form id="addRoomForm"><fieldset>'		
 					+ '<p>Since your computer is outside the network, we ask '
-					+ 'you to logon to the system and prove your identity</p>'
+					+ 'you to logon to the system and prove your identity </p>'
 					+ '<label for="val_1">Login: </label>'
 					+ '<input type="text" name="val_1" id="val_1" value="'+uname+'" class="text ui-widget-content ui-corner-all" />'
 					+ '<br />'
@@ -1714,20 +1734,22 @@ function start_LAMP(){
 							password:  ret[1],
 						}
 						console.log(login_msg);
-						//alert("Submit login: "+ret[0]+", password: "+ret[1] );
+						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
 						if(typeof(Storage)!=="undefined")
   						{
-  						// Code for localStorage/sessionStorage.
-  						localStorage.setItem("uname",uname);
-						localStorage.setItem("pword",pword);
-						//window.localStorage.setItem("saddr",saddr);
+  							// Code for localStorage/sessionStorage.
+  							localStorage.setItem("uname",uname);
+							localStorage.setItem("pword",pword);
+							//window.localStorage.setItem("saddr",saddr);
  						}				
 						// Send the password back to the daemon
+						message("Login and Password sent to server",1);
 						w_sock.send(JSON.stringify(login_msg));
 						return(1);									//return(1);
 						
-					// Cancel	
+						// Cancel	
   					}, function () {
+						if (debug >= 2) alert("Submit login Cancelled");
 						return(0); 									// Avoid further actions for these radio buttons 
   					},
   					'Confirm Login'
@@ -1741,20 +1763,18 @@ function start_LAMP(){
 			//return(0);
 		};// on-message
 		
-		console.log("Websocket:: readyState: "+w_sock.readyState);
-		
-	//}//rasp and !phonegap	
+		console.log("Websocket:: readyState: "+w_sock.readyState);	
 	}//function init_websockets
-
-
 
 
 	// --------------------- MAIN -----------------------------------------
 	// For jqmobile and regular jqueryUI there are differences,
 	// especially for jqmobile combined with phonegap.
 	
-	if ( jqmobile == 1 ) {
-		
+	if ( jqmobile == 1 ) 
+	{
+	  if (( phonegap == 1) && (dynamicIP == 1))
+	  {
 		// ----------------------------------------------------------------------------------------
 		// When device is ready, confirm certain parameters in the device
 		// This function runs for PhoneGap/Mobile only, where we need
@@ -1766,13 +1786,13 @@ function start_LAMP(){
 		// they are required once we access the app over the internet.
 		//
 		
-		//$( "#popup" ).empty();
+		$( "#popup" ).empty();
 		//html_msg = '<div id="onLinePopup"></div>';
 		
 		if(typeof(Storage)!=="undefined") {
-			var uname= window.localStorage.getItem("uname");		// username
-			var pword= window.localStorage.getItem("pword");		// pin
-			var saddr= window.localStorage.getItem("saddr");		// Server address
+			var uname= localStorage.getItem("uname");		// username
+			var pword= localStorage.getItem("pword");		// pin
+			var saddr= localStorage.getItem("saddr");		// Server address
 		}
 		else {
 			alert("no localStorage");
@@ -1831,25 +1851,25 @@ function start_LAMP(){
 				var pword = $("#pword").val();
 				murl = "http://"+saddr+"/";			// XXX Have to check the url for too many / chars
 				
-				if(typeof(Storage)!=="undefined") {
-					window.localStorage.setItem("uname",uname);
-					window.localStorage.setItem("saddr",saddr);
-					window.localStorage.setItem("pword",pword);
+				if(typeof(Storage) !== "undefined") {
+					localStorage.setItem("uname",uname);
+					localStorage.setItem("saddr",saddr);
+					localStorage.setItem("pword",pword);
 				}
 				// alert("Submit, saddr: "+saddr);
-				
+				// setTimeout(cancelFunc, 50);
 				if (settings.length > 0) {
 					console.log("Database already read");
-					$popUp.popup("close");
+					// $popUp.popup("close");
 				}
-				console.log("Submit saddr: "+saddr);	
-				var ret = load_database("init");
-				if (ret<0) {
-					alert("Error:: loading database failed");
+				else {
+					console.log("Submit saddr: "+saddr);	
+					var ret = load_database("init");
+					if (ret<0) {
+						alert("Error:: loading database failed");
+					}
+					else { console.log("load_database returns success"); }
 				}
-				else console.log("load_database returns success");
-				// If we use a Raspberry and NO phonegap
-
 				$popUp.popup("close");
 				
 				if ((settings[1]['val'] == 1) && (phonegap != 1)) 				
@@ -1893,10 +1913,26 @@ function start_LAMP(){
 			$popUp.popup("open");
 			console.log("No Phonegap return"); // This line will be hit immediately after opening popup
 		}
+	  }
+	  
+	  // (Phonegap == 0 || dynamicIP == 0 ) && jqMobile == 1  (index3.html)
+	  //
+	  else
+	  {
+		var ret = load_database("init");
+		if (ret<0) {
+			alert("Error:: loading database failed");
+		}
+		if ((settings[1]['val'] == 1) && ( phonegap != 1 )) 				
+		{
+			init_websockets();			// For regular web based operations we start websockets here
+		}
+	  }
 		// If we are here, we need to be sure that we have all parameters for networking etc.
 	}
 	
-	// if not jqMobile: 
+	// jqMobile == 0 (index.html)
+	//
 	// The solution is to start init_lamps, init_rooms and init_menu 
 	// in the result function of the AJAX call in load_database
 	// Upon success, we know that we have read the whole database, and have all buttons etc.
@@ -1906,20 +1942,21 @@ function start_LAMP(){
 		if (ret<0) {
 			alert("Error:: loading database failed");
 		}
+		// If controller == RASPI and phonegap == 0
 		if ((settings[1]['val'] == 1) && ( phonegap != 1 )) 				
 		{
 			init_websockets();			// For regular web based operations we start websockets here
 		}
 	}
-	
-	
+
 }); // Doc Ready end
 
 } //start_LAMP() function end
 
 
 // ========================================================================================
-//
+// Below this line, only functions are declared.
+// The only program started is either load_database
 
 
 
@@ -2455,7 +2492,7 @@ function init_timers(cmd)
 
 // --------------------------------------------------------------------------------------
 //
-// Setup the timers event handling
+// Setup the handsets event handling
 //
 function init_handsets(cmd) 
 {
@@ -2508,6 +2545,62 @@ function init_handsets(cmd)
 		activate_handset(s_handset_id);
 }
 
+// ------------------------------------------------------------------------------------------
+// Setup the weather event handling
+// Display only weather buttons for unique locations. SO in the header section
+// there will be one button for a loction. Weather dials will be sorted to locations as well
+function init_weather(cmd) 
+{
+		$("#gui_header").empty();
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
+		var msg = 'Init weather, config read: ';
+		
+		// XXX class rroom?
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
+		
+		if (s_weather_id == "") { 
+			s_weather_id = weather[0]['location']; 
+			//alert("init_weather:: loc id: "+s_weather_id);
+		}
+		
+		var weather_list=[];
+		for (var j = 0; j<weather.length; j++ ){
+			// Create only unique buttons
+  			if ( $.inArray(weather[j]['location'],weather_list) == -1) {
+				//alert("adding id: "+j);
+				var weather_id = weather[j]['id'];
+				var location = weather[j]['location'];
+				var temperature = weather[j]['temperature'];
+				
+				msg += j + ', ';
+				if ( location == s_weather_id ) {
+					//but +=  weather_button(weather_id, location, "hover");
+					but +=  weather_button(location, location, "hover");
+				}
+				else
+				{
+					//but +=  weather_button(weather_id, location);
+					but +=  weather_button(location, location);
+				}
+				weather_list[weather_list.length]= weather[j]['location'];
+			}
+		}
+		if (debug>1) message(msg);
+		
+		but += '</td>';	
+		but +=  '<td>';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
+		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
+		but += '</td>';
+		$(table).append(but);	
+
+		
+		s_screen = 'weather';
+		activate_weather(s_weather_id);	
+}
 
 // ------------------------------------------------------------------------------------------
 // Setup the settings event handling
@@ -2547,44 +2640,6 @@ function init_settings(cmd)
 		activate_setting(s_setting_id);	
 }
 
-// ------------------------------------------------------------------------------------------
-// Setup the weather event handling
-// QQQ
-function init_weather(cmd) 
-{
-		$("#gui_header").empty();
-		$("#gui_header").append('<table border="0">');	// Write table def to DOM
-		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
-		var msg = 'Init weather, config read: ';
-		
-		// XXX class rroom?
-		var but = '<tr class="rroom">' ;
-		but += '<td>';
-		for (var j = 0; j<weather.length; j++ ){
-  
-			var weather_id = weather[j]['id'];
-			var location = weather[j]['location'];
-			var temperature = weather[j]['temperature'];
-			msg += j + ', ';
-			
-			if ( weather_id == s_weather_id ) {
-				but +=  weather_button(weather_id, location, "hover");
-			}
-			else
-			{
-				but +=  weather_button(weather_id, location);
-			}	
-		}
-		if (debug>1) message(msg);
-		but += '</td>';	
-		but +=  '<td>';
-		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">'  ;
-		but += '</td>';
-		$(table).append(but);	
-		
-		s_screen = 'weather';
-		activate_weather(s_weather_id);	
-}
 
 // ------------------------------------------------------------------------------------------
 // Setup the main menu (on the right) event handling
@@ -3297,13 +3352,13 @@ function activate_scene(scn)
 					+ '<td colspan="2">'
 					+ '<input type="submit" id="Fx'+scene_id+'" value="X" class="dbuttons del_button">'
 					+ '<input type="submit" id="Fr'+scene_id+'" value="+" class="dbuttons new_button">'
-					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons play_button">'
 					+ '</td>'
 					+ '<td colspan="2"><input type="input"  id="Fl'+scene_id+'" value= "'+scene_name+'" class="dlabels"></td>' 
 					
 					+ '<td><input type="submit" id="Fc'+scene_id+'" value="STOP" class="dbuttons">'
-					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons"></td>'
-					+ '</thead>'
+					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons">'
+					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons play_button">'
+					+ '</td></thead>'
 					;
 			$(table).append(but);
 			$(table).append('<tbody>');
@@ -3426,6 +3481,7 @@ function activate_scene(scn)
 					// DELETE scene action, ONE of the actions in the seq!!!
 					case "Fx":
 						if (debug > 2) alert("Activate_screen:: Delete Fx button pressed");
+						
 						var msg = "Deleted actions ";
 						// Go over each TR element with id="scene" and record the id
 						// We need to go reverse, as removing will mess up higher indexes above,
@@ -3630,6 +3686,548 @@ function activate_scene(scn)
 } // activate scene
 
 
+// ------------------------------------------------------------------------------
+// Activate Timer
+// 
+// Let the user specify timing parameters for execution of a particular Scene
+// Next to the obvious startdate/emdate and a timer settings it also allows
+// complex timing setting such as sunrise/sunset and block out days or months 
+// in the timing
+// 
+function activate_timer(tim)
+{
+	if (debug>2) alert("activate_timer");
+	$( "#gui_content" ).empty();
+	
+	html_msg = '<div id="gui_timers"></div>';
+	$( "#gui_content" ).append (html_msg);
+	
+	var offbut, onbut;	
+		// For all devices, write all to a string and print string in 1 time
+	for (var j = 0; j<timers.length; j++ )
+	{
+		
+		var timer_id = timers[j]['id'];		
+		if (tim == timer_id )
+		{
+			var timer = timers[j];
+			// Start a table for the control buttons
+			html_msg = '<table border="0">';
+			$( "#gui_timers" ).append( html_msg );
+	
+			var table = $( "#gui_timers" ).children();		// to add to the table tree in DOM
+			var timer_name = timers[j]['name'];
+			
+			// alert("activate_timer:: id:"+timer_id+"\nname: "+timer_name+"\nSeq: "+timer_seq);
+			
+			// By making first row head, we make it non sortable as well!!
+			// Here we define the header row with the edit buttons
+			var but =  '<thead>'	
+					+ '<tr class="switch">'
+					+ '<td><input type="submit" id="'+timer_id+'Fe" value="Store" class="dbuttons play_button" style="min-width:100px;"></td>'
+					+ '<td><input type="input"  id="'+timer_id+'Fl" value="'+timer_name+'" class="dlabels"></td>' 
+					+ '<td>'
+					+ '<input type="submit" id="' + timer_id + 'Fx" value="Cancel Once" class="dbuttons stop_button" >'
+					//+ '<input type="submit" id="' + timer_id + 'Fr" value="+" class="dbuttons new_button" >'
+					+ '</td></thead>'
+					;
+			$(table).append(but);
+			$(table).append('<tbody>');
+
+			// SELECT SCENE. First the scene selected 
+			var str  = '<tr>' ;
+				str += '<td><label for="scene">Select Scene: </label></td>' ;
+				str	+= '<td><select id="scene" value="scene" style="font-size:normal;" class="dlabels">' ; 
+			for (i=0; i< scenes.length; i++) {
+				if (scenes[i]["name"] == timer['scene'] ) {
+					str += '<option class="dlabels" value="'+scenes[i]["name"]+'" selected>' +scenes[i]["name"]+ '</option>';
+				} else {
+					str += '<option class="dlabels" value="'+scenes[i]["name"]+'" >' +scenes[i]["name"]+ '</option>';
+				}
+			}
+			str += '</select></td>'
+			// Now we have option info, we can build the form
+			but = '<tr class="timer">'
+					+ '<form><fieldset name="scene_select">'
+					+ str
+					+ '<br />'
+					+ '</fieldset></form>' 	
+				;
+			$(table).append(but); 
+			
+			// SELECT Start Time
+			var spl = timer['tstart'].split(":");
+			// Label
+			var str1 = '<tr><td><label for="tstart">Start time: </label></td>'
+			// Value box
+			var str2  = '<td><input type="text" id="Tv" value= "';
+			switch (spl[0]) {
+				// Sunrise - min * 30 
+				case "96":
+					str2 += "Sunrise - "+spl[1]*30 +" minutes";
+				break;
+				// Sunrise + min * 30
+				case "97":
+					str2 += "Sunrise + "+spl[1]*30+" minutes";
+				break;
+				// Sun Dawn - min * 30
+				case "98":
+					str2 += "Sunset - "+spl[1]*30+" minutes";
+				break;
+				// Sundawn + min * 30
+				case "99":
+					str2 += "Sunset + "+spl[1]*30+" minutes";
+				break;
+				// Regular Time notation
+				default:
+					str2 += ("00"+spl[0]).slice(-2)+":"+("00"+spl[1]).slice(-2);
+			}
+			str2 += '" class="dlabels sval" style="width:120px;">';				// Just label value
+			//str2 += '" class="dlabels dbuttons" style="width:150px;">';		// clickeable
+			str2 += '</td>';
+			
+			str3  = '<td>';
+			str3 += '<input type="submit" id="Ts" value="Time" class="dbuttons timbut">';
+			str3 += '<input type="submit" id="Tr" value="SunRise" class="dbuttons timbut" >';
+			str3 += '<input type="submit" id="Td" value="SunSet" class="dbuttons timbut" >';
+			str3 += '</select></td>';
+			
+			// Now we have option info, we can build the form
+			but = '<tr class="timer">'
+				+ str1
+				+ str2
+				+ '<form><fieldset>'
+				+ str3
+				+ '<br />'
+				+ '</fieldset></form>' 
+				+ '</tr>'
+				;
+			$(table).append(but); 
+			//
+			// Highlight the correct button
+			$( '.timbut' ).removeClass( 'hover' );
+			if ((spl[0]=="96") || (spl[0]=="97")) { $('#Tr').addClass( 'hover' ); }
+			else if ((spl[0]=="98") || (spl[0]=="99")) { $('#Td').addClass( 'hover' ); }
+			else { $('#Ts').addClass( 'hover' ); }
+			
+			// SELECT STARTD
+			// alert("timer startd: " + timer['startd']);
+			str  = '<td>Start Date: </td>';
+			// QQQ
+			
+			//alert("startd:: 20"+yy+mm+dd);
+			if (jqmobile != 1) {
+				str += '<td><input  class="dlabels" type="text" id="startd" value="'+timer['startd']+'"/></td>';
+				but = '<tr class="timer">'
+					+ '<form><fieldset>'
+					+ str
+					+ '</fieldset></form>'
+					+'</tr>'
+				;
+				$(table).append(but); 
+			 	$(function() {
+					$( "#startd" ).datepicker({ dateFormat: "dd/mm/yy" });
+				});
+			}
+			else { // jqmobile version not yet released ..
+				var dd = timer['startd'].substr(0,2);
+				var mm = timer['startd'].substr(3,2);
+				var yy = timer['startd'].substr(6,2);
+				str += '<td><input  class="dlabels" type="text" min="2013-12-15" id="startd" value="20'+yy+'-'+mm+'-'+dd+'"/></td>';
+				but = '<tr class="timer">'
+					+ '<form><fieldset>'
+					+ str
+					+ '</fieldset></form>'
+					+'</tr>'
+				;
+				$(table).append(but); 
+				startd = $("#startd").mobipick({
+        				dateFormat: "dd/MM/yy"
+    			});
+				startd.on("change",function() {
+						timer['startd']= $( "#startd").val();
+						alert("startd:: "+timer['startd']);
+				});
+			 	//$(functirt("res:: "+res);on() {
+				//	$( "#startd" ).datepicker({ dateFormat: "dd/mm/y" });
+				//});
+			}
+			
+			// SELECT ENDD
+			// alert("timer endd: " + timer['endd']);
+			str  = '<td>End Date: </td>';
+			if (jqmobile != 1) {
+				str += '<td><input  class="dlabels" type="text" id="endd" value="'+timer['endd']+'"/></td>';
+				but = '<tr class="timer">'
+					+ '<form><fieldset>'
+					+ str
+					+ '</fieldset></form>'
+					+'</tr>'
+				;
+				$(table).append(but); 
+			 	$(function() {
+					$( "#endd" ).datepicker({ dateFormat: "dd/mm/y" });
+				});
+			}
+			else {
+				var dd = timer['endd'].substr(0,2);
+				var mm = timer['endd'].substr(3,2);
+				var yy = timer['endd'].substr(6,2);
+				str += '<td><input  class="dlabels" type="text" min="2013-12-15" id="endd" value="20'+yy+'-'+mm+'-'+dd+'"/></td>';
+				but = '<tr class="timer">'
+					+ '<form><fieldset>'
+					+ str
+					+ '</fieldset></form>'
+					+'</tr>'
+				;
+				$(table).append(but); 
+				endd = $('#endd').mobipick({
+        				dateFormat: "dd/MM/yy"
+    			});
+				endd.on("change",function() {
+					timer['endd']= $( "#endd").val();
+				});
+			}
+			
+			// Now we need to setup days of the week
+			str  = '<td colspan="3"><br /><div class="days">' ;   	
+			var dd = [ 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun' ];
+			for (var i=0; i<7 ;i++) {	
+				if ( timer['days'].substr(i,1) != 'x' ) {
+					str += ' '+dd[i]+'<input type="checkbox" id="'+i+'" name="'+dd[i]+'" value="'+i+'" checked="checked" >';
+				}
+				else {
+					str += ' '+dd[i]+'<input type="checkbox" id="'+i+'" name="'+dd[i]+'" value="'+i+'" >';
+				}
+			}
+			str += '</div></td>';
+			but  = '<tr><td colspan="3"><p>On what days of the week?</p></td></tr>';
+			but += '<tr class="timer">' + str +'<br></tr>' ;
+			$(table).append(but);
+			
+			// Now we need to setup Months selected
+			str  = '<tr><td colspan="3"><a>What months should the timer run?</a></td></tr>';
+			str += '<tr class="timer"><td colspan="3"><br /><div class="months">';   	
+			var mm = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+			for (var i=0; i<12 ;i++) {	
+				if ( timer['months'].substr(i,1) != 'x' ) {
+					str +=' '+mm[i]+'<input type="checkbox" id="'+i+'" name="'+mm[i]+'" value="'+i+'" checked="checked">' ;
+				}
+				else {
+					str +=' '+mm[i]+'<input type="checkbox" id="'+i+'" name="'+mm[i]+'" value="'+i+'">' ;
+				}
+			}
+			str += '</div></td><br></tr>';
+			$(table).append(str); 
+			
+			// We have to setup am event handler for this timer screen.
+			// After all, the user might like to change things and press some buttons
+			// NOTE::: This handler runs asynchronous! So after click we need to sort out for which device :-)
+			//
+			
+			$( "#gui_timers" ).on("click", ".dbuttons" ,function(e) 
+			{
+				e.preventDefault();
+//				e.stopPropagation();
+				value=$(this).val();									// Value of the button pressed (eg its label)
+				var but_id = $(e.target).attr('id');					// id of button
+			
+				// s_timer_id tells us which timer is active
+				var timer = get_timer(s_timer_id);
+				// May have to add: Cancel All timers and Delete All timers
+				switch (but_id.substr(-2))
+				{					
+					//
+					// STORE timer button !!! 
+					// THIS ONE IS IMPORTANT. We'll LET THE USER PLAY UNTIL HE PRESSES THIS BUTTON!!!
+					// So this mans that changes will not be final to the database until this button is pressed.
+					case "Fe":	
+						var arr = $.map($('.days :input:checkbox:checked'), 
+									function(e, i) {
+        								return +e.value;
+    							});
+						//alert("days: " + arr);
+						var res = "xxxxxxx";
+						var mm  = "mtwtfss";
+						for (var i = 0; i< arr.length; i++) {
+							res = res.substr(0,arr[i]) + mm.substr(arr[i],1) + res.substr(arr[i]+1);
+						}
+						timer['days'] = res;
+						
+						var arr = $.map($('.months :input:checkbox:checked'), 
+									function(e, i) {
+        								return +e.value;
+    							});
+						// alert("month: " + arr);
+						var res = "xxxxxxxxxxxx";
+						var mm  = "jfmamjjasond";
+						for (var i = 0; i< arr.length; i++) {
+							res = res.substr(0,arr[i]) + mm.substr(arr[i],1) + res.substr(arr[i]+1);
+						}
+						timer['months'] = res;
+						
+						timer['scene'] = $("#scene").val() ;
+						//timer['tstart'] = $("#Tv").val(); // XXX? timers is update for every change
+						timer['startd'] = $("#startd").val();
+						timer['endd'] = $("#endd").val();
+						
+						var str = ''
+						+ 'STORE timer::\n'
+						+ ", scene: " + timer['scene'] + "\n" 
+						+ ", tstart: " + timer['tstart'] + "\n"			// ONly the hrs!!
+						+ ", startd: " + timer['startd'] + "\n"
+						+ ", endd: " + timer['endd'] + "\n"
+						+ ", days: " + timer['days'] + "\n"				// Undefined
+						+ ", months: " + timer['months'] + "\n"
+						+ ", skip: " + timer['skip'] + "\n"				// Skip one time
+						;
+						// alert(str);
+						send_2_dbase( "store_timer", timer); 
+						
+						// XXX Need to fix this for ICS-1000. At the moment we optimized so much for
+						// Raspberry that these functions are gone for ICS
+						
+						// Send to controller
+						//message_device("timer", timer_cmd );
+					break;
+						
+					// CANCEL DELETE timer, but instead for timers and for this application we use 
+					// Cancel Once
+					case "Fx":
+						$( '.timbut' ).removeClass( 'hover' );
+						$('#Fx').addClass( 'hover' );
+					// Do we want confirmation?
+					//	var timer_cmd = '!FxP"' + timer['name'] + '"';
+					//	alert("Delete current Sequence: " + timer['name']
+					//		+ "\ntimer cmd: " + timer_cmd
+					//		  );
+					//	message_device("timer", timer_cmd);
+					//	XXX Still need to delete something....
+					//	send_2_dbase( "delete_timer", timer);
+					
+						myConfirm('You are about to cancel this timer. If you continue, the system ' 
+							+ 'will for one time skip this timer action', 
+							// Confirm
+							function () {
+								// DO nothing....
+								// Maybe make the background red during device selection or blink or so
+								// with recording in the message area ...
+								message('Skipping');
+							// Cancel	
+  							}, 
+							function () {
+								message("Not Skipping"); // Avoid further actions for these radio buttons 
+								return(0);
+  							},
+  							'Cancel this timer once?'
+						);
+						timer['skip']="1";
+						set_timer(s_timer_id,timer);
+						send_2_dbase( "store_timer", timer);
+						$('#Fx').removeClass( 'hover' );
+					break;//Cancel
+					
+					// Recording
+					case "Fr":
+						myConfirm('You are about to add a new action to the timer. If you continue, the system' 
+						+ 'will be in recording mode until you have selected a device action. Then you are returned'
+						+ 'to this timer screen again. Please confirm if you want to add a device.', 
+						// Confirm
+						function () {
+							// DO nothing....
+							// Maybe make the background red during device selection or blink or so
+							// with recording in the message area ...
+							message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
+						
+							// Cancel	
+  							}, function () {
+								s_recording = 0;
+								return(1); // Avoid further actions for these radio buttons 
+  							},
+  							'Adding a Timer action?'
+						);
+						s_recording = 1;							// Set the recording flag on!
+						s_recorder = "";							// Empty the recorder
+						init_rooms("init");
+					break;
+					
+					// Timer Setting
+					case "Ts":
+						$( '.timbut' ).removeClass( 'hover' );
+						$('#Ts').addClass( 'hover' );
+						// Find the text field for input and to output to
+						var val= $("#Tv").val();
+						var hh=""; for (i=00; i<24; i++) {
+							if (i==12) hh +='<option selected>'+("00"+i).slice(-2)+'</option>';
+							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
+						}
+						var mm=""; for (i=00; i<60; i++) mm +='<option>'+("00"+i).slice(-2)+'</option>';
+			
+						var ret=0;
+						var frm='<form id="addRoomForm"><fieldset>'
+							+ '<p>You can change the timer settings for this action. Please use hh:mm</p>'
+							+ '<br />'
+							+ '<label for="val_1">hrs: </label>'
+							+ '<select id="val_1" value="'+val.substr(0,2)+ '" >' + hh +'</select>'
+							+ '<label for="val_2">mins: </label>'
+							+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
+							+ '</fieldset></form>';
+						askForm(
+						frm,
+						function (ret) {
+							// OK Func, need to get the value of the parameters
+							// Add the device to the array
+							// SO what are the variables returned by the function???
+							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
+						
+							// Value of the button pressed (eg its label)
+							var laval = ret[0]+":"+ret[1];
+							
+							// Check the right target
+							$("#Tv").val(laval);
+							timer['tstart']=laval;
+							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval ); 
+							// Need to put value back in Array timers
+							set_timer(s_timer_id,timer);
+							//return(0);	
+  						}, 	
+						// Cancel
+						function () {
+							//return(1); // Avoid further actions for these radio buttons 
+  						},
+  						"Confirm Change"
+						);
+					break;
+					
+					// Sunrise/Sundawn Timer Setting
+					case "Tr":
+						$( '.timbut' ).removeClass( 'hover' );
+						$('#Tr').addClass( 'hover' );
+						//alert ("SunRise button pressed");
+						var val= $("#Tv").val();
+						var mm=""; for (i=-04; i<5; i++) {
+							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
+							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
+						}
+						var ret=0;
+						var frm='<form id="addRoomForm"><fieldset>'
+							+ '<p>Setting the timer to start at SunRise</p>'
+							+ '<br />'
+							+ '<label for="val_1">Sunrise offset in minutes: </label>'
+							+ '<select id="val_1" value="' + val.substr(3,2)+ '">' + mm +'</select>'
+							+ '</fieldset></form>';
+						askForm(
+						frm,
+						function (ret) {
+							// OK Func, need to get the value of the parameters
+							// Add the device to the array
+							// SO what are the variables returned by the function???
+							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
+						
+							// Value of the button pressed (eg its label)
+							if (ret[0]<0) {
+							
+									laval = "SunRise - " + ret[0].substr(1) + " minutes";
+									timer['tstart']="96:"+("00"+ret[0]/-30).slice(-2);
+							}
+							else {
+									laval = "SunRise + " + ret[0] + " minutes";
+									timer['tstart']="97:"+("00"+ret[0]/30).slice(-2);
+							}
+							
+							// Check the right target
+							$("#Tv").val(laval);
+							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval);
+							 
+							// write back new value to array object timers
+							set_timer(s_timer_id,timer);
+							//return(0);	
+  						}, 	
+						// Cancel
+						function () {
+							//return(1); // Avoid further actions for these radio buttons 
+  						},
+  						"Set Sunrise Timer"
+						);
+					break;
+					
+					// Sunset/Sundusk timing setting
+					case "Td":
+						$( '.timbut' ).removeClass( 'hover' );
+						$('#Td').addClass( 'hover' );
+						
+						var val= $("#Tv").val();
+						var mm=""; for (i=-04; i<5; i++) {
+							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
+							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
+						}
+						var ret=0;
+						var frm='<form id="addRoomForm"><fieldset>'
+							+ '<p>Setting the timer to start at SunSet</p>'
+							+ '<br />'
+							+ '<label for="val_1">Sunset offset in minutes: </label>'
+							+ '<select id="val_1" value="' + val.substr(3,2)+ '">' + mm +'</select>'
+							+ '</fieldset></form>';
+						askForm(
+						frm,
+						// Create
+						function (ret) {
+							// OK Func, need to get the value of the parameters
+							// Add the device to the array
+							// SO what are the variables returned by the function???
+							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
+						
+							// Value of the button pressed (eg its label)
+							if (ret[0]<0) {
+							
+									laval = "SunSet - " + ret[0].substr(1) + " minutes";
+									timer['tstart']="98:"+("00"+ret[0]/-30).slice(-2);
+							}
+							else {
+									laval = "SunSet + " + ret[0] + " minutes";
+									timer['tstart']="99:"+("00"+ret[0]/30).slice(-2);
+							}
+							
+							// Check the right target
+							$("#Tv").val(laval);
+							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval);
+							 
+							// write back new value to array object timers
+							if (set_timer(s_timer_id,timer) < 0)
+								alert("Cannot set timer values in object");
+							//return(0);	
+  						}, 	
+						// Cancel
+						function () {
+							//return(1); // Avoid further actions for these radio buttons 
+  						},
+  						"Set Sunset Timer"
+						);
+					break;
+					
+					// If we press the timevalue field (must be of class dbuttons to work)
+					// Then start with either time of dusk value based upon which one is highlighted!
+					case "Tv":
+						// Which button is hover?
+						// Do the appropriate action?
+						if ( $( '#Ts' ).hasClass( "hover" ) ) {alert("Ts time")} ;
+						if ( $( '#Tr' ).hasClass( "hover" ) ) {alert("Tr sunrise")} ;
+						if ( $( '#Td' ).hasClass( "hover" ) ) {alert("Td sunsetk")} ;	
+					break;
+					
+					default:
+					// Could be users editing sequence in input field (yuk)
+						alert("Sequence action unknown: "+but_id.substr(-2) );
+				}
+			})
+		}
+	}
+	s_timer_id = tim;
+	
+} //activate_timer
+
+
+
 
 // ---------------------------------------------------------------------------------------
 //
@@ -3821,7 +4419,7 @@ function activate_handset(hset)
 				// Not Applicable for the ICS-1000 controller
 				// So we need not to do the next lines for ICS-1000
 				// var handset_cmd = '!FeP"' + handset['name'] + '"=' + handset['scene'];
-				// message_device("scene", handset_cmd );
+				// message_device("handset", handset_cmd );
 			break;
 
 			//
@@ -4077,9 +4675,7 @@ function activate_handset(hset)
 	// scurrent values on the screen...... but it works!
 	if (jqmobile == 1) {
 		
-		// jmobile handsets NOT sortable at the moment
-		
-		
+		// jmobile handsets are NOT sortable at the moment
 		
 	}
 	else {
@@ -4117,522 +4713,246 @@ function activate_handset(hset)
 } // activate handset
 
 
-// ------------------------------------------------------------------------------
-// Activate Timer
-// 
-// Let the user specify timing parameters for execution of a particular Scene
-// Next to the obvious startdate/emdate and a timer settings it also allows
-// complex timing setting such as sunrise/sunset and block out days or months 
-// in the timing
-// 
-function activate_timer(tim)
-{
-	if (debug>2) alert("activate_timer");
-	$( "#gui_content" ).empty();
-	
-	html_msg = '<div id="gui_timers"></div>';
-	$( "#gui_content" ).append (html_msg);
-	
-	var offbut, onbut;	
-		// For all devices, write all to a string and print string in 1 time
-	for (var j = 0; j<timers.length; j++ )
-	{
-		
-		var timer_id = timers[j]['id'];		
-		if (tim == timer_id )
-		{
-			var timer = timers[j];
-			// Start a table for the control buttons
-			html_msg = '<table border="0">';
-			$( "#gui_timers" ).append( html_msg );
-	
-			var table = $( "#gui_timers" ).children();		// to add to the table tree in DOM
-			var timer_name = timers[j]['name'];
-			
-			// alert("activate_timer:: id:"+timer_id+"\nname: "+timer_name+"\nSeq: "+timer_seq);
-			
-			// By making first row head, we make it non sortable as well!!
-			// Here we define the header row with the edit buttons
-			var but =  '<thead>'	
-					+ '<tr class="switch">'
-					+ '<td><input type="submit" id="'+timer_id+'Fe" value="Store" class="dbuttons play_button" style="min-width:100px;"></td>'
-					
-					// + '<input type="submit" id="' + timer_id + 'Fq" value=">" class="dbuttons play_button" >'
-					+ '</td>'
-					+ '<td><input type="input"  id="'+timer_id+'Fl" value="'+timer_name+'" class="dlabels"></td>' 
-					+ '<td>'
-					//+ '<input type="submit" id="' + timer_id + 'Fx" value="X" class="dbuttons del_button" >'
-					//+ '<input type="submit" id="' + timer_id + 'Fr" value="+" class="dbuttons new_button" >'
-					+ '</thead>'
-					;
-			$(table).append(but);
-			$(table).append('<tbody>');
 
-			// SELECT SCENE. First the scene selected 
-			var str  = '<tr>' ;
-				str += '<td><label for="scene">Select Scene: </label></td>' ;
-				str	+= '<td><select id="scene" value="scene" style="font-size:normal;" class="dlabels">' ; 
-			for (i=0; i< scenes.length; i++) {
-				if (scenes[i]["name"] == timer['scene'] ) {
-					str += '<option class="dlabels" value="'+scenes[i]["name"]+'" selected>' +scenes[i]["name"]+ '</option>';
-				} else {
-					str += '<option class="dlabels" value="'+scenes[i]["name"]+'" >' +scenes[i]["name"]+ '</option>';
-				}
-			}
-			str += '</select></td>'
-			// Now we have option info, we can build the form
-			but = '<tr class="timer">'
-					+ '<form><fieldset name="scene_select">'
-					+ str
-					+ '<br />'
-					+ '</fieldset></form>' 	
-				;
-			$(table).append(but); 
-			
-			// SELECT Start Time
-			var spl = timer['tstart'].split(":");
-			// Label
-			var str1 = '<tr><td><label for="tstart">Start time: </label></td>'
-			// Value box
-			var str2  = '<td><input type="text" id="Tv" value= "';
-			switch (spl[0]) {
-				// Sunrise - min * 30 
-				case "96":
-					str2 += "Sunrise - "+spl[1]*30 +" minutes";
-				break;
-				// Sunrise + min * 30
-				case "97":
-					str2 += "Sunrise + "+spl[1]*30+" minutes";
-				break;
-				// Sun Dawn - min * 30
-				case "98":
-					str2 += "Sunset - "+spl[1]*30+" minutes";
-				break;
-				// Sundawn + min * 30
-				case "99":
-					str2 += "Sunset + "+spl[1]*30+" minutes";
-				break;
-				// Regular Time notation
-				default:
-					str2 += ("00"+spl[0]).slice(-2)+":"+("00"+spl[1]).slice(-2);
-			}
-			str2 += '" class="dlabels sval" style="width:120px;">';				// Just label value
-			//str2 += '" class="dlabels dbuttons" style="width:150px;">';		// clickeable
-			str2 += '</td>';
-			
-			str3  = '<td>';
-			str3 += '<input type="submit" id="Ts" value="Time" class="dbuttons timbut">';
-			str3 += '<input type="submit" id="Tr" value="SunRise" class="dbuttons timbut" >';
-			str3 += '<input type="submit" id="Td" value="SunSet" class="dbuttons timbut" >';
-			str3 += '</select></td>';
-			
-			// Now we have option info, we can build the form
-			but = '<tr class="timer">'
-				+ str1
-				+ str2
-				+ '<form><fieldset>'
-				+ str3
-				+ '<br />'
-				+ '</fieldset></form>' 
-				+ '</tr>'
-				;
-			$(table).append(but); 
-			//
-			// Highlight the correct button
-			$( '.timbut' ).removeClass( 'hover' );
-			if ((spl[0]=="96") || (spl[0]=="97")) { $('#Tr').addClass( 'hover' ); }
-			else if ((spl[0]=="98") || (spl[0]=="99")) { $('#Td').addClass( 'hover' ); }
-			else { $('#Ts').addClass( 'hover' ); }
-			
-			// SELECT STARTD
-			// alert("timer startd: " + timer['startd']);
-			str  = '<td>Start Date: </td>';
-			// QQQ
-			
-			//alert("startd:: 20"+yy+mm+dd);
-			if (jqmobile != 1) {
-				str += '<td><input  class="dlabels" type="text" id="startd" value="'+timer['startd']+'"/></td>';
-				but = '<tr class="timer">'
-					+ '<form><fieldset>'
-					+ str
-					+ '</fieldset></form>'
-					+'</tr>'
-				;
-				$(table).append(but); 
-			 	$(function() {
-					$( "#startd" ).datepicker({ dateFormat: "dd/mm/yy" });
-				});
-			}
-			else { // jqmobile version not yet released ..
-				var dd = timer['startd'].substr(0,2);
-				var mm = timer['startd'].substr(3,2);
-				var yy = timer['startd'].substr(6,2);
-				str += '<td><input  class="dlabels" type="text" min="2013-12-15" id="startd" value="20'+yy+'-'+mm+'-'+dd+'"/></td>';
-				but = '<tr class="timer">'
-					+ '<form><fieldset>'
-					+ str
-					+ '</fieldset></form>'
-					+'</tr>'
-				;
-				$(table).append(but); 
-				startd = $("#startd").mobipick({
-        				dateFormat: "dd/MM/yy"
-    			});
-				startd.on("change",function() {
-						timer['startd']= $( "#startd").val();
-						alert("startd:: "+timer['startd']);
-				});
-			 	//$(functirt("res:: "+res);on() {
-				//	$( "#startd" ).datepicker({ dateFormat: "dd/mm/y" });
-				//});
-			}
-			
-			// SELECT ENDD
-			// alert("timer endd: " + timer['endd']);
-			str  = '<td>End Date: </td>';
-			if (jqmobile != 1) {
-				str += '<td><input  class="dlabels" type="text" id="endd" value="'+timer['endd']+'"/></td>';
-				but = '<tr class="timer">'
-					+ '<form><fieldset>'
-					+ str
-					+ '</fieldset></form>'
-					+'</tr>'
-				;
-				$(table).append(but); 
-			 	$(function() {
-					$( "#endd" ).datepicker({ dateFormat: "dd/mm/y" });
-				});
-			}
-			else {
-				var dd = timer['endd'].substr(0,2);
-				var mm = timer['endd'].substr(3,2);
-				var yy = timer['endd'].substr(6,2);
-				str += '<td><input  class="dlabels" type="text" min="2013-12-15" id="endd" value="20'+yy+'-'+mm+'-'+dd+'"/></td>';
-				but = '<tr class="timer">'
-					+ '<form><fieldset>'
-					+ str
-					+ '</fieldset></form>'
-					+'</tr>'
-				;
-				$(table).append(but); 
-				endd = $('#endd').mobipick({
-        				dateFormat: "dd/MM/yy"
-    			});
-				endd.on("change",function() {
-					timer['endd']= $( "#endd").val();
-				});
-			}
-			
-			// Now we need to setup days of the week
-			str  = '<td colspan="3"><br /><div class="days">' ;   	
-			var dd = [ 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun' ];
-			for (var i=0; i<7 ;i++) {	
-				if ( timer['days'].substr(i,1) != 'x' ) {
-					str += ' '+dd[i]+'<input type="checkbox" id="'+i+'" name="'+dd[i]+'" value="'+i+'" checked="checked" >';
-				}
-				else {
-					str += ' '+dd[i]+'<input type="checkbox" id="'+i+'" name="'+dd[i]+'" value="'+i+'" >';
-				}
-			}
-			str += '</div></td>';
-			but  = '<tr><td colspan="3"><p>On what days of the week?</p></td></tr>';
-			but += '<tr class="timer">' + str +'<br></tr>' ;
-			$(table).append(but);
-			
-			// Now we need to setup Months selected
-			str  = '<tr><td colspan="3"><a>What months should the timer run?</a></td></tr>';
-			str += '<tr class="timer"><td colspan="3"><br /><div class="months">';   	
-			var mm = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
-			for (var i=0; i<12 ;i++) {	
-				if ( timer['months'].substr(i,1) != 'x' ) {
-					str +=' '+mm[i]+'<input type="checkbox" id="'+i+'" name="'+mm[i]+'" value="'+i+'" checked="checked">' ;
-				}
-				else {
-					str +=' '+mm[i]+'<input type="checkbox" id="'+i+'" name="'+mm[i]+'" value="'+i+'">' ;
-				}
-			}
-			str += '</div></td><br></tr>';
-			$(table).append(str); 
-			
-			// We have to setup am event handler for this screen.
-			// After all, the user might like to change things and press some buttons
-			// NOTE::: This handler runs asynchronous! So after click we need to sort out for which device :-)
-			//
-			
-			$( "#gui_timers" ).on("click", ".dbuttons" ,function(e) 
-			{
-				e.preventDefault();
-//				e.stopPropagation();
-				value=$(this).val();									// Value of the button pressed (eg its label)
-				var but_id = $(e.target).attr('id');					// id of button
-			
-				// s_timer_id tells us which timer is active
-				var timer = get_timer(s_timer_id);
-				// May have to add: Cancel All timers and Delete All timers
-				switch (but_id.substr(-2))
-				{					
-					//
-					// STORE button !!! 
-					// THIS ONE IS IMPORTANT. We'll LET THE USER PLAY UNTIL HE PRESSES THIS BUTTON!!!
-					case "Fe":	
-						var arr = $.map($('.days :input:checkbox:checked'), 
-									function(e, i) {
-        								return +e.value;
-    							});
-						//alert("days: " + arr);
-						var res = "xxxxxxx";
-						var mm  = "mtwtfss";
-						for (var i = 0; i< arr.length; i++) {
-							res = res.substr(0,arr[i]) + mm.substr(arr[i],1) + res.substr(arr[i]+1);
-						}
-						timer['days'] = res;
-						
-						var arr = $.map($('.months :input:checkbox:checked'), 
-									function(e, i) {
-        								return +e.value;
-    							});
-						// alert("month: " + arr);
-						var res = "xxxxxxxxxxxx";
-						var mm  = "jfmamjjasond";
-						for (var i = 0; i< arr.length; i++) {
-							res = res.substr(0,arr[i]) + mm.substr(arr[i],1) + res.substr(arr[i]+1);
-						}
-						timer['months'] = res;
-						
-						timer['scene'] = $("#scene").val() ;
-						//timer['tstart'] = $("#Tv").val(); // XXX? timers is update for every change
-						timer['startd'] = $("#startd").val();
-						timer['endd'] = $("#endd").val();
-						
-						var str = ''
-						+ 'STORE timer::\n'
-						+ ", scene: " + timer['scene'] + "\n" 
-						+ ", tstart: " + timer['tstart'] + "\n"			// ONly the hrs!!
-						+ ", startd: " + timer['startd'] + "\n"
-						+ ", endd: " + timer['endd'] + "\n"
-						+ ", days: " + timer['days'] + "\n"				// Undefined
-						+ ", months: " + timer['months'] + "\n"			// Undefined
-						;
-						// alert(str);
-						send_2_dbase( "store_timer", timer); 
-						
-						// XXX Need to fix this for ICS-1000. At the moment we optimized so much for
-						// Raspberry that these functions are gone for ICS
-						
-						// Send to controller
-						//message_device("timer", timer_cmd );
-					break;
-						
-					// DELETE timer button
-					case "Fx":
-					// Do we want confirmation?
-						var timer_cmd = '!FxP"' + timer['name'] + '"';
-						alert("Delete current Sequence: " + timer['name']
-							+ "\ntimer cmd: " + timer_cmd
-							  );
-						message_device("timer", timer_cmd);
-						// XXX Still need to delete something....
-						// send_2_dbase( "delete_timer", timer);
-					break;
-					
-					// Recording
-					case "Fr":
-						myConfirm('You are about to add a new action to the timer. If you continue, the system' 
-						+ 'will be in recording mode until you have selected a device action. Then you are returned'
-						+ 'to this timer screen again. Please confirm if you want to add a device.', 
-						// Confirm
-						function () {
-							// DO nothing....
-							// Maybe make the background red during device selection or blink or so
-							// with recording in the message area ...
-							message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
-						
-							// Cancel	
-  							}, function () {
-								s_recording = 0;
-								return(1); // Avoid further actions for these radio buttons 
-  							},
-  							'Adding a Timer action?'
-						);
-						s_recording = 1;							// Set the recording flag on!
-						s_recorder = "";							// Empty the recorder
-						init_rooms("init");
-					break;
-					
-					// Timer Setting
-					case "Ts":
-						$( '.timbut' ).removeClass( 'hover' );
-						$('#Ts').addClass( 'hover' );
-						// Find the text field for input and to output to
-						var val= $("#Tv").val();
-						var hh=""; for (i=00; i<24; i++) {
-							if (i==12) hh +='<option selected>'+("00"+i).slice(-2)+'</option>';
-							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
-						}
-						var mm=""; for (i=00; i<60; i++) mm +='<option>'+("00"+i).slice(-2)+'</option>';
-			
-						var ret=0;
-						var frm='<form id="addRoomForm"><fieldset>'
-							+ '<p>You can change the timer settings for this action. Please use hh:mm</p>'
-							+ '<br />'
-							+ '<label for="val_1">hrs: </label>'
-							+ '<select id="val_1" value="'+val.substr(0,2)+ '" >' + hh +'</select>'
-							+ '<label for="val_2">mins: </label>'
-							+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
-							+ '</fieldset></form>';
-						askForm(
-						frm,
-						function (ret) {
-							// OK Func, need to get the value of the parameters
-							// Add the device to the array
-							// SO what are the variables returned by the function???
-							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
-						
-							// Value of the button pressed (eg its label)
-							var laval = ret[0]+":"+ret[1];
-							
-							// Check the right target
-							$("#Tv").val(laval);
-							timer['tstart']=laval;
-							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval ); 
-							// Need to put value back in Array timers
-							set_timer(s_timer_id,timer);
-							//return(0);	
-  						}, 	
-						// Cancel
-						function () {
-							//return(1); // Avoid further actions for these radio buttons 
-  						},
-  						"Confirm Change"
-						);
-					break;
-					
-					// Sunrise/Sundawn Timer Setting
-					case "Tr":
-						$( '.timbut' ).removeClass( 'hover' );
-						$('#Tr').addClass( 'hover' );
-						//alert ("SunRise button pressed");
-						var val= $("#Tv").val();
-						var mm=""; for (i=-04; i<5; i++) {
-							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
-							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
-						}
-						var ret=0;
-						var frm='<form id="addRoomForm"><fieldset>'
-							+ '<p>Setting the timer to start at SunRise</p>'
-							+ '<br />'
-							+ '<label for="val_1">Sunrise offset in minutes: </label>'
-							+ '<select id="val_1" value="' + val.substr(3,2)+ '">' + mm +'</select>'
-							+ '</fieldset></form>';
-						askForm(
-						frm,
-						function (ret) {
-							// OK Func, need to get the value of the parameters
-							// Add the device to the array
-							// SO what are the variables returned by the function???
-							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
-						
-							// Value of the button pressed (eg its label)
-							if (ret[0]<0) {
-							
-									laval = "SunRise - " + ret[0].substr(1) + " minutes";
-									timer['tstart']="96:"+("00"+ret[0]/-30).slice(-2);
-							}
-							else {
-									laval = "SunRise + " + ret[0] + " minutes";
-									timer['tstart']="97:"+("00"+ret[0]/30).slice(-2);
-							}
-							
-							// Check the right target
-							$("#Tv").val(laval);
-							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval);
-							 
-							// write back new value to array object timers
-							set_timer(s_timer_id,timer);
-							//return(0);	
-  						}, 	
-						// Cancel
-						function () {
-							//return(1); // Avoid further actions for these radio buttons 
-  						},
-  						"Set Sunrise Timer"
-						);
-					break;
-					
-					// Sunset/Sundusk timing setting
-					case "Td":
-						$( '.timbut' ).removeClass( 'hover' );
-						$('#Td').addClass( 'hover' );
-						
-						var val= $("#Tv").val();
-						var mm=""; for (i=-04; i<5; i++) {
-							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
-							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
-						}
-						var ret=0;
-						var frm='<form id="addRoomForm"><fieldset>'
-							+ '<p>Setting the timer to start at SunSet</p>'
-							+ '<br />'
-							+ '<label for="val_1">Sunset offset in minutes: </label>'
-							+ '<select id="val_1" value="' + val.substr(3,2)+ '">' + mm +'</select>'
-							+ '</fieldset></form>';
-						askForm(
-						frm,
-						// Create
-						function (ret) {
-							// OK Func, need to get the value of the parameters
-							// Add the device to the array
-							// SO what are the variables returned by the function???
-							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
-						
-							// Value of the button pressed (eg its label)
-							if (ret[0]<0) {
-							
-									laval = "SunSet - " + ret[0].substr(1) + " minutes";
-									timer['tstart']="98:"+("00"+ret[0]/-30).slice(-2);
-							}
-							else {
-									laval = "SunSet + " + ret[0] + " minutes";
-									timer['tstart']="99:"+("00"+ret[0]/30).slice(-2);
-							}
-							
-							// Check the right target
-							$("#Tv").val(laval);
-							if (debug>1) alert("Timer changed from "+ val+" to: "+ laval);
-							 
-							// write back new value to array object timers
-							if (set_timer(s_timer_id,timer) < 0)
-								alert("Cannot set timer values in object");
-							//return(0);	
-  						}, 	
-						// Cancel
-						function () {
-							//return(1); // Avoid further actions for these radio buttons 
-  						},
-  						"Set Sunset Timer"
-						);
-					break;
-					
-					// If we press the timevalue field (must be of class dbuttons to work)
-					// Then start with either time of dusk value based upon which one is highlighted!
-					case "Tv":
-						// Which button is hover?
-						// Do the appropriate action?
-						if ( $( '#Ts' ).hasClass( "hover" ) ) {alert("Ts time")} ;
-						if ( $( '#Tr' ).hasClass( "hover" ) ) {alert("Tr sunrise")} ;
-						if ( $( '#Td' ).hasClass( "hover" ) ) {alert("Td sunsetk")} ;	
-					break;
-					
-					default:
-					// Could be users editing sequence in input field (yuk)
-						alert("Sequence action unknown: "+but_id.substr(-2) );
-				}
-			})
-		}
-	}
-	s_timer_id = tim;
+
+// --------------------------------- ACTIVATE WEATHER -------------------------------------
+// At the moment I do have 3 temperature/humidity sensors.
+// It is quite good possible to config the sceen so that for 2 or 4 or 6 sensors
+// With 3 we will have a good layout on the screen, otherwise we'll scroll.
+//
+// In next release of LamPI, we should sort the sensors in locations... as we do with
+// rooms. These will not so much the real physical location (probably is), but will be
+// container to assure we have the sensors grouped together as we want...
+//
+function activate_weather(location)
+{
+	// Cleanup work area
+	$( "#gui_messages" ).empty();
+	$( "#gui_content" ).empty();					// Empty our drawing area
+	html_msg = '<div id="gui_weather"></div>';
+	$( "#gui_content" ).append (html_msg);	
+	html_msg = '<table border="0">';
+	$( "#gui_weather" ).append( html_msg );
 	
-} //activate_timer
+	var table = $( "#gui_weather" ).children();		// to add to the table tree in DOM
+	var offbut, onbut;
+	
+	// We want the length not be the weather length but the number of unique locations in the
+	// array weather (which equals actually the number of buttons in the header area)
+	//alert("activate_weather:: location: "+location);
+
+	var wl = 0; 
+	for (var i= 0; i < weather.length; i++)
+	{
+		if (weather[i]['location'] == location)
+		{
+			wl++;									// Determines the number of dials on the active screen
+		}
+	}			
+	//alert("activate_weather:: wl: "+wl);
+	//var wl = weather.length;						// Determines the number of dials on screen
+	var buf = '<tbody>' ;
+	var wi = 100/wl;
+
+	// At the moment we only do temperature and humidity. We can test for other fields here
+	// so that we can fill more rows with dial canvas for those fields (e.g. windspeed).
+	// XXX placeholder
+	
+	// First row; Create the canvasses and make room for the dials..
+	// Temperature, first row of dials	
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		buf += '<td width="'+wi+'%">';
+        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	
+	// This is the second row, with the dials for humidity
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		var canv = 'canvasRadial'+(wl+i+1)+'';
+		buf += '<td width="'+wi+'%">';
+        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	buf += '</tbody></table>';
+	
+	// XXX for windspeed etc. if the row dimensions are larger than 2
+	
+	$(table).append(buf);							// Display the table with canvas
+	//$( "#gui_weather" ).append( buf );
+	
+	// From the demo
+	// XXX When working OK, switch to min version
+	// We load the .js file for steel animation. This is done in jQuery so that once
+	// loaded all functions are available, but the functions are no integral/permanent part
+	// of the code
+	$.getScript("steel/steelseries-min.js", function(){
+	//$.getScript("steel/steelseries.js", function(){
+		
+		// sections are used for:
+		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
+
+            // Define one area
+            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+
+            // Define value gradient for bargraph tempterature
+            tempGrad = new steelseries.gradientWrapper(  -20,
+                                                        40,
+                                                        [ 0, 0.20, 0.40, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+			
+			valGrad = new steelseries.gradientWrapper(  0,
+                                                        100,
+                                                        [ 0, 0.33, 0.66, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+		
+		var radial={};
+		var i=0;
+		for (var j=0; j< weather.length; j++)
+		{
+			if (weather[j]['location'] == location ) 
+			{
+
+				// temperature
+				// XXX We assume that we ALWAYS have a temperature as part of the sensor
+				// reading. This may NOT be true in which case the radial below needs to be
+				// conditional as with the humidity
+				radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: -20,							// Set the min value on the scale
+								maxValue: 40,
+                            	valueGradient: tempGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['name']+"@"+weather[j]['location'],
+                            	unitString: 'Temp C',
+								threshold: 30,
+                            	lcdVisible: true
+                        });
+				radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+				radial[i].setValueAnimated(weather[j]['temperature']);
+				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+			
+				// humidity radial gauges
+				if (weather[j]['humidity'] > -1)
+				{
+					//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+                            	valueGradient: valGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['location'],
+                            	unitString: 'Humidity %',
+                            	lcdVisible: true
+                        });
+					radial[i+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+					radial[i+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+					radial[i+wl].setValueAnimated(weather[j]['humidity']);
+				}
+				else {
+					console.log("weather humi "+i+" is false");
+				}
+			
+				// windspeed radial gauges
+				// XXX Make sure that the gauge is defined above
+				// before making this selectable
+				if (weather[j]['windspeed'] > 0)
+				{
+					console.log("weather windspeed "+i+" is true");
+					radial[i+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(i+wl*2+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+                            	valueGradient: valGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['location'],
+                            	unitString: 'Humidity %',
+                            	lcdVisible: true
+                        });
+					radial[i+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+					radial[i+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+					radial[i+wl*2].setValueAnimated(weather[j]['windspeed']);
+				}
+				else {
+					console.log("weather windspeed "+i+" is false");
+				}
+				i++;
+			}
+		}
+		
+		// Once every 2 seconds we update the gauge meters based on the current
+		// value of the weather array (which might change due to incoming messages
+		// over websockets.
+		var id;
+		id = setInterval(function()
+		{
+			// Do work if we are in the weather screen
+			if (s_screen == "weather" )
+			{
+				var i = 0;
+				for (var j=0; j< weather.length; j++) 
+				{
+					if (weather[j]['location'] == location)
+					{
+						radial[i].setValueAnimated(weather[j]['temperature']);
+						
+						if (weather[j]['humidity'] > "-1") {
+							//console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+							radial[i+wl].setValueAnimated(weather[j]['humidity']);
+						}
+						else {
+							console.log("not set humidity: "+weather[j]['humidity']);
+						}
+						
+						if (weather[j]['windspeed'] >= 0) {
+							console.log("windspeed: " + weather[j]['windspeed']);
+							radial[i+wl].setValueAnimated(weather[j]['windspeed']);
+						}
+						
+						if (weather[j]['winddirection'] >= 0) {
+							console.log("winddirection");
+							radial[i+wl].setValueAnimated(weather[j]['winddirection']);
+						}
+						
+						i++;
+					}
+				}
+				// Make a new connection and start registering the various actions,
+				// State 0: Not ready (yet), connection to e established
+				// State 1: Ready
+				// State 2: Close in progress
+				// State 3: Closed
+				var state = w_sock.readyState;
+				if (state != 1) 
+				{
+					console.log("Websocket:: error. State is: "+state);
+					message("Websocket:: error. State is: "+state);
+					//w_sock = new WebSocket(w_uri);
+				}
+			}
+			else
+			{
+				// Kill this timer temporarily
+				clearInterval(id);
+				message("Suspend Dials");
+			}
+		}, 2000);		// 2 seconds (in millisecs)
+		
+	});
+}
 
 // -------------------------------------------------------------------------------
 // Activate the Settings screen for a certain setting
@@ -4735,7 +5055,7 @@ function activate_setting(sid)
 			var debug_help = "<br> \
 								This parameter describes which controller we will use to send lamp commands to the devices. \
 								The ICS-1000 is a safe choice in case you have one. For users that have a Raspberry PI\
-								and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php \
+								and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php) \
 								it's much more fun to use the latter. Remember to pair your device with either or both.\
 								<br /><br> \
 					";
@@ -4793,7 +5113,7 @@ function activate_setting(sid)
 			}
 		break;
 
-		// sql, do we want to make use of sql or sync to an array at the backend.
+		// SQL, do we want to make use of sql or sync to an array at the backend.
 		// In this case, we either need to save to files (often) or only accept persist to be "relaxed"
 		// For the moment, files are NOT supported in combination with persist == "Strict"
 		case "2":
@@ -4898,7 +5218,7 @@ function activate_setting(sid)
 			
 		break;
 		
-		// Since 1.4 we use it for skin/style selection
+		// SKIN Since 1.4 we use it for skin/style selection
 		// 
 		case "4":
 			$( "#gui_content" ).empty();
@@ -4970,12 +5290,12 @@ function activate_setting(sid)
 			})
 			
 			// XXX make sure we write this to the mysql backend too!
-				
-				
-				
+	
 		break;	
 		
-		case "5": // Backup and Restore
+		// Backup and Restore
+		
+		case "5": 
 		
 			$( "#gui_content" ).empty();
 			html_msg = '<div id="gui_backup"></div>';
@@ -5068,218 +5388,9 @@ function activate_setting(sid)
 		
 		default:
 			myAlert("Config encountered internal error: unknown button "+sid);
-		
 	}
-}
+}// activate_settings
 
-// --------------------------------- ACTIVATE WEATHER -------------------------------------
-// At the moment I do have 3 temperature/humidity sensors.
-// It os quite good possible to config the sceen so that for 2 or 4 or 6 sensors
-// With 3 we will have a good layout on the screen, otherwise we'll scroll.
-//
-// In next release of LamPI, we should sort the sensors in locations... as we do with
-// rooms. These will not so much the real physical location (probably is), but will be
-// container to assure we have the sensors grouped together as we want...
-//
-function activate_weather(wid)
-{
-	// Cleanup work area
-	$( "#gui_messages" ).empty();
-	$( "#gui_content" ).empty();					// Empty our drawing area
-	html_msg = '<div id="gui_weather"></div>';
-	$( "#gui_content" ).append (html_msg);	
-	html_msg = '<table border="0">';
-	$( "#gui_weather" ).append( html_msg );
-	
-	var table = $( "#gui_weather" ).children();		// to add to the table tree in DOM
-
-	var offbut, onbut;
-	var wl = weather.length;						// Determines the number of dials on screen
-	var buf = '<tbody>' ;
-	var wi = 100/wl;
-
-	// At the moment we only do temperature and humidity. We can test for other fields here
-	// so that we can fill more rows with dial canvas for those fields (e.g. windspeed).
-	// XXX placeholder
-	
-	// Temperature, first row of dials	
-	buf += '<tr>';
-	for (var i=0; i< wl; i++) {
-		buf += '<td width="'+wi+'%">';
-        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
-		buf += '</td>';
-	}
-	buf += '</tr>';
-	
-	// Humidity
-	// This is the second row, with the dials for humidity
-	buf += '<tr>';
-	for (var i=0; i< wl; i++) {
-		var canv = 'canvasRadial'+(wl+i+1)+'';
-		buf += '<td width="'+wi+'%">';
-        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
-		buf += '</td>';
-	}
-	buf += '</tr>';
-	buf += '</tbody></table>';
-	
-	// XXX for windspeed etc. if the row dimensions are larger than 2
-	
-	$(table).append(buf);							// Display the table with canvas
-	//$( "#gui_weather" ).append( buf );
-	
-	// From the demo
-	// XXX When working OK, switch to min version
-	// We load the .js file for steel animation. This is done in jQuery so that once
-	// loaded all functions are available, but the functions are no integral/permanent part
-	// of the code
-	$.getScript("steel/steelseries-min.js", function(){
-	//$.getScript("steel/steelseries.js", function(){
-		
-		// sections are used for:
-		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
-                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
-                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
-
-            // Define one area
-            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
-
-            // Define value gradient for bargraph tempterature
-            tempGrad = new steelseries.gradientWrapper(  -20,
-                                                        40,
-                                                        [ 0, 0.20, 0.40, 0.85, 1],
-                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
-                                                          new steelseries.rgbaColor(0, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-			
-			valGrad = new steelseries.gradientWrapper(  0,
-                                                        100,
-                                                        [ 0, 0.33, 0.66, 0.85, 1],
-                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
-                                                          new steelseries.rgbaColor(0, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 200, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-		
-		var radial={};
-		for (var j=0; j< wl; j++)
-		{
-			
-			// temperature
-			radial[j] = new steelseries.RadialBargraph('canvasRadial'+(j+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-								minValue: -20,							// Set the min value on the scale
-								maxValue: 40,
-                            	valueGradient: tempGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['name']+"@"+weather[j]['location'],
-                            	unitString: 'Temp C',
-								threshold: 30,
-                            	lcdVisible: true
-                        });
-			radial[j].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-			radial[j].setValueAnimated(weather[j]['temperature']);
-			radial[j].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-			
-			// humidity radial gauges
-			if (weatheron[j]['humidity'] == "1")
-			{
-				console.log("weatheron "+j+" is 1");
-				radial[j+wl] = new steelseries.RadialBargraph('canvasRadial'+(j+wl+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-                            	valueGradient: valGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['location'],
-                            	unitString: 'Humidity %',
-                            	lcdVisible: true
-                        });
-				radial[j+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-				radial[j+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-				radial[j+wl].setValueAnimated(weather[j]['humidity']);
-			}
-			else {
-				console.log("weatheron "+j+" is 0");
-			}
-			
-			// windspeed radial gauges
-			if (weatheron[j]['windspeed'] == "1")
-			{
-				console.log("weatheron "+j+" is 1");
-				radial[j+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(j+wl*2+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-                            	valueGradient: valGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['location'],
-                            	unitString: 'Humidity %',
-                            	lcdVisible: true
-                        });
-				radial[j+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-				radial[j+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-				radial[j+wl*2].setValueAnimated(weather[j]['windspeed']);
-			}
-			else {
-				console.log("weatheron "+j+" is 0");
-			}
-		}
-		
-		// Once every 2 seconds we update the meters based on the current
-		// value of the weather array (which might change due to incoming messages
-		// over websockets.
-		var id;
-		id = setInterval(function()
-		{
-			// Do work if we are in the weather screen
-			if (s_screen == "weather" )
-			{
-				for (var j=0; j< wl; j++) {
-					radial[j].setValueAnimated(weather[j]['temperature']); 
-					if (weatheron[j]['humidity'] == "1") {
-						radial[j+wl].setValueAnimated(weather[j]['humidity']);
-					}
-					if (weatheron[j]['windspeed'] == "1") {
-						radial[j+wl].setValueAnimated(weather[j]['windspeed']);
-					}
-					if (weatheron[j]['winddirection'] == "1") {
-						radial[j+wl].setValueAnimated(weather[j]['winddirection']);
-					}
-				}
-				// Make a new connection and start registering the various actions,
-				// State 0: Not ready (yet), connection to e established
-				// State 1: Ready
-				// State 2: Close in progress
-				// State 3: Closed
-				var state = w_sock.readyState;
-				if (state != 1) {
-					
-					console.log("Websocket:: error. State is: "+state);
-					message("Websocket:: error. State is: "+state);
-					w_sock = new WebSocket(w_uri);
-				}
-			}
-			else
-			{
-				// Kill this timer temporarily
-				clearInterval(id);
-				message("Suspend Dials");
-			}
-		}, 2000);		// 2 seconds (in millisecs)
-		
-	});
-	
-	// Do specific LamPI work
-	//
-	switch (wid) {
-		case "0":
-		break;
-		default:
-			// myAlert("Weather button: "+wid);
-	}
-}
 
 // --------------------------------- BUTTONS ----------------------------------------------
 //
@@ -5293,9 +5404,7 @@ function activate_weather(wid)
 function room_button(id, val, hover) 
 {
 			var but = ''
-//			+ '<td>'
 			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hr_button ' + hover + '">'
-//			+ '</td>'
 			return (  but );
 }
 
@@ -5309,9 +5418,8 @@ function scene_button(id, val, hover)
 			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hs_button ' + hover + '">'
 			return (  but );	
 }
-
 //
-//
+// Menu button
 //
 function menu_button(id, val, hover) 
 {
@@ -5321,7 +5429,6 @@ function menu_button(id, val, hover)
 			+ '</td>'
 			return (  but );	
 }
-
 //
 // Print a timer button
 //
@@ -5364,7 +5471,7 @@ function setting_button(id, val, hover)
 }
 
 // ------------------------------------- DEVICES -----------------------------------------
-
+//
 // STORE_DEVICE
 // Store the value of the device_id in the GUI back in the devices object 
 // Local on the client. The daemon will as of release 1.4 take care of syncing the value
@@ -5558,10 +5665,10 @@ function set_timer(tim_id,timer)
 	return(-1);		
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------
 //	Handle incoming device requests, translate to a standard message and send to device by AJAX
 //
-//	Input: The id of the calling button (!). Which will for ICS in general be the same id as the real device name
+//	Input: The id of the calling button (!). Which for ICS in general is the same id as the real device name
 //			in the ICS appliance. 
 // 			The Value of the button pressed
 //
@@ -5854,10 +5961,8 @@ function load_database(dbase_cmd)
 				alert("Timeout connecting to database on "+sqlServer);
 			return(-1);
          }
-	});
-			
+	});		
 }
-
 
 
 // -----------------------------------------------------------------------------------	

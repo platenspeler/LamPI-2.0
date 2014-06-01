@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>LamPI 433Mhz controller for RaspberryPI</title>
+<title>LamPI Transceiver Interface</title>
 </head>
 
 <body>
@@ -25,12 +25,13 @@
 &gt; make</p>
 <p>and to install use the following command:</p>
 <p>&gt; sudo make install</p>
+<p>The compiled program will be put in the ~/exe directory and will have root privileges when running. The latter will allow regular users to execute the command while still being able to access the GPIO library and interfaces.</p>
 <p>&nbsp;</p>
 <h1><a name="interfaces"></a>What interfaces are available?</h1>
 <p>This is different for the transmit or receiver function, and it also differs whether you just want to send messages using the commandline or whether you want some sort of daemon function that watches a well-known socket and based on incoming messages for a certain brand of equipment will use the correct transmitter command.</p>
 <p>So let me explain.</p>
 <ul>
-  <li>LamPI-receiver daemon; read handsets and transmits device commands over sockets on default port 5000</li>
+  <li>LamPI-receiver daemon; read 433MHz handsets and transmits device commands over sockets on default port 5000</li>
   <li>Use LamPI-receiver as a stand-alone shell function to see incoming messages, timing and see statistics</li>
   <li>Use the shell transmitter executables to send single command to your connected devices</li>
 </ul>
@@ -41,9 +42,9 @@
 <p>&gt; cd ~/exe; sh ./LamPI-receiver -d -s &gt; LamPI-receiver.log 2&gt;&amp;1 &amp;</p>
 <h1><a name="sniffer"></a>LamPI-receiver as a sniffer</h1>
 <p>LamPI-receiver actually should have been called LamPI-transceiver as the executable contains both transmitter and receiver functions. If you run LamPI-receiver as a command in a shell, it behaves as a receiver for incoming messages. Using the appropriate flags to the command it will behave as a sniffer for incoming wireless traffic and it will show brand, address, unit and status (On/OFF/dimlevel) information for every incoing 433MHz message that is recognized.</p>
-<p>At the time of writing, the LamPI-receiver supports the following handsets/remotes:</p>
+<p>At the time of writing, the LamPI-receiver supports the following handsets, remotes and sensors:</p>
 <ul>
-  <li>klikaanklikuit.nl remote controls (kaku for short)</li>
+  <li>Klikaanklikuit.nl remote controls (kaku for short)</li>
   <li>Action (or impuls) handsets</li>
   <li>Livolo keychains</li>
   <li>Kopou keychain</li>
@@ -60,7 +61,7 @@
   <li>-d; Daemon mode. Officially the -d flag should not be used for command-line usage, but it allows debugging of the working daemon from the commandline with output as described while still working as a daemon and communicating with the LamPI-daemon process over socket connection.</li>
 </ul>
 <h1><a name="transmitters"></a>Use transmitters on commandline (example)</h1>
-<p>There are several transmitters supported at the moment. Some I ported from Arduino example library in C++, some I wrote myself.</p>
+<p>There are several transmitter programs available for communication to 433MHz &quot;connected&quot; devices, supporting a range of (remote) 433MHz receiver devices from brands such as klikaanklikuit, Action, Blokker etc. Some I ported from Arduino example library in C++, some I wrote myself. Most common is of course the transmitter program for 433MHz klikaanklikuit receivers. The transmitter executable programs are located in the directory ~/exe. The source programs for these transmitters are located in the directory ~/receivers. This may feel strange (naming), but the directories are named ater the device types that are supported (receivers, for controlling remote receiver devices; sensors, for weather, temperature and humidity sensors;  energy, for measuring power usage in the home) etc.</p>
 <p>&gt; cd ~/exe<br>
   &gt; ./kaku -g 100 -n 1 on<br>
 &gt; ./kaku -g 100 -n 2 8<br>
@@ -74,10 +75,17 @@
   <li></li>
 </ul>
 <p>&nbsp;</p>
-<h1><a name="messageformat"></a>Message Format</h1>
+<h1><a name="messageformat"></a>Message Formats</h1>
+<p>This section describes the message formats exchanged between </p>
+<ol>
+  <li>the LamPI-daemon communicating commands to connected receiver devices and </li>
+  <li>sensors receivers that communicate with the LamPI-daemon over a socket connection.</li>
+</ol>
+<h2>Device messages sent by LamPI-daemon</h2>
+<p>Messages received from the LamPI-daemon that are sent to the transmitter are at the moment coded in raw ICS-1000 format. That means that most messages are of the form &quot;RxxDyyFz or RxxDyyFdPqq&quot; where xx is the room address in max 2 digits, yy the device cumber in max 2 digits and for swithches z is either '0' (OFF) or '1' (ON). In case of a dimmer command, qq is the dimlevel with value 1-32.</p>
 <p>&nbsp;</p>
 <h2>Messages sent to LamPI-Daemon</h2>
-<p>This section describes the message format of messages which are received from the 433MHz receiver and sent to the LamPI-daemon. Basically we have 2 choices: Send the message in some raw and proprietary format, for example the ICS-1000 format. This format works excellent to remot controls that are used for switching devices and lamps. However, sensors (temperature, humidity) and energy (usage in kW) is another matter.</p>
+<p>This section describes the message format of messages which are received from sensors or 433MHz receiverd and forwarded to the LamPI-daemon. Basically we have 2 choices: Send the message in some raw and proprietary format, for example the ICS-1000 format. This format works excellent to remote controls that are used for switching devices and lamps. However, sensors (temperature, humidity) and energy (usage in kW) is another matter.</p>
 <h3>Raw</h3>
 <p>For raw messages, the format is as follows: tbd</p>
 <h3>Json</h3>
@@ -118,8 +126,7 @@
   <p>tbd<br>
   </p>
 </blockquote>
-<h2>Messages receiver from LamPI-daemon</h2>
-<p>Messages received from the LamPI-daemon that are sent to the transmitter are at the moment coded in raw ICS-1000 format. That means that most messages are of the form &quot;RxxDyyFz or RxxDyyFdPqq&quot; where xx is the room address in max 2 digits, yy the device cumber in max 2 digits and for swithches z is either '0' (OFF) or '1' (ON). In case of a dimmer command, qq is the dimlevel with value 1-32.</p>
+<h2>&nbsp;</h2>
 <p><br>
 </p>
 </body>

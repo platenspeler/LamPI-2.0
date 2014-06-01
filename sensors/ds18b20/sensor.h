@@ -343,7 +343,7 @@ int send_2_server(int sockfd,
 	char snd_buf[256];
 	// Daemon, output to socket
 	
-	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"dht22\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
+	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
 				socktcnt%1000,
 				address,							// address
 				channel,							// channel

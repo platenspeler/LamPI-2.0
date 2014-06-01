@@ -8,9 +8,16 @@
 
 <h1>Hardware</h1>
 <p>This page deals with the hardware that we need to connect to the Raspberry PI in order to communicatie with 433MHz receivers or Handsets and turn your RPI into a full functioning control center.</p>
-<p>How to make the RaspberryPI a transmitter/receiver device for 433MHz? It is probably simpler than you thinkt. Apart from the PI itself you need two really cheap small pieces of hardware, some solder and wires and a little time to put it together.</p>
-<p>So what you need are a small transmitter board and a receiver board. These boards are sold on eBay, Aliexpress and some internet shops for prices ranging from 2 $ a pair to 20$ for a receiver. In my experience, both cheap and more expensive boards work OK, if have both.</p>
+<p>How to make the RaspberryPI a transmitter/receiver device for 433MHz? It is probably simpler than you thinkt. Apart from the PI itself you need two really cheap small pieces of hardware, some solder and wires and a little time to put it together. So what you need are a small transmitter board and a receiver board. These boards are sold on eBay, Aliexpress and some internet shops for prices ranging from 2 $ a pair to 20$ for a receiver. In my experience, both cheap and more expensive boards work OK, if have both.</p>
+<p>And how to connect your Weather and Energy Sensors? </p>
+<ul>
+  <li><a href="#433transceivers">How to connect 433 transmitters and receivers</a></li>
+  <li>Weather Sensors</li>
+  <li>Energy Sensors</li>
+  <li>The Raspberry Connector</li>
+</ul>
 <p>&nbsp;</p>
+<h1><a name="433transceivers"></a>433MHz Transmitters and Receivers</h1>
 <h3>Cheap eBay</h3>
 <p>In the picture you see a receiver (L) and transmitter (R) pair that can be bought for around 3$ a pair wih free shipping. It is Chinese made, and although specifications might differ from unit to unit, they work quite OK</p>
 <p> <img src="hardware/pi transmitter receiver.jpg" width="400" height="300"></p>
@@ -33,7 +40,13 @@
 <p>&nbsp;</p>
 <h2>Filter</h2>
 <p>Especially the receivers can pick up quite some noise, expecially in an urban area. I have been experimenting with external filters that would keep the higher-frequency crap from my receiver, and some people like those in pilight for example make an art of building a filter around those components. During my experiments I found out that with good software design the system time that these receivers use for interrupt handling can be kept close to 10-30% max, which leaves about 75% idle time that can be used for LamPI-daemon processing and GUI handling.</p>
-<p>Fortunately, the more expensive units work slightly better and consume less computer resources too.<br>
-</p>
+<p>Fortunately, the more expensive units work slightly better and consume less computer resources too.</p>
+<h1><a name="wsensors"></a>Connecting Weather Sensors</h1>
+<p>Connecting weather sensors (hardware installation) is not difficult.</p>
+<h1><a name="esensors" id="esensors"></a>Connecting Energy Sensors</h1>
+<p>tbd</p>
+<p>&nbsp;</p>
+<h1><a name="connector"></a>The Raspberry Connector<br>
+</h1>
 </body>
 </html>

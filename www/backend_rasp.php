@@ -83,13 +83,11 @@ switch($action)
 	case "kaku":
 		$appmsg .= "\nkaku: ".$action.", dmon_msg: ".$dmon_msg;
 		$ret = send_2_daemon($dmon_msg);
-		//$ret = kaku_cmd($dmon_msg); 
 	break;
 	
 	case "action":
 		$appmsg .= "\naction: ".$action.", dmon_msg: ".$dmon_msg;
 		$ret = send_2_daemon($dmon_msg);
-		//$ret = action_cmd($dmon_msg); 
 	break;
 	
 	// Scenes will be forwarded to the daemon
@@ -116,18 +114,19 @@ if ($ret >= 0)
 		'tcnt' => $ret,
 		'status' => 'OK',
 		'appmsg'=> $appmsg,
-		'apperr'=> $apperr,
+		'apperr'=> $apperr
     );
 	$output=json_encode($send);
 }
 else
 {	
-	$apperr .= "\nrasp returns error code\n";
+	//$apperr .= $appmsg;
+	$apperr .= "\nrasp returns error \n".$ret;
 	$send = array(
     	'tcnt' => $ret,
     	'status' => 'ERR',
 		'appmsg'=> $appmsg,
-		'apperr'=> $apperr,
+		'apperr'=> $apperr
     );
 	$output=json_encode($send);
 }

@@ -13,6 +13,7 @@ require_once( './backend_lib.php' );
 	Version 1.6 : NOv 10, 2013
 	Version 1.7 : Dec 2013
 	Version 1.8 : Jan 18, 2014
+	Version 1.9 : Mar 10, 2014
 
 NOTE: Starting release 1.3 the functions in this file will be called by .php AJAX handlers
 	of the client side AND by the LamPI-daemon.php process. As of release 1.4 probably parts
@@ -136,7 +137,7 @@ $ret = 0;
 // $_POST is used for data that should not be sniffed from URL line, and
 // for changes sent to the devices
 
-if ($debug>0) $ret = get_parse();
+// if ($debug>0) $ret = get_parse();
 $ret = post_parse();
 
 // Do Processing

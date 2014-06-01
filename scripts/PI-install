@@ -4,12 +4,14 @@
 #
 LINUX="y"; export LINUX
 WIRING="y"; export WIRING
+RRDTOOL="n"; export RRDTOOL
 CRONTAB="y"; export CRONTAB
 
 cd /home/pi
 echo "This script will upgrade your Raspberry to its latest revision of software."
 echo "It will instal MYSQL, PHP and Apache webserver packages which will take"
 echo "some time to install. Please press enter to continue or CTRL-C to abort."
+echo ""
 echo -n "<Press ENTER to start>"
 read a
 
@@ -24,19 +26,22 @@ if [ $LINUX = "y" ]; then
 	apt-get update
 	apt-get upgrade
 
-	apt-get install php5
-	apt-get install mysql-server
-    apt-get install mysql-client
-    apt-get install php5-mysql
-	apt-get install apache2
-#   apt-get install phpmyadmin
-	apt=get install rrdtool
-    apt-get install i2c-tools
+	apt-get -y install php5
+	apt-get -y install mysql-server
+    apt-get -y install mysql-client
+    apt-get -y install php5-mysql
+    apt-get -y install php5-dev
+    apt-get -y install php5-pear
+	apt-get -y install apache2
+	apt=get -y install rrdtool
+    apt-get -y install i2c-tools
+    apt-get -y install libpango1.0-dev libxml2-dev
 
-	echo "All LAMP packages have been installed"
+	echo "All LamPI required packages have been installed"
 	echo ""
 fi
 echo "Finished installing Linux packages"
+echo ""
 
 # -------------------------------------------------------------
 # Some more administration to be done for modules
@@ -69,8 +74,6 @@ if [ $WIRING != "n" ]; then
 	echo ""
 fi
 
-
-
 # --------------------------------------------------------------
 # Install the LamPI software from the download server
 #
@@ -85,6 +88,7 @@ git clone git://github.com/platenspeler/LamPI-1.9 /tmp/effe
 cd /tmp/effe; tar cf - . | ( cd /home/pi; tar xpf - )
 rm -rf /tmp/effe
 
+# ----------------------------------------------------------------
 # Set the apache base directory
 #
 sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
@@ -92,24 +96,62 @@ sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/defaul
 sudo mv /tmp/effe /etc/apache2/sites-available/default
 sudo /etc/init.d/apache2 restart
 
+# ----------------------------------------------------------------
+# Configure MODULES
 # Make the w1 bus modules load at system startup
+# by adding module in the /etc/modules files
 #
 sudo echo 'w1-gpio' >> /etc/modules
 sudo echo 'w1-therm' >> /etc/modules
 sudo echo 'i2c-bcm2708' >> /etc/modules
 sudo echo 'i2c-dev' >> /etc/modules
 
-# Set the modeprobe.d
+# Standard, there are two modules blacklisted in the raspi-blacklist.conf
+# file as found the modprobe.d directory. Just comment these blaklisted
+# modules out.
 #
 sudo sed 's|blacklist|#blacklist|g' /etc/modprobe.d/raspi-blacklist.conf > /tmp/effe
 sudo mv /etc/modprobe.d/raspi-blacklist.conf /etc/modprobe.d/raspi-blacklist.conf.org
 sudo mv /tmp/effe /etc/modprobe.d/raspi-blacklist.conf
 
+# ------------------------------------------------------------
+# Install RRDTOOL bindings
 #
+if [ $RRDTOOL != "n" ]; then
+	echo ""
+	echo "Installing RRDTOOL"
+	sudo mkdir -p /usr/local/src/rrdtool-1.4.7
+	cd /usr/local/src/rrdtool-1.4.7
+	sudo wget http://oss.oetiker.ch/rrdtool/pub/rrdtool-1.4.7.tar.gz
+	sudo tar -zxvf rrdtool-1.4.7.tar.gz
+	cd rrdtool-1.4.7
+	mkdir /tmp/rrdbuild
+	export BUILD_DIR=/tmp/rrdbuild
+	sudo mkdir /opt/rrdtool-1.4.7
+	export INSTALL_DIR=/opt/rrdtool-1.4.7
+	./configure --prefix=$INSTALL_DIR 
+	make
+	sudo make install
+
+	sudo mkdir -p /usr/local/src/php-5.3.5/ext
+	cd /usr/local/src/php-5.3.5/ext
+
+	wget http://oss.oetiker.ch/rrdtool/pub/contrib/php_rrdtool.tar.gz
+	tar -zxvf php_rrdtool.tar.gz
+	cd rrdtool
+
+	sudo phpize
+	sudo ./configure --with-rrdtool=/opt/rrdtool-1.4.7 --with-php-config=/usr/bin/php-config
+	#sudo ./configure --with-rrdtool=/usr/bin/ --with-php-config=/usr/bin/php-config
+	sudo make
+	sudo make install
+fi
+
+# -------------------------------------------------------------
+# Finally, set some LamPI- related directories and permissions
 #
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe
-
 
 
 # --------------------------------------------------------------
@@ -128,7 +170,7 @@ sudo make install
 cd /home/pi/receivers/lights; make
 sudo make install
 
-cd /home/pi/receivers/lights; make
+cd /home/pi/receivers/kopou; make
 sudo make install
 
 

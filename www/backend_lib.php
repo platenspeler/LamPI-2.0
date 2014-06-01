@@ -880,25 +880,22 @@ function send_2_daemon($cmd)
 	global $snd_daemon_port;
 	global $log;
 	
-    $rport = $rcv_daemon_port;								// Send Port for the client side, to recv port server side
+    $rport = $rcv_daemon_port;								// Remote Port for the client side, to recv port server side
 	
     $_SESSION['tcnt']++;
     if ($_SESSION['tcnt']==999) { $_SESSION['tcnt'] = 1; }		// Overflow
 
 	// We will use json for encoding the messages to the daemon 
 	// Message looks as follows:
-	//$snd = array(
-    //	'tcnt' => $_SESSION['tcnt'],
-    //	'status' => 'OK',
-	//	'cmd'=> $cmd,
-	//	'data'=>$data,
-    //);
-	//$cmd_pkg = json_encode($snd);
+	$snd = array(
+    	'tcnt' => $_SESSION['tcnt'],
+    	'action' => 'gui',
+		'type' => 'raw',
+		'message'=> $cmd
+    );
+	$cmd_pkg = json_encode($snd);
 	
-    //$cmd_pkg = sprintf('%03d,%s\r\n', $_SESSION['tcnt'] , $cmd); 
-	$cmd_pkg = sprintf('%03d,%s', $_SESSION['tcnt'] , $cmd);
-	
-    if ($debug>1) $apperr .= "daemon_cmd:: cmd_pkg: $cmd_pkg";
+    if ($debug>=2) $apperr .= "daemon_cmd:: cmd_pkg: $cmd_pkg";
     
     $ok='';
     $from='';
@@ -935,7 +932,7 @@ function send_2_daemon($cmd)
       socket_close($rsock);
       return(-1);
     }
-    $apperr = "socket_send address - success<br>";
+    // $apperr = "socket_send address - success<br>";
 
 	if(!socket_set_block($rsock))
     {
@@ -950,7 +947,7 @@ function send_2_daemon($cmd)
 		return(-1);
 	}
 	
-	// We may receive an anwer immediately (just an ack) or we can timeout in 2 secs or so
+	// We may receive an answer immediately (just an ack) or we can timeout in 2 secs or so
     //if (!socket_recvfrom($rsock, $buf, 1024, MSG_WAITALL, $from, $rport))
 	$len = socket_recv($rsock, $buf, 1024, 0);
 	if (false === $len)
@@ -960,28 +957,30 @@ function send_2_daemon($cmd)
 	  socket_close($rsock);
 	  return(-1);
     };
+	$apperr .= "bytes read: ".$len;
+	//$apperr .= ", buf: <".$buf.">";
 
 // Need to check if the confirmation from the server matches the transaction id
 
-    $apperr .= "Rcvd ".$buf." from ".$ip.":".$rport."<br>";
-	
-    $len=strlen($buf);
-    $i = strpos($buf,',');
-	$tn = (int)substr($buf,0,$i); 
-	$ok = substr($buf,$i+1,2);
+	if (null == ($rcv = json_decode($buf, true) )) {
+		$apperr .= " NULL ";
+	}
+	$ok = $rcv['message'];
+	$tn = $rcv['tcnt'];
 
-    $apperr .= "Sent <$cmd_pkg> , rcvd <".$buf.">, len=".$len." transaction ".$tn." is ".$ok;
+	$apperr .= "message <".$rcv['message'].">";
+    //$apperr .= "Sent <$cmd_pkg> , rcvd <".$buf.">, transaction ".$tn." is ".$ok;
     
 	if (socket_shutdown($rsock) == false) {
 			$apperr .= "send_2_daemon:: socket shutdown failed";
 	}
     socket_close($rsock);
 
-	if (strcmp($ok,"OK")==0) {
+	if (strcmp($ok,"OK") == 0) {
 		return($tn); 
 	} 
 	else {
-		$apperr .= $buf;
+		$apperr .= "Nah";
 		return(-1); 
 	}
 }
