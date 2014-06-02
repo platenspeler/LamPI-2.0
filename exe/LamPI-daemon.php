@@ -1351,6 +1351,45 @@ function get_parse()
 } // Func
 
 
+
+/* ---------------------------------------------------------------------------------
+* Console_Message
+*
+* Parse a message coming from the outside world on a socket.
+* and parse it for commands. Commands are console/management action
+* 
+*/
+function console_message($request) {
+	global $log;
+	global $sock;
+	
+	$ret = "";
+	switch($request) {
+		
+		case 'clients':
+			foreach ($sock->clients as $key => $val ) {
+				$ret .= "IP: ".$sock->sockadmin[$key]['ip'].":".$sock->sockadmin[$key]['port'];
+				$ret .=	", type ".$sock->sockadmin[$key]['type']."\n";
+				// $ret .= 
+			}
+		break;
+		
+		case 'logs':
+			$ret .= "Logdata for the console file is now fake generated";
+		break;
+		
+		case 'rebootdaemon':
+			$ret .= "Reboot the daemon process";
+		break;
+		
+		default:
+			$ret = "Not recognized: <".$request.">";
+		break;
+	}
+	return($ret);
+}
+
+
 /* ---------------------------------------------------------------------------------
 * MESSAGE_PARSE a socket
 *
@@ -2029,10 +2068,31 @@ while (true):
 					$log->lwrite("main:: login request: ".$data['login'].", password".$data['password'],1);
 				break;
 
-				case "admin":
-					// Handling of interfaces
-					$log->lwrite("main:: Received admin message: ".$data['action']);
+				case "console":
+					// Handling of interfaces. Fields:
+					// action=="console", request=="clients","logs",
+					$log->lwrite("main:: Received console message: ".$data['action'].", request: ".$data['request']);
 					
+					$list = console_message($data['request']);
+					
+					$response = array (
+							'tcnt' => $tcnt."",
+							'type' => 'raw',
+							'action' => 'console',
+							'request' => $data['request'],
+							'response' => $list
+					);
+					if ( false === ($message = json_encode($response)) ) {
+						$log->lwrite("ERROR main:: json_encode failed: <"
+									 .$response['tcnt'].", ".$response['action'].">");
+					}
+					$log->lwrite("Json encoded console: ".$response['response'],2);
+					
+					if ( $sock->s_send($message) == -1) {
+						$log->lwrite("ERROR main:: failed writing login message on socket");
+						continue;
+					}
+					$log->lwrite("main:: writing console message on socket OK",2);
 				break;
 
 				default:

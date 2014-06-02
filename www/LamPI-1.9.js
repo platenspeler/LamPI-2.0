@@ -1522,8 +1522,8 @@ function start_LAMP(){
 			console.log("Websocket:: socket closed, reopening socket "+w_uri);
 			alert("Connection closed by server");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-			w_sock = WebSocket(w_uri);
-			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			init_websockets();
+			//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
@@ -1680,6 +1680,15 @@ function start_LAMP(){
 					console.log("Lampi.js:: received energy message");
 				break;
 				
+				//
+				// Console functions; messages that relate to the console option in the
+				// config section
+				//
+				case 'console':
+					console.log("console message received"+rcv.response);
+					//alert("Console Message "+rec.request+":"+rcv.response);
+					alert("Console Message :\n"+rcv.response);
+				break;
 				//
 				// Support for user management messages, such as login, password etc.
 				//
@@ -5311,8 +5320,7 @@ function activate_setting(sid)
 	
 			var table = $( "#gui_backup" ).children();		// to add to the table tree in DOM
 			//html_msg = '<div id="gui_backup"></div>';
-			//$( "#gui_content" ).append (html_msg);
-			//alert("backup");
+			//$( "#gui_content" ).append (html_msg);	
 			// Create a few buttons and call backend_set.php directly!!
 			// Cosmetically not the most beutiful solution but it works great for the moment
 			var but =  ''	
@@ -5403,23 +5411,19 @@ function activate_setting(sid)
 			$( "#gui_console" ).append( html_msg );
 			var table = $( "#gui_console" ).children();		// to add to the table tree in DOM
 			
-			// First table contains special button "ALL OFF"
 			// Start writing the table code to DOM
 	
 			var but = '<thead><tr class="switch">' ;
-			
-			but += '<input type="submit" id="Rx" value="X" class="dbuttons del_button" >'
-				+ '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
-				+ '</td>'
-			;
-			but += '<td class="filler" align="center">'+room_name+'</td>';
-			
+						
 			if (jqmobile == 1) {
-				but += '<td><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+				but += '<td><input type="submit" id="Cc" value="Clients" class="dbuttons" ></td>';
 			}
 			else {
-				but +='<td></td>';					// Because in non jqmobile dimmers display value in this column
-				but += '<td colspan="2"><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+				but += '<td>';
+				but += '<input type="submit" id="Cc" value="Clients" class="dbuttons" >';
+				but += '<input type="submit" id="Cl" value="Logfiles" class="dbuttons" >';
+				but += '<input type="submit" id="Cr" value="Restart Daemon" class="dbuttons" >';
+				but += '</td>';
 			}
 			$(table).append(but);
 			$(table).append('</tr>');
@@ -5429,21 +5433,85 @@ function activate_setting(sid)
 			var but =  ''	
 					+ '<thead><tr class="switch">'
 					+ '<td colspan="2">'
-					+ 'Select your console function ' 
+					+ 'Select your console function' 
 					+ '</td></tr></thead>'
 					;
 			$(table).append(but);
-			
-			var debug_help = "<br> \
-						This page provides you with a console function.<br>\
-						It allows you to get and set information about the running system,\
-						such as log files.<br>\
-						NOTE: This function is in draft at the moment.<br/>\
-					";
 
+			// Now define the callback function for this cofig screen
+			//
+			$( "#gui_console" ).on("click", ".dbuttons", function(e) 
+			{
+				e.preventDefault();
+		//		e.stopPropagation();
+				value=$(this).val();									// Value of the button pressed (eg its label)
+				var but_id = $(e.target).attr('id');					// id of button
+
+				//alert ("s_setting_id: " + s_handset_id + ", but_id: " + but_id + ", cmd_id: " + cmd_id);
+		
+				// id="Fx2u3v1"
+				// First chars of the button id contain the action to perform
+				// Then we have the id of the handset, followed by "u" and unit number
+				// and "v"<value>
 				
+				switch (but_id.substr(0,2))
+				{
+					
+					// STORE button, only for Raspi Controllers
+					//
+					case "Cl": 
+						//alert("Activate_settings:: console - Log pressed" );
+						var client_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'console',
+							request: 'logs'
+						}
+						console.log(client_msg);
+									
+						// Send the password back to the daemon
+						message("Console Log request sent to server",1);
+						w_sock.send(JSON.stringify(client_msg));	
+					break;
+
+					//
+					// Client button, list all active clients on the daemon
+					//	
+					case "Cc": 
+						//alert("Activate_settings:: Console - Client pressed" );
+						var client_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'console',
+							request: 'clients'
+						}
+						console.log(client_msg);
+									
+						// Send the password back to the daemon
+						message("Console Client request sent to server",1);
+						w_sock.send(JSON.stringify(client_msg));						
+					break;
+					
+					// Reboot the Daemon
+					case "Cr":
+						var client_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'console',
+							request: 'rebootdaemon'
+						}
+						console.log(client_msg);
+									
+						// Send the password back to the daemon
+						message("Console Client request sent to server",1);
+						w_sock.send(JSON.stringify(client_msg));
+					break;
+					
+					default:
+						alert("Console action unknown: " + but_id.substr(-2) );
+					break;
+				}
+			})// on-click handler XXX can be moved to document.ready part of the program
 			
 		break; //6
+		
 		
 		default:
 			myAlert("Config encountered internal error: unknown button "+sid);

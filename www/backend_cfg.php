@@ -21,7 +21,7 @@
 // Default server is localhost for most situations. However, should you want to run the
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
-	$dbname = "dorm";						// This one is not easy to guess
+	$dbname = "coco";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
 	$dbhost = "192.168.2.11";				// standard this should be "localhost"
@@ -30,26 +30,26 @@
 // In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'maarten',
-						'password' => '5143' , 
+						'login' => 'aap',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'laurens',
-						'password' => '5143' , 
+						'login' => 'beer',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'marloes',
-						'password' => '5143' , 
+						'login' => 'noot',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'annemarie',
-						'password' => '5143' , 
+						'login' => 'mies',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '2'
 					) 
