@@ -11,10 +11,10 @@
 <p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, and the documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
 <h4>As of release 1.9.5 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is done by means of a separate Raspberry bridge with the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave.html">Here</a>&gt;</h4>
 <h2>Control your lights and switches</h2>
-<p>This is where I developed LamPI for initially. It will control your light switches and your dimmers and your other switches as well (so it can switch your stereo or microwave too). </p>
+<p>This is where I initially developed LamPI for. It will control your light switches and your dimmers and your other switches as well (if you want it can switch your stereo or microwave too). </p>
 <p><img src="screenshots/room_screen_grey.JPG" width="962" height="637" /></p>
 <p>The screen above is one of the main screens of LamPI, and should give you a taste of what LamPI is about. As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
-<h3>Weather</h3>
+<h2>Weather Sensors</h2>
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
 <p>Actually, what you see below is just a small example of what &quot;steel&quot; can do for your project. The library is highly customizable so you can make your own background, color an other settings if you like.</p>
 <p>What you see below is the first version  for LamPI 1.9 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms. The definitions of sensors are found in the  configuration file.</p>
@@ -51,7 +51,7 @@
 </ul>
 <h1>What Switches, Dimmers and other devices are supported?</h1>
 <p>LamPI can support receiver devices (making transmitter modules for various brands is often easy). Also, several brand share almost the same protocol or work or can be made to work with minor modifications, Therefore, the list below is probably just a snapshot of a much larger list...</p>
-<h4>Receivers, Switches, Dimmers</h4>
+<h3>Receivers, Switches, Dimmers (433MHz)</h3>
 <ul>
   <li>Klikaanklikuit switches, the new type</li>
   <li>Action or Impuls switches</li>
@@ -61,14 +61,14 @@
   <li>Blokker (not tested, software is installed)</li>
   <li>Klikaanklikuit (old model with two wheels at the back, not tested)</li>
 </ul>
-<h4>Handsets and Remote Controls</h4>
+<h3>Handsets and Remote Controls (433 MHz)</h3>
 <ul>
   <li>Klikaanklikuit remotes</li>
   <li>Livolo 4-button keychain</li>
   <li>Kopou 4-button keychain</li>
   <li>Pulse (Action) Remotes</li>
 </ul>
-<h4>433MHz Temperature Sensors</h4>
+<h3>433MHz Temperature Sensors</h3>
 <ul>
   <li>WT-440H, made by UPM/Esic (The weather menu button will only show if a weather sensor is defined in the database.cfg file)</li>
 </ul>
@@ -80,7 +80,7 @@
 </ul>
 <h3>Zwave 868MHz devices</h3>
 <ul>
-  <li>Fibaro 221 Dimmer </li>
+  <li>Fibaro FGD-211 Dimmer </li>
 </ul>
 <h1>What Platform(s) does LamPI run on?</h1>
 <ul>
@@ -99,7 +99,7 @@
 </ul>
 <p>&nbsp;</p>
 <h1>Architectural Considerations</h1>
-<p>I did make an architecture document which can be found &lt;<a href="architecture.html">HERE</a>&gt;.</p>
+<p>I did make an architecture document for LamPI which can be found &lt;<a href="architecture.html">HERE</a>&gt;.</p>
 <p>&nbsp;</p>
 <h1>Planned Functions</h1>
 <p>Of course I'm always thinking about new functions, as long as I do not have to put the current system up-side-down too much. After all, I do have other day-time work to do and it has to make sense for me to spend additional time. Therefore, you are welcome to ask for new functions, but if it will cost me days to implement them and I will not benefit from them in any way I will probably give priority to other changes.</p>
