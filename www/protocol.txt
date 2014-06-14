@@ -1,0 +1,24 @@
+<?php
+/* ----------------------------------------------------------------------------
+$client_2_server = '';
+
+
+$server_2_client = \
+The client to server message format is as follows: \
+
+type message = (
+	tcnt => int: transaction number, 0 if unknown
+	type => 'raw' : For messages that are NOT json encoded, for example ICS-1000 message format
+			'json' : The content of the message is a json encoded message
+	action => 'ack': A simple OK datastructure confimation
+			'upd' : Used to send updates of data strunctures or device values to the connected webclients
+	message => string : either a normal string or a json_stringified string containing an array
+	
+
+
+type action
+
+
+
+   ---------------------------------------------------------------------------- */
+?>
