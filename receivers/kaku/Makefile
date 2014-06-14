@@ -35,8 +35,7 @@ INSTALL = /home/pi/exe
 # Should not alter anything below this line
 ###############################################################################
 
-SRC	=	kaku.cpp \
-		kakunew.cpp
+SRC	=	kaku.cpp 
 
 OBJ	=	$(SRC:.cpp=.o)
 
@@ -50,10 +49,6 @@ readme:
 	@echo ""
 
 really-all:	$(BINS)
-
-kakuold:	kaku.o
-	@echo [link]
-	@$(CC) -o $@ kaku.o $(LDFLAGS) $(LDLIBS)
 
 .c.o:
 	@echo [CC] $<

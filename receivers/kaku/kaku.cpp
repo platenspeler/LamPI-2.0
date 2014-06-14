@@ -127,6 +127,6 @@
 		}
 	}
 
-	printf("OK\n");
+	if (verbose == 1) printf("OK\n");
 	return 0;
  }

@@ -21,7 +21,7 @@
 // Default server is localhost for most situations. However, should you want to run the
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
-	$dbname = "coco";						// This one is not easy to guess
+	$dbname = "dorm";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
 	$dbhost = "192.168.2.11";				// standard this should be "localhost"
@@ -30,26 +30,26 @@
 // In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'aap',
-						'password' => '0000' , 
+						'login' => 'maarten',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'beer',
-						'password' => '0000' , 
+						'login' => 'laurens',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'noot',
-						'password' => '0000' , 
+						'login' => 'marloes',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'mies',
-						'password' => '0000' , 
+						'login' => 'annemarie',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '2'
 					) 
@@ -63,19 +63,15 @@
 // Set to 1 in order to fake any communication to devices
 	$fake=0;					
 //
+// Looking from the webhost directory, where are other important directories.
+// BUt also works for LamPI-daemon.php in the daemon directory
 	$config_dir="config/";
 	$skin_dir  ="styles/";
 	$log_dir="../log/";
 
 // Port Settings for the LamPI Daemon (!) LamPI-daemon.php file
 	$rcv_daemon_port = "5000";										
-    $udp_daemon_port = "5001";	
-
-//
-// Server listens to ALL incoming hosts. So if we want to limit access
-// XXX We have to build an accept/authorization mechanism in the daemon
-// Address 0.0.0.0 works for the daemon!
-	$serverIP = "0.0.0.0";
+    $udp_daemon_port = "5001";
 	
 // Pin number of the GPIO (We use the wiringPi number scheme). As we move the actual receiver handling
 // outide the PHP files in a faster c-based daemon LamPI-receiver, the settings below might be obsolete,
@@ -83,5 +79,16 @@
 // (and read it on startup).
 	$wiringPi_snd = "15";
 	$wiringPi_rcv = "1";
+//
+// Server listens to ALL incoming hosts. So if we want to limit access
+// XXX We have to build an accept/authorization mechanism in the daemon
+// Address 0.0.0.0 works for the daemon!
+	$serverIP = "0.0.0.0";
+	
+//
+// The IP address of the Razberry machine. The Razberry is used to
+// relay and handle all Z-Wave 868MHz messaging to connected Z-Wave
+// devices and sensors
+	$razberry = "192.168.2.102";
 
 ?>

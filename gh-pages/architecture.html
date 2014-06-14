@@ -19,7 +19,7 @@
 </ul>
 <p>LamPI started as an alternative controller to the ICS-1000 controller of klikaanklikuit.nl (150 EURO), but today it offers support for other brands as well as well support for .</p>
 <h1><a name="maincomponents"></a>Main Components and Relations</h1>
-<p>LamPI consists of a few major components as outlined in the pisture below (picture needs some updating). Starting with release 1.7 all communication betweeen the front-end and the controlling daemon takes place over websockets. Of course, when you work with the ICS-1000 this will be an exception.</p>
+<p>LamPI consists of a few major components as outlined in the pisture below (picture needs some updating). Starting with release 1.7 all communication between the front-end and the controlling daemon takes place over websockets. Of course, when you work with the ICS-1000 this will be an exception.</p>
 <p><img src="architecture/architecture.gif" width="960" height="720"></p>
 <p>There are advantages and disadvantages wrt to the approach chosen for the communication between frontend and LamPI-daemon backend.</p>
 <p>The disadvantage is that with the old plain socket communication and supporting ajax PHP scripts such as backend_rasp.php all looked much easier and developer is in control. Only you think you are, as most of the ajax calls are asynchronous in nature, and the backend PHP scripts run only once so information that is not directy available from the LamPI-daemon will not be received and results in a time-out.</p>
@@ -36,9 +36,9 @@
 <h2>Transmitters</h2>
 <p>The transmitter function is the most straightforward function implemented. For every known and supported brand we compile and build and executable which is installed in the ~/exe directory. It is possible to call these functons from the commandline, but if we run the LamPI-receiver in daemon mode (-d option) the daemon will also provide transmitter functions (for requests coming in on sockets). The LamPI-receiver will call these command-line programs directly.</p>
 <p>Therefore it makes sense to keep the naming of the transmitter programs standard (make no change, or if you do change the transmitter.c code as well). Also the commandline options for each of the transmitter programs are the same (makes sense too, not?). All programs must be called as follows&quot;</p>
-<p>&gt; cd ~/.exe<br>
+<p><code>&gt; cd ~/.exe<br>
   &gt; ./mysender -g &lt;adress&gt; -n &lt;unit&gt; [-p &lt;pin&gt;] &quot;on&quot; | &quot;off&quot; | &quot;dimlevel&quot;
-</p>
+</code></p>
 <p>Of course, on and off are universal commands for both switches and dimmers, dimlevel is at the moment only supported for klikaanklikuit devices.</p>
 <p>the following options are supported and must be present in new transmitter programs too:</p>
 <ul>
@@ -117,5 +117,6 @@
   <li>Need to explain what changes ned to be made to index.html in order for the LamPI-x.y.js file to correctly work in jQuery mobile mode and select the right css skin etc.</li>
   <li>Need to write-up how to build a PhoneGap application for Android</li>
 </ul>
+<p>&nbsp;</p>
 </body>
 </html>

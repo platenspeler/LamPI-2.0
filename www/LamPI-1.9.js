@@ -1519,11 +1519,12 @@ function start_LAMP(){
 			message("websocket reopen",1);
 		};
 		w_sock.onclose	= function(ev){
-			console.log("Websocket:: socket closed, reopening socket "+w_uri);
-			alert("Connection closed by server");
+			console.log("Websocket:: socket closed "+w_uri);
+			alert("Connection closed by server, click OK to re-establish the connection");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-			init_websockets();
-			//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+			//
+			setTimeout( function() { init_websockets(); }, 1500);
+			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 		};
 		w_sock.onerror	= function(ev){
 			var state = w_sock.readyState;
@@ -1535,6 +1536,10 @@ function start_LAMP(){
 		// messages from the daemon and needs to process them for the GUI.
 		// ALL(!) Messages are in json format, but type field defines whether the content is also
 		// in json or in ICS format (for historical and backward compatibility reasons).
+		// 
+		// As all messages are received async, we need to "forward" or temporarily store info
+		// before it is being handled by the client. The easy way: store in a var and depending on 
+		// the current open screen in the client decide what to do...
 		//
 		w_sock.onmessage = function(ev) 
 		{
@@ -1704,8 +1709,11 @@ function start_LAMP(){
   						//uname= window.localStorage.getItem("uname");		// username
 						uname= localStorage.getItem("uname");		// username
 						pword= localStorage.getItem("pword");		// pin
-						if (debug>=2) console.log("Support for localstorage, uname: "+uname);
-						alert("Username: "+uname);
+						if (debug>=2) {
+							console.log("Support for localstorage, uname: "+uname);
+							alert("Username: "+uname);
+						}
+						
 						if (uname == null) uname = "";
 						if (pword == null) uname = "";
  					}
@@ -1755,7 +1763,7 @@ function start_LAMP(){
 						// Send the password back to the daemon
 						message("Login and Password sent to server",1);
 						w_sock.send(JSON.stringify(login_msg));
-						return(1);									//return(1);
+						return(1);										//return(1);
 						
 						// Cancel	
   					}, function () {
@@ -1799,7 +1807,7 @@ function start_LAMP(){
 		$( "#popup" ).empty();
 		//html_msg = '<div id="onLinePopup"></div>';
 		
-		if(typeof(Storage)!=="undefined") {
+		if (typeof(Storage) !== "undefined") {
 			var uname= localStorage.getItem("uname");		// username
 			var pword= localStorage.getItem("pword");		// pin
 			var saddr= localStorage.getItem("saddr");		// Server address
@@ -1808,7 +1816,7 @@ function start_LAMP(){
 			alert("no localStorage");
 		}
 		var str;
-		str	= '<form><fieldset>';
+		str			= '<form><fieldset>';
 		str 		+= '<div><label for="saddr">IP:</label>';
 		if (saddr !== null)
 			str		+= '<input type="text" name="saddr" id="saddr" value="'+saddr+'" />';

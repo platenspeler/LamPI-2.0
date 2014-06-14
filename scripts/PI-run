@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-DAEMONDIR="/home/pi/exe"; export DAEMONDIR
+DAEMONDIR="/home/pi/daemon"; export DAEMONDIR
 SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 #
 LOGDIR="/home/pi/log"; export LOGDIR

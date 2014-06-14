@@ -33,7 +33,7 @@ then
 	# Find out whether we have a HOSTNAME in the config file
 	# If so, we use that name for the Daemon server instead of localhost
 	if [ $? = 0 ]; then
-		HOSTNAME = $TMP
+		HOSTNAME=$TMP
 		echo "Hostname of server found in config file: $HOSTNAME" >> $LOGFILE 2>&1  
 	else
 		echo "Hostname of server not found in config file" >> $LOGFILE 2>&1

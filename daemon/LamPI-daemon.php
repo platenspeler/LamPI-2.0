@@ -89,6 +89,91 @@ class User {
 	
 }
 
+/* ----------------------------------------------------------------------------------
+ *
+ *
+ */
+ 
+class Zwave {
+}
+
+/** ---------------------------------------------------------------------------------- 
+ * Retrieve the current value of a switch. We need to see how we can periodically pull
+ * values of all connected Z-Wave devices in our network
+ *
+ */
+function zwave_scan($msg) {
+	
+}
+
+
+/** ---------------------------------------------------------------------------------- 
+ * Send the $,sg to the Razberry machine. At this moment we have the Razberry server
+ * as a separeate device on the network.
+ *
+ */
+function zwave_send($msg) {
+	global $log;
+	global $razberry;
+	
+	//				$bcst = array (							// build broadcast message
+	//					// Remainder of record specifies device parameters
+	//					'gaddr'  => $device['gaddr'],
+	//					'uaddr'  => $dev."",				// From the sscanf command above, cast to string
+	//					'brand'  => $brand,					// NOTE brand is a string, not an id here
+	//					'val'    => $sndval,				// Value is "on", "off", or a number (dimvalue) 1-32
+	//					'message' => $items[$i]['cmd']		// The GUI message, ICS encoded 
+	//				);
+	$log->lwrite("zwave_send started\n",2);
+	
+	// Device address is 1 less than the address in the user interface
+	$addr = $msg['uaddr'] - 1;
+	
+	$ch = curl_init();
+	if ($ch == false) {
+		$log->lwrite("curl error");
+		return(-1);
+	}
+	
+	$p = '';
+	switch ($msg['val']) {
+		case 'on':
+			$p = 32;
+		break;
+		case 'off':
+			$p = 0;
+		break;
+		// This is probably a dim value. Value is between 0 and 32, so for 
+		// this means for Fibaro with a value betwen 0 and 100% (actually 99%) that we need to normalize.
+		default: 
+			$p = $msg['val']/32*99;
+		break;
+	}
+	$log->lwrite("zwave_send:: razberry is: ".$razberry.", uaddr: ".$addr.", val: ".$p);
+	curl_setopt_array (
+		$ch, array (
+		
+		CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchMultilevelSet/'.$addr.'/0/'.$p ,
+		CURLOPT_RETURNTRANSFER => true
+		));
+
+	$output = curl_exec($ch);
+	if ($output == false) {
+		$log->lwrite("zwave_send:: curl_exec returned false",1);
+		curl_close($ch);
+		return -1;
+	}
+	if ($output == '"'.$p.'"') {
+		$log->lwrite("zwave_send:: curl_exec set correctly",2);
+	}
+	else {
+		$log->lwrite("zwave_send ERROR:: curl_exec returned ".$p." but set incorrect",1);	
+	}
+	$log->lwrite("zwave_send:: Output is: ".$output,2);	
+	curl_close($ch);
+}
+
+
 /** --------------------------------------------------------------------------------------
  * Logging class:
  * - contains lfile, lwrite and lclose public methods
@@ -2310,7 +2395,15 @@ while (true):
 						$log->lwrite("ERROR main:: broadcast encode: <".$bcst['tcnt']
 									.",".$bcst['action'].">");
 					}
-			
+					
+					// XXX It is difficult to determine whether we should
+					if ($brand == "zwave") {
+						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
+						// will then  have several Raspberries react. We only need the dedicated Razberry device to
+						// act on this command.
+						zwave_send($bcst);					// We use $bcast as it is available already
+					}
+					
 					$sock->s_bcast($answer);				// broadcast this command back to connected clients
 					// XXX We need to define a json message format that is easier on the client.
 					

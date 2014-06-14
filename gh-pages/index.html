@@ -7,24 +7,24 @@
 <body>
 
 <h1>LamPI Introduction</h1>
-<h5>LamPI is a Home Automation project for switching equipment in the house over 444 MHz transmitters/receivers on a RaspberryPI. It started as an alternative to the klikaanklikuit interface that I used to control the lights in out house. But LamPI now supports other brands of receivers as well, and as of release 1.8 it does support weather sensors as well.</h5>
+<h4>LamPI is a Home Automation project for switching equipment in the house over 444 MHz transmitters/receivers on a RaspberryPI. It started as an alternative to the klikaanklikuit interface that I used to control the lights in out house. But LamPI now supports other brands of receivers as well, and as of release 1.8 it does support weather sensors as well.</h4>
 <p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
-<h3>Control your lights and switches</h3>
+<h4>As of release 1.9.5 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is done by means of a separate Raspberry bridge with the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave.html">Here</a>&gt;</h4>
+<h2>Control your lights and switches</h2>
 <p>This is where I developed LamPI for initially. It will control your light switches and your dimmers and your other switches as well (so it can switch your stereo or microwave too). </p>
 <p><img src="screenshots/room_screen_grey.JPG" width="962" height="637" /></p>
 <p>The screen above is one of the main screens of LamPI, and should give you a taste of what LamPI is about. As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
 <h3>Weather</h3>
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
 <p>Actually, what you see below is just a small example of what &quot;steel&quot; can do for your project. The library is highly customizable so you can make your own background, color an other settings if you like.</p>
-<p>What you see below is the first version  for LamPI 1.9 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms.</p>
-<p>The definitions of sensors are found in the  configuration file.</p>
+<p>What you see below is the first version  for LamPI 1.9 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms. The definitions of sensors are found in the  configuration file.</p>
 <p><img src="screenshots/weather_screen_1.JPG" width="966" height="637"></p>
 <p>Apart from the latest sensor info, or even near-real-time information received, I like to add support for historical charts etc. At the mometnt, all sensor readings are stored in a log file, and also in the MySQL database. </p>
 <p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can take a few days before I answer.</p>
 <h1>LamPI History</h1>
 <p>The goal of my project was to provide an easy interface to the family to control the lights in our house. We had klikaanklikuit.nl switches and we have an iPad (and some Android phones and Laptops) and want to control our light switches with an easy-to-use GUI interface. This meant that I needed at least 2 components: A component that would control transmitter and receiver and handle low-level device commands, and a GUI in JavaScript/jQuery that would handle the human interaction. In order to store configuration information and for timing commands and unattended use, we would also need a daemon process serving in the background as well as a database (written in MySQL) to store configuration information.</p>
 <p>Although I would expect that you like to use the complete package, it is quite good possible to only use the RaspberryPI transmitter and receiver shell executables (see below)</p>
-<p>&lt;More information is available HERE&gt;</p>
+<p>&lt;<a href="architecture.html">More information is available HERE</a>&gt;</p>
 <h1>LamPI GUI Functions</h1>
 <p>LamPI contains 6 main screens: Rooms, Scenes, Timers, Handsets, Weather and Config. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. </p>
 <p>The documentation for the LamPI functions can be found on this site on the following pages.</p>
@@ -59,13 +59,14 @@
   <li>Kopou switches</li>
   <li>Elro (not tested, software is installed)</li>
   <li>Blokker (not tested, software is installed)</li>
-  <li>Klikaanklikuit (old model with two wheels at he back, not tested)</li>
+  <li>Klikaanklikuit (old model with two wheels at the back, not tested)</li>
 </ul>
 <h4>Handsets and Remote Controls</h4>
 <ul>
   <li>Klikaanklikuit remotes</li>
   <li>Livolo 4-button keychain</li>
   <li>Kopou 4-button keychain</li>
+  <li>Pulse (Action) Remotes</li>
 </ul>
 <h4>433MHz Temperature Sensors</h4>
 <ul>
@@ -73,11 +74,14 @@
 </ul>
 <h3>Wired Sensors</h3>
 <ul>
-  <li>Wired sensors: DHT11 Temperature/Humidity Sensor</li>
+  <li>Wired sensors: DHT11, DHT22 Temperature/Humidity Sensor</li>
   <li>1-Wire bus sensors: DS18B20 Temperature Sensor</li>
   <li>2-wire I2C bus sensors:</li>
 </ul>
-<p>&nbsp;</p>
+<h3>Zwave 868MHz devices</h3>
+<ul>
+  <li>Fibaro 221 Dimmer </li>
+</ul>
 <h1>What Platform(s) does LamPI run on?</h1>
 <ul>
   <li>The web GUI of LamPI runs on every webserver in your network as it is implemented in Javascript/jQuery. That means that if you install it on a webserver in your network you can access the GUI User Interface from every browser in your network (and soon also from the internet). By default, the webserver runs fine on the RaspberryPI (you need the Raspberry anyway).<br>
@@ -88,7 +92,10 @@
   <li>If you want, you can setup the MySQL database on another server (that is what I did), but this is optional. Setting of the database server is in backend_config.php<br>
     <br>
   </li>
-  <li>The low-level device functions for transmitter and receiver, will at the moment only run on the RaspberryPI, although making an Arduino version is probably not much work. The executables are all found in the ~/exe directory. The source code for these functions can be found in the ~/receivers directory.</li>
+  <li>The low-level device functions for transmitter and receiver, will at the moment only run on the RaspberryPI, although making an Arduino version is probably not much work. The executables are all found in the ~/exe directory. The source code for these functions can be found in the ~/receivers directory.<br>
+    <br>
+  </li>
+  <li>In order to control Z-Wave devices in the LamPI system, you need a separate Raspberry with Razberry Z-Wave board. Please read the special pages on Z-Wave. For the moment I do not support both Razberry (Z-Wave) and 433MHz transceivers on the same machine.</li>
 </ul>
 <p>&nbsp;</p>
 <h1>Architectural Considerations</h1>
@@ -108,8 +115,8 @@
 <p>Both architectual and GUI related</p>
 <ul>
   <li>The current way of sending scene commands in LamPIxx.js is implmented as an ajax function message_device(&quot;scene&quot;,&quot;commandxxx). For ICS-1000 this is the only possibility, but for Raspberry we could implement this function with webservices instead.</li>
-  <li>As the backend server is running in batch, but not as a backend web server, we cannot ask the webserver to give us details about the IP address and many more $SERVER related parameters. This means tha the client must know upfront to which server IP to connect. We can perhaps implement a UDP server that listens to client broadcasts coming in and responding with the IP address of the server</li>
-  <li>The configuraton of the backend through the backend must be protected so that only local clients can change or load the configuration. Leaving this open for remote devices as well could be a ecurity issue.</li>
+  <li>As the backend server is running in batch, but not as a backend web server, we cannot ask the webserver to give us details about the IP address and many more $SERVER related parameters. This means tha the client must know upfront to which server IP to connect. We can perhaps implement a UDP server that listens to client broadcasts coming in and responding with the IP address of the server. For GUI/Browser clients this not an issue since we must have an url to connect to anyway and for the moment we could assume that the webserver is running the daemon as well. However for commuication between sensors and the daemon it is necessary</li>
+  <li>The configuraton of the backend through the backend.php executable must be protected so that only local clients can change or load the configuration. Leaving this open for remote devices as well could be a security issue.</li>
 </ul>
 </body>
 </html>

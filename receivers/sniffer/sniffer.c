@@ -704,7 +704,7 @@ int kopou(int p_length)
  * Every message starts with a start pulse of 500 uSec
  * There are 16 bits address pulses: 140+260 for a 0-bit and 260+140 for 1-bit
  * And there are 8 bits for Device is: 140+260 or 260+140 uSecs
- *
+ * Each bit is approx 400 USec long.
  *
  *********************************************************************************/
 int livolo(int p_length)

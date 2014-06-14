@@ -52,7 +52,7 @@ Kopou::Kopou(unsigned char pin)
 }
 
 // keycodes: Bit 0-15 (16 bits), remote 13 seems to work
-// Device ids: bit 16-23 (8bits), values: A: 225; B: 242; C: 19; D: 36(all OFF)
+// Device ids: bit 16-23 (8bits), values: A: 225; B: 242; C: 19; D: 36 (all OFF)
 // use: sendButton(remoteID, keycode), see example blink.ino; 
 
 // =======================================================================================
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "\nSettings:\n");
 		fprintf(stderr, "\t\t; This setting will affect other timing settings as well\n");
 		fprintf(stderr, "-g\t\t; Group address, 13 should work\n");
-		fprintf(stderr, "-n\t\t; Device code, A: 1, B: 2, C: 3, (D is reserved for ALL OFF)\n");
+		fprintf(stderr, "-n\t\t; Device code, A: 32, B: 33, C: 34, (D is reserved for ALL OFF)\n");
 		fprintf(stderr, "-t\t\t; Test mode, will output received code from remote\n");
 		fprintf(stderr, "-v\t\t; Verbose, will output more information about the received codes\n");
 		fprintf(stderr, "-l\t\t; Long pulse time in uSec\n");

@@ -70,7 +70,6 @@ int dkaku(char *gaddr, char *uaddr, char *val)
 		sprintf(fname,"cd /home/pi/exe; ./kaku -g %s -n %s %d", gaddr,uaddr,ivalue);
 	}
 	stop_ints = 1;
-	//printf("dtransmit:: %s\n",fname);
 	
 	ret = system(fname);
 	stop_ints = 0;
@@ -111,7 +110,7 @@ int send_2_device(char *brand, char *gaddr, char *uaddr, char *val)
 // command directly.
 // NOTE:: The command is called with the json arguments gaddr,uaddr and
 //        not with the GUI addresses
-//
+// The value 'Val' is between 0 and 31.
 //
 int dtransmit(char *brand, char *gaddr, char *uaddr, char *val) 
 {
@@ -119,8 +118,7 @@ int dtransmit(char *brand, char *gaddr, char *uaddr, char *val)
 	// The device specific executable uses unit addresses starting from 1 to n
 	// And for Blokker that starts with 0, is corrected in the exe code.
 	//
-	//char dev[12];
-	//sprintf(dev,"%c",(atoi(uaddr)+64) );
+
 	if (strcmp(brand,"kaku") ==0)     { dkaku(gaddr,uaddr,val); return(0); }
 	if (strcmp(brand,"action") ==0)   { send_2_device(brand,gaddr,uaddr,val); return(0); }
 	if (strcmp(brand,"livolo") ==0)   { send_2_device(brand,gaddr,uaddr,val); return(0); }
@@ -128,6 +126,8 @@ int dtransmit(char *brand, char *gaddr, char *uaddr, char *val)
 	if (strcmp(brand,"blokker") ==0)  { send_2_device(brand,gaddr,uaddr,val); return(0); }
 	if (strcmp(brand,"kiku") ==0)     { send_2_device(brand,gaddr,uaddr,val); return(0); }
 	if (strcmp(brand,"kopou") ==0)    { send_2_device(brand,gaddr,uaddr,val); return(0); }
+	
+	if (strcmp(brand,"zwave") ==0)    { if (verbose == 1) printf("dtransmit:: brand is zwave\n"); return(0); }
 	
 	printf("dtransmit:: brand not recognized %s\n", brand);
 	return(-1);
@@ -330,7 +330,7 @@ int read_socket_and_transmit(int sockfd)
 				// We receive a message for the transmitter
 				if  ((strcmp(action,"gui") == 0) || (strcmp(action,"upd") == 0)) 
 				{ 
-					jbrand = parse_cjson(root, "brand");		// My ad-on parsing function 
+					jbrand = parse_cjson(root, "brand");		// My add-on parsing function 
 					if (jbrand == NULL) { printf("parse_cjson jbrand returned NULL \n"); goto next; }
 				
 					jgaddr = parse_cjson(root, "gaddr");
@@ -350,7 +350,7 @@ int read_socket_and_transmit(int sockfd)
 					{
 						printf("transmit: returned error \n");
 						cJSON_Delete(root);
-						continue;
+						goto next;
 					}
 				}
 				

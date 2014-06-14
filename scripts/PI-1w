@@ -21,7 +21,6 @@ if [ "$1" = "-r" ]; then
 	pkill $SENSOR
 fi
 
-
 # Load the required module for the 1-wire sensor program
 #
 cat /proc/modules | fgrep w1_therm > /dev/null
@@ -35,21 +34,8 @@ fi
 echo "---------------------------------------------------" >> $LOGFILE 2>&1
 echo "`date`:: Starting $SENSOR" >> $LOGFILE 2>&1
 
-# Find out whether we have a HOSTNAME in the config file
-# If so, we use that name for the Daemon server instead of localhost
-	TMP=`grep -Po '(?<=^SERVER=).*' $SCRIPTDIR/PI-config.txt`
-	# Find out whether we have a HOSTNAME in the config file
-	# If so, we use that name for the Daemon server instead of localhost
-	if [ $? = 0 ]; then
-		HOSTNAME = $TMP
-		echo "Hostname of server found in config file: $HOSTNAME" >> $LOGFILE 2>&1  
-	else
-		echo "Hostname of server not found in config file" >> $LOGFILE 2>&1
-	fi
-
 # Execute the program
 # 
 cd $EXEDIR
 
-#nohup ./$SENSOR -d -v -h $HOSTNAME -p $PORTNUMBER >> $LOGFILE 2>&1 &
 nohup ./$SENSOR -d -b -h $HOSTNAME -p $PORTNUMBER >> $LOGFILE 2>&1 &

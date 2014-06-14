@@ -32,6 +32,7 @@ if [ $LINUX = "y" ]; then
     apt-get -y install php5-mysql
     apt-get -y install php5-dev
     apt-get -y install php5-pear
+    apt-get -y install php5-curl
 	apt-get -y install apache2
 	apt=get -y install rrdtool
     apt-get -y install i2c-tools
@@ -51,6 +52,26 @@ echo ""
 # Make sure that /etc/modprobe.d/raspi.conf contains # in front of i2c lines
 
 
+# -------------------------------------------------------------
+# Download, Install and build the RazBerry software.
+# Only do this if you have a Razberry installed 
+#
+if [ $RAZBERRY != "n" ]; then
+  echo "Next step is to install the Razberry software"
+  echo -n "<Press Y  + ENTER to continue>"
+  read a
+  if [ "$a" == "Y" ]; then
+	echo ""
+	echo "Starting installation of Razberry"
+	wget -q -O - http://razberry.zwave.me/install | sudo bash 
+	# Edit the /opt/Z-Way/config.xml
+	# reboot
+	# http://192.168.2.52:8083
+	echo ""
+  else
+  	echo "Razberry software NOT installed"
+  fi
+fi
 
 
 # -------------------------------------------------------------
@@ -79,7 +100,7 @@ fi
 #
 cd /home/pi
 
-# The command below will FAIL if the PI_install script is put in /home/pi/scripts or
+# The command below might FAIL if the PI-install script is put in /home/pi/scripts and
 # if the /home/pi directory is not empty. For safety we therefore copy to /tmp first.
 #
 rm -rf /tmp/effe
@@ -152,26 +173,18 @@ fi
 #
 mkdir /home/pi/log; chown pi /home/pi/log
 mkdir /home/pi/exe
+mkdir /home/pi/daemon
 
 
 # --------------------------------------------------------------
 # Fix the .exe directory
 # And build the executables from source
 #
-cd /home/pi/receivers/sniffer; make
-sudo make install
-
-cd /home/pi/receivers/livolo; make
-sudo make install
-
-cd /home/pi/receivers/kaku; make
-sudo make install
-
-cd /home/pi/receivers/lights; make
-sudo make install
-
-cd /home/pi/receivers/kopou; make
-sudo make install
+cd /home/pi/receivers/sniffer; make; sudo make install
+cd /home/pi/receivers/livolo; make ; sudo make install
+cd /home/pi/receivers/kaku; make; sudo make install
+cd /home/pi/receivers/lights; make; sudo make install
+cd /home/pi/receivers/kopou; make; sudo make install
 
 
 
