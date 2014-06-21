@@ -30,26 +30,26 @@
 // In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'maarten',
-						'password' => '5143' , 
+						'login' => 'aap',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'laurens',
-						'password' => '5143' , 
+						'login' => 'schapen',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'marloes',
-						'password' => '5143' , 
+						'login' => 'noot',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'annemarie',
-						'password' => '5143' , 
+						'login' => 'mies',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '2'
 					) 

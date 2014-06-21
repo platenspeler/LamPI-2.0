@@ -405,10 +405,10 @@
 		
 		/* The element making up the slider. The jquery definition is even much more complex*/
 		.slider {
-			margin-left: 25px;
-			margin-right: 5px;
+			margin-left: 20px;
+			margin-right: 25px;
 			border-radius: 5px;
-			width: 280px;
+			width: 350px;
 		}
 		/* The value of a slider in an input field */
 		.slidval {
@@ -419,7 +419,8 @@
 		.ui-slider .ui-slider-handle{
     		width:50px; 
     		height:50px; 
-    		background:url(slider3.png) no-repeat; overflow: hidden; 
+    		background:url(slider3.png) no-repeat; 
+			overflow: hidden; 
     		position:absolute;
     		top: -10px;
     		border-style:none; 

@@ -13,6 +13,7 @@ require_once( '../www/backend_lib.php' );
 // Version 1.7, Dec 06, 2013 Redo of jQuery Mobile for version jqm version 1.4
 // Version 1.8, Jan 18, 2014 Added temperature sensor support
 // Version 1.9, Mar 10, 2014 Support for sensors, and remote access
+// Version 2.0, Jun 15, 2014 Initial support for Z-Wave devices (868MHz)
 //
 // Copyright, Use terms, Distribution etc.
 // ===================================================================================
@@ -131,7 +132,7 @@ function zwave_send($msg) {
 	
 	$ch = curl_init();
 	if ($ch == false) {
-		$log->lwrite("curl error");
+		$log->lwrite("zwave_send:: curl error",0);
 		return(-1);
 	}
 	
@@ -159,7 +160,7 @@ function zwave_send($msg) {
 
 	$output = curl_exec($ch);
 	if ($output == false) {
-		$log->lwrite("zwave_send:: curl_exec returned false",1);
+		$log->lwrite("zwave_send:: curl_exec Razberry execution error",0);
 		curl_close($ch);
 		return -1;
 	}
@@ -167,10 +168,13 @@ function zwave_send($msg) {
 		$log->lwrite("zwave_send:: curl_exec set correctly",2);
 	}
 	else {
-		$log->lwrite("zwave_send ERROR:: curl_exec returned ".$p." but set incorrect",1);	
+		$log->lwrite("zwave_send ERROR:: curl_exec returned ".$p." but set incorrect",1);
+		curl_close($ch);
+		return(-1);
 	}
 	$log->lwrite("zwave_send:: Output is: ".$output,2);	
 	curl_close($ch);
+	return(1);
 }
 
 
@@ -337,14 +341,12 @@ class Queue {
 		$tim = time();
 		$result = [];
 		$i = 0;
-		if ($debug > 2) $log->lwrite("q_pop:: looking for runnable items on queue");
+		$log->lwrite("q_pop:: looking for runnable items on queue",3);
 		for ($i=0; $i<count($this->q_list); $i++) {
 			if ($this->q_list[$i]["secs"] > $tim ) {
 				break;
 			}
-			if ($debug>1) {
-				$log->lwrite("q_pop:: pop Item ".$i.": ".$this->q_list[$i]['action']);
-			}
+			$log->lwrite("q_pop:: pop Item ".$i.": ".$this->q_list[$i]['action'],2);
 		}
 		$result = array_splice($this->q_list,0,$i);
 		return($result);
@@ -554,7 +556,7 @@ class Sock {
 		
 		$address= $serverIP;
 		
-		if ($debug > 0) $log->lwrite("s_uopen:: Opening UDP Socket on IP ".$address.":".$udp_daemon_port);
+		$log->lwrite("s_uopen:: Opening UDP Socket on IP ".$address.":".$udp_daemon_port,1);
 		
 		$this->usock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 		//if (!$this->usock)
@@ -573,8 +575,7 @@ class Sock {
 			socket_close($this->usock);
 			return (-1);
 		}	
-
-		if ($debug > 0) $log->lwrite("s_uopen:: receive socket opened ok on port: ".$udp_daemon_port);
+		$log->lwrite("s_uopen:: receive socket opened ok on port: ".$udp_daemon_port,1);
 		return(0);
 	}
 	
@@ -648,7 +649,7 @@ class Sock {
 		//$address = gethostbyname($_SERVER['SERVER_NAME']);
 		//$address = $_SERVER['SERVER_ADDR'];			// Open THIS server IP
 		
-		if ($debug > 0) $log->lwrite("s_open:: Opening Sockets on IP ".$address.":".$rcv_daemon_port);
+		$log->lwrite("s_open:: Opening Sockets on IP ".$address.":".$rcv_daemon_port,1);
 		
 		$this->rsock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
     	if (!socket_set_option($this->rsock, SOL_SOCKET, SO_REUSEADDR, 1)) 		// Re-use the port, 
@@ -669,7 +670,7 @@ class Sock {
 			return (-1);
  		}
 
-		if ($debug > 0) $log->lwrite("s_open:: receive socket opened ok on port: ".$rcv_daemon_port);
+		$log->lwrite("s_open:: receive socket opened ok on port: ".$rcv_daemon_port,1);
 		return(0);
 	}
 	
@@ -983,7 +984,7 @@ class Sock {
 				else {
 					$i2=time();
 					$log->lwrite("ERROR s_recv:: Unknown type buf ".$this->sockadmin[$ckey]['type']."from IP: ".$clientIP.":".$clientPort
-									.", buf: <".$buf.">, in ".($i2-$i1)." seconds",2);
+									.", buf: <".$buf.">, in ".($i2-$i1)." seconds",1);
 				}
 		}//for
 		return(-1);	
@@ -1447,28 +1448,40 @@ function get_parse()
 function console_message($request) {
 	global $log;
 	global $sock;
+	$ret='';
 	
 	$ret = "";
 	switch($request) {
 		
 		case 'clients':
+			$ret = '<br>';
 			foreach ($sock->clients as $key => $val ) {
 				$ret .= "IP: ".$sock->sockadmin[$key]['ip'].":".$sock->sockadmin[$key]['port'];
-				$ret .=	", type ".$sock->sockadmin[$key]['type']."\n";
-				// $ret .= 
+				//$ret .=	", type ".$sock->sockadmin[$key]['type']."\n";
+				$ret .=	", type ".$sock->sockadmin[$key]['type']."<br>";
 			}
 		break;
 		
 		case 'logs':
-			$ret .= "Logdata for the console file is now fake generated";
+			$rr = array();
+			$ret = '<br>Logdata for the LamPI-daemon: <div style="font-size:10px;">';
+			exec('tail -30 /home/pi/log/LamPI-daemon.log', $rr);
+			foreach ( $rr as $v )
+			{
+				//$ret .= $v."\n";
+				$ret .= $v."<br>";
+			}
+			$ret .= '</div>';
 		break;
 		
 		case 'rebootdaemon':
-			$ret .= "Reboot the daemon process";
+			// Actually it will take max a minute before the crontab kicks in
+			$ret = "Reboot the daemon process .. this may take a minute";
+			$ret .= system('/home/pi/scripts/PI-run -r &');
 		break;
 		
 		default:
-			$ret = "Not recognized: <".$request.">";
+			$ret = "console_message:: Not recognized: <".$request.">";
 		break;
 	}
 	return($ret);
@@ -1953,7 +1966,7 @@ while (true):
 		$i = 0;
 		while (($pos = strpos($buf,"}",$i)) != FALSE )
 		{
-			$log->lwrite("s_recv:: ".substr($buf,$i,($pos+1-$i)) );
+			$log->lwrite("s_recv:: ".substr($buf,$i,($pos+1-$i)),1 );
 			
 			$data = json_decode(substr($buf,$i,($pos+1-$i)), true);
 			$tcnt = $data['tcnt'];						// Must be present in every communication
@@ -2156,7 +2169,7 @@ while (true):
 				case "console":
 					// Handling of interfaces. Fields:
 					// action=="console", request=="clients","logs",
-					$log->lwrite("main:: Received console message: ".$data['action'].", request: ".$data['request']);
+					$log->lwrite("main:: Received console message: ".$data['action'].", request: ".$data['request'],2);
 					
 					$list = console_message($data['request']);
 					
@@ -2396,12 +2409,16 @@ while (true):
 									.",".$bcst['action'].">");
 					}
 					
-					// XXX It is difficult to determine whether we should
+					// XXX It is difficult to determine whether we should keep this here or put it in a
+					// separate function and call the bcats function from there.....
 					if ($brand == "zwave") {
 						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
 						// will then  have several Raspberries react. We only need the dedicated Razberry device to
 						// act on this command.
-						zwave_send($bcst);					// We use $bcast as it is available already
+						// We use $bcast as it is available already (and not coded Json)
+						if (zwave_send($bcst) < 0) {		
+							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
+						}
 					}
 					
 					$sock->s_bcast($answer);				// broadcast this command back to connected clients

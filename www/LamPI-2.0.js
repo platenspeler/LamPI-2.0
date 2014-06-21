@@ -8,6 +8,7 @@
 // Version 1.7, Dec 10, 2013. Work on the mobile version of the program
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
+// Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -1523,6 +1524,7 @@ function start_LAMP(){
 			alert("Connection closed by server, click OK to re-establish the connection");
 			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
 			//
+			w_sock.close();
 			setTimeout( function() { init_websockets(); }, 1500);
 			console.log("Websocket:: socket re-opened: "+w_sock.readyState);
 		};
@@ -1691,8 +1693,8 @@ function start_LAMP(){
 				//
 				case 'console':
 					console.log("console message received"+rcv.response);
-					//alert("Console Message "+rec.request+":"+rcv.response);
-					alert("Console Message :\n"+rcv.response);
+					// alert("Console Message :\n"+rcv.response);
+					myAlert("Console Message :\n"+rcv.response,rcv.request+" Output");
 				break;
 				//
 				// Support for user management messages, such as login, password etc.
@@ -2055,10 +2057,12 @@ function read_int(s) {								// Read only first in in string
 
 // ----------------------------------------------------------------------------
 // Alert Box
+// DIfference from alert() is that this does not stop program execution of other
+// threads. Also, breaks in lines not with \n but with </br>
 //
 function myAlert(msg, title) {
 
-  $('<div style="padding: 10px; min-width: 250px; max-width: 500px; word-wrap: break-word;">'+msg+'</div>').dialog({
+  $('<div style="padding:10px; min-width:250px; max-width:800px; max-height:500px; overflow:scroll; word-wrap:break-word;">'+msg+'</div>').dialog({
     draggable: false,
     modal: true,
     resizable: false,
@@ -2865,8 +2869,8 @@ function activate_room(new_room_id, selectable)
 					var slid = '<tr class="devrow dimrow">';
 					if (selectable == "Del")
 						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';	
-					slid += '<td colspan="2" ><label for="'+device_id+'Fd">'+device_name+'</label>';
-					slid += '<input type="number" data-type="range" style="width:25px;" id="'+device_id+'Fd" name="'+device_id+'Fl" value="'+device_val+'" min=0 max=31 data-highlight="true" data-mini="false" data-theme="b" /></td>';
+					slid += '<td colspan="2"><label for="'+device_id+'Fd">'+device_name+'</label>';
+					slid += '<input type="number" data-type="range" style="min-width:32px;" id="'+device_id+'Fd" name="'+device_id+'Fl" value="'+device_val+'" min=0 max=31 data-highlight="true" data-mini="false" data-theme="b" class="ddimmer"/></td>';
 					slid += '<td><input type="submit" id="'+device_id+'F0'+'" value= "OFF" class="dbuttons'+offbut+'" />';
 					slid += '<input type="submit" id="'+device_id+'F1'+'" value= "ON" class="dbuttons'+onbut+'" /></td>';
 					slid += '</tr>';
@@ -4822,7 +4826,7 @@ function activate_weather(location)
             // Define one area
             areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
 
-            // Define value gradient for bargraph tempterature
+            // Define value gradient for bargraph temperature
             tempGrad = new steelseries.gradientWrapper(  -20,
                                                         40,
                                                         [ 0, 0.20, 0.40, 0.85, 1],
@@ -4931,7 +4935,7 @@ function activate_weather(location)
 					{
 						radial[i].setValueAnimated(weather[j]['temperature']);
 						
-						if (weather[j]['humidity'] > "-1") {
+						if (weather[j]['humidity'] > -1) {
 							//console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 							radial[i+wl].setValueAnimated(weather[j]['humidity']);
 						}
@@ -5429,8 +5433,8 @@ function activate_setting(sid)
 			else {
 				but += '<td>';
 				but += '<input type="submit" id="Cc" value="Clients" class="dbuttons" >';
-				but += '<input type="submit" id="Cl" value="Logfiles" class="dbuttons" >';
-				but += '<input type="submit" id="Cr" value="Restart Daemon" class="dbuttons" >';
+				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
+				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
 				but += '</td>';
 			}
 			$(table).append(but);

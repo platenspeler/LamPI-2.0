@@ -390,9 +390,9 @@
 		
 		/* The element making up the slider. The jquery definition is even much more complex*/
 		.slider {
-			margin-left: 25px;
-			margin-right: 5px;
-			width: 280px;
+			margin-left: 20px;
+			margin-right: 25px;
+			width: 350px;
 		}
 		/* The value of a slider in an input field */
 		.slidval {

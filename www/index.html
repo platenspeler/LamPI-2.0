@@ -16,6 +16,7 @@
 // Version 1.6, Dec 10, 2013. Work on Mobile
 // Version 1.8, Jan 20, 2014. Sork on wired sensors support
 // Version 1.9, Mar 10, 2014. Sensor support and logging
+// Version 2.0, Jun 15, 2014. Support for Z-Wave added
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 // #gui_header: Here are the buttons for selecting the active rooms 
@@ -27,14 +28,14 @@
 
 -->
 
-	<title>LamPI 1.9</title>
+	<title>LamPI 2.0</title>
 	<link href="/jquery-ui-1.10.4.custom/css/smoothness/jquery-ui-1.10.4.custom.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/classic-grey.css">
     
 	<script src="/jquery-1.11.0.js"></script>
 	<script src="/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.js"></script>
     <script src="steel/tween-min.js"></script>
-    <script src="LamPI-1.9.js"></script> 
+    <script src="LamPI-2.0.js"></script> 
 
 <style type="text/css">	
 	/* All style settings moved to a dedicated .css file */
@@ -44,6 +45,7 @@
 <body>       
 <script type="text/javascript">
 
+console.log("Starting LamPI");
 start_LAMP();											// START THE MAIN PROGRAM 
 
 </script>	

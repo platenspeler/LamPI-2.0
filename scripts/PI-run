@@ -4,7 +4,14 @@ DAEMONDIR="/home/pi/daemon"; export DAEMONDIR
 SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 #
 LOGDIR="/home/pi/log"; export LOGDIR
-LOGFILE="$LOGDIR/$0.log"; export LOGFILE
+script_dir=$(dirname $0)
+if [ $script_dir = '.' ]
+then
+	LOGFILE="$LOGDIR/$0.log"; export LOGFILE
+else
+	LOGFILE="$script_dir/$0.log"; export LOGFILE
+fi
+echo "`date`:: Using logfile $LOGFILE" >> $LOGFILE
 #
 PROGRAM="LamPI-daemon.php"; export PROGRAM
 PID=""; export PID

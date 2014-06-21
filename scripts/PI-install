@@ -37,6 +37,8 @@ if [ $LINUX = "y" ]; then
 	apt=get -y install rrdtool
     apt-get -y install i2c-tools
     apt-get -y install libpango1.0-dev libxml2-dev
+    // apt-get -y install wpasupplicant wireless-tools
+    apt-get -y install phpmyadmin
 
 	echo "All LamPI required packages have been installed"
 	echo ""
@@ -219,3 +221,12 @@ if [ $CRONTAB = "y" ]; then
   fi
   echo ""
 fi
+
+//
+//
+echo "Do not forget to setup Wifi controllers if you have these"
+echo "sudo vi /etc/network/interfaces"
+echo "sudo vi /etc/wpa_supplicant/wpa_supplicant.conf"
+echo ""
+echo "If you plan to run one database server and have clients connect"
+echo "make sure you update bind in /etc/mysql/my.cnf"
