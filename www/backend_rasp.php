@@ -1,6 +1,6 @@
 <?php 
-require_once( './backend_cfg.php' );
-require_once( './backend_lib.php' );
+require_once( 'frontend_cfg.php' );
+require_once( 'frontend_lib.php' );
 
 /* 
 RASP

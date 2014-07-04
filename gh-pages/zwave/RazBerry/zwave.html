@@ -32,7 +32,8 @@
 </ol>
 <p>Probably best to reboot the device now with 'sudo reboot'.</p>
 <h2>Run the basic (blue) User interface</h2>
-<p>Start the basic User interface in the browser. http://192.168.1.xx:8083 where 192.168.1.xx is the IP address of the raspberry on your network. If you do not know the IP address of your Razberry, run the following command from a command terminal:</p>
+<p>The Z-way software uses two ports on the Razberry system, 8083 and 8084. The administration interface is at http://192.168.1.xx:8084 and can be used to update the system, restart the software or reboot the system. Port 8083 is used to run the GUI for controlling devices.</p>
+<p>Start the basic User interface in the browser. http://192.168.1.xx:8083 where 192.168.1.xx is the (=your) IP address of the raspberry on your network. If you do not know the IP address of your Razberry, run the following command from a command terminal:</p>
 <p><code>&gt; sudo ifconfig</code></p>
 <p> and look for the IP address under the eth0 or wlan0 section of the output. When the User interface is started, select the good old expert GUI and select then the &quot;network&quot; tab. Now start the interview for the newly connected Z-Wave device. As soon as the new device is recognized and initialized, remember the device number as we will need it in LamPI to identify the device by its number ID.</p>
 <h2>Use the URL Interface for LamPI</h2>

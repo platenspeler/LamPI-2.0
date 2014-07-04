@@ -11,7 +11,7 @@ then
 else
 	LOGFILE="$script_dir/$0.log"; export LOGFILE
 fi
-echo "`date`:: Using logfile $LOGFILE" >> $LOGFILE
+# echo "`date`:: Using logfile $LOGFILE" >> $LOGFILE
 #
 PROGRAM="LamPI-daemon.php"; export PROGRAM
 PID=""; export PID

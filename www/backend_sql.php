@@ -1,6 +1,6 @@
 <?php 
-require_once( './backend_cfg.php' );
-require_once( './backend_lib.php' );
+require_once( 'frontend_cfg.php' );
+require_once( 'frontend_lib.php' );
 
 /*	------------------------------------------------------------------------------	
 	Note: Program to switch klikaanklikuit and coco equipment
@@ -31,6 +31,7 @@ NOTE: This php file has NO memory other than what we store in SQL. This file is 
 Functions:
 	load_database();			return code 1
 	store_database; 			return code 2 reserved, not yet implemented 
+	
 	store_device($device);		return code 3 upon success, store new value of a device
 	delete_device($device);		return code 4 upon succes, delete complete device
 	store_scene($scene);		return code 8	
@@ -51,6 +52,75 @@ $appmsg = "";	// Application Message (from backend to Client)
 
 
 /* load_database() moved to backend_lib.php */
+
+// -------------------------------------------------------------------------------
+// DBASE_PARSE(
+//
+function dbase_parse($cmd,$message)
+{
+	//
+	switch($cmd)
+	{
+		case "add_device":
+			$ret= add_device($message);
+		break;
+		case "delete_device":
+			$ret= delete_device($message);
+		break;
+		case "add_room":
+			$ret= add_room($message);
+		break;
+		case "delete_room":
+			$ret= delete_room($message);
+		break;
+		case "add_scene":
+		break;
+		case "delete_scene":
+		break;
+		case "upd_scene":
+		break;
+		case "add_timer":
+		break;
+		case "delete_timer":
+		break;
+		case "store_timer":
+		break;
+		case "add_handset":
+		break;
+		case "delete_handset":
+		break;
+		case "store_handset":
+		break;
+		case "add_weather":
+		break;
+		case "delete_weather":
+		break;
+		case "store_setting":
+		break;
+		
+		default:
+	}
+	if ($ret >= 0) {									// Prepare structure to send back to the calling ajax client (in stdout)
+		$send = array(
+    		'tcnt' => $ret,
+			'appmsg'=> $appmsg,
+    		'status' => 'OK',
+			'apperr'=> $apperr,
+    	);
+		$output=json_encode($send);
+	}
+	else {												//	Functions need to fill apperr themselves!	
+		$send = array(
+    		'tcnt' => $ret,
+			'appmsg'=> $appmsg,
+    		'status' => 'ERR',
+			'apperr' => $apperr,
+		);
+		$output=json_encode($send);
+	}
+	return $output;
+}
+
 
 /*	-------------------------------------------------------
 	function get_parse()

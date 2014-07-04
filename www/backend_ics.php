@@ -1,6 +1,6 @@
 <?php 
-require_once ( './backend_cfg.php' );
-require_once ( './backend_lib.php' );
+require_once ( 'frontend_cfg.php' );
+require_once ( 'frontend_lib.php' );
 
 // This is the backend php script for th e handling of ICS-1000 communication.
 // I do have the program more or less up and running, but one of the near future

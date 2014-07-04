@@ -24,7 +24,7 @@
 <h1>LamPI History</h1>
 <p>The goal of my project was to provide an easy interface to the family to control the lights in our house. We had klikaanklikuit.nl switches and we have an iPad (and some Android phones and Laptops) and want to control our light switches with an easy-to-use GUI interface. This meant that I needed at least 2 components: A component that would control transmitter and receiver and handle low-level device commands, and a GUI in JavaScript/jQuery that would handle the human interaction. In order to store configuration information and for timing commands and unattended use, we would also need a daemon process serving in the background as well as a database (written in MySQL) to store configuration information.</p>
 <p>Although I would expect that you like to use the complete package, it is quite good possible to only use the RaspberryPI transmitter and receiver shell executables (see below)</p>
-<p>&lt;<a href="architecture.html">More information is available HERE</a>&gt;</p>
+<p>&lt;<a href="architecture/architecture.html">More information is available HERE</a>&gt;</p>
 <h1>LamPI GUI Functions</h1>
 <p>LamPI contains 6 main screens: Rooms, Scenes, Timers, Handsets, Weather and Config. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. </p>
 <p>The documentation for the LamPI functions can be found on this site on the following pages.</p>
@@ -34,7 +34,7 @@
   <li><a href="scenes.html">The Scenes Screen</a></li>
   <li><a href="timers.html">The Timers Screen</a></li>
   <li><a href="handsets.html">The Handsets Screen</a></li>
-  <li><a href="weather.html">The Weather screen (optional)</a></li>
+  <li><a href="weather/weather.html">The Weather screen (optional)</a></li>
   <li><a href="config.html">The Config Screen</a></li>
 </ul>
 <p>&nbsp;</p>
@@ -42,12 +42,12 @@
 <p>Apart from the GUI interface, on the backend there are some other programs active: The main LamPI_daemon, some receivers (wireless and wired)<br>
 </p>
 <ul>
-  <li>Transceiver interface; If you only want to use the <a href="transceiver.html">LamPI-receiver  command-line</a> to send and receive 433MHz messages </li>
+  <li>Transceiver interface; If you only want to use the <a href="hardware/transceiver.html">LamPI-receiver  command-line</a> to send and receive 433MHz messages </li>
   <li><a href="hardware.html">Background information  433MHz hardware for RaspberryPI</a></li>
-  <li><a href="sensors.html">Background information on Wired Sensors for PI (temperature, humidity etc).</a><br>
+  <li><a href="sensors/sensors.html">Background information on Wired Sensors for PI (temperature, humidity etc).</a><br>
     <br>
   </li>
-  <li>Background information on the <a href="architecture.html">LamPI Architecture</a></li>
+  <li>Background information on the <a href="architecture/architecture.html">LamPI Architecture</a></li>
 </ul>
 <h1>What Switches, Dimmers and other devices are supported?</h1>
 <p>LamPI can support receiver devices (making transmitter modules for various brands is often easy). Also, several brand share almost the same protocol or work or can be made to work with minor modifications, Therefore, the list below is probably just a snapshot of a much larger list...</p>
@@ -99,7 +99,7 @@
 </ul>
 <p>&nbsp;</p>
 <h1>Architectural Considerations</h1>
-<p>I did make an architecture document for LamPI which can be found &lt;<a href="architecture.html">HERE</a>&gt;.</p>
+<p>I did make an architecture document for LamPI which can be found &lt;<a href="architecture/architecture.html">HERE</a>&gt;.</p>
 <p>&nbsp;</p>
 <h1>Planned Functions</h1>
 <p>Of course I'm always thinking about new functions, as long as I do not have to put the current system up-side-down too much. After all, I do have other day-time work to do and it has to make sense for me to spend additional time. Therefore, you are welcome to ask for new functions, but if it will cost me days to implement them and I will not benefit from them in any way I will probably give priority to other changes.</p>

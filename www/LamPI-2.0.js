@@ -60,7 +60,7 @@
 // SETTINGS!!!
 // XXX: For adaptation to jqmobile changed all pathnames of backend to absolute URL's
 //
-var fake=0;													// Set to 1 if we fake communication 
+var fake=0;												// Set to 1 if we fake communication 
 
 //
 // WebSocket definitions
@@ -228,8 +228,6 @@ function start_LAMP(){
 	// Several global variables such as devices and rooms are sized based on the data returned 
 	// by the async AJAX call. As a result, you cannot!!!! rely on variables values as these functions 
 	// may refer to these variables before load_database is finished.
-	
-
 	
 	function onLine() {
 		alert("onLine");
@@ -1243,35 +1241,35 @@ function start_LAMP(){
 						// Add the device to the array
 						// So what are the variables returned by the function???
 						if (debug > 2) alert(" Dialog returned val_1,val_2: " + ret);
-						var handset_name = ret[0];
-						var handset_addr = ret[1];
-						for (var i=0; i< handsets.length; i++) {
-							if (handsets[i]['addr']==handset_addr) {
+						var weather_name = ret[0];
+						var weather_addr = ret[1];
+						for (var i=0; i< weather.length; i++) {
+							if (weather[i]['addr']==weather_addr) {
 								break;
 							}
 						}
-						if (i!=handsets.length){
-							alert("The handset address "+handset_addr+" is already registered");
+						if (i!=weather.length){
+							alert("The weather address "+weather_addr+" is already registered");
 							return(0);
 						}
-						if (debug>1) alert("New handset on ind: "+ind+", name: "+handset_name+", addr: "+handset_addr);
-						var newhandset = {
+						if (debug>1) alert("New weather on ind: "+ind+", name: "+weather_name+", addr: "+weather_addr);
+						var newweather = {
 							id: ind,
-							name: handset_name,
+							name: weather_name,
 							brand: "",
-							addr: handset_addr,
+							addr: weather_addr,
 							unit: "0",
 							val: "0",
 							type: "switch",
 							scene: ""						// we should start with empty Scene
 						}
-						handsets.push(newhandset);			// Add record newdev to devices array
-						console.log("Added new handset "+newhandset['name']);
-						send_2_dbase("add_handset", newhandset);
+						weather.push(newweather);			// Add record newdev to devices array
+						console.log("Added new weather "+neweather['name']);
+						send_2_dbase("add_weather", newweather);
 						// And add the line to the #gui_devices section
-						// Go to the new scene
-						s_handset_id = ind;
-						// activate_handset(new_handset_id);
+						// Go to the new weather
+						s_weather_id = ind;
+						// activate_handset(new_weather_id);
 						// XXX Better would be just to add one more button and activate it in #gui_header !!
 						init_weather("init");
 						return(1);	//return(1);
@@ -1556,7 +1554,7 @@ function start_LAMP(){
 			var tcnt   = rcv.tcnt; 				// message transaction counter
 			var type   = rcv.type;				// type of content part, eg raw or json
 			var action = rcv.action; 			// message text: handset || sensor || gui || weather || energy
-												// || login
+												// || login || console || alert
 			
 			// Now we need to parse the message and take action.
 			// Best is to build a separate parse function for messages
@@ -1571,6 +1569,12 @@ function start_LAMP(){
 					else {
 						console.log("action: "+action+", tcnt: "+tcnt+", mes: "+msg+", type: "+type);
 					}
+				break;
+				
+				// The daemon wants to display something on the message area, or if the debug level
+				// is high enough will display through an alert.
+				case "alert":
+				
 				break;
 				
 				// Update messages can contain updates of devices, scenes, timers or settings.
@@ -1589,6 +1593,7 @@ function start_LAMP(){
 							var uaddr  = rcv.uaddr;				// Unit address of the receiver device
 							var val    = rcv.val;
 							var brand  = rcv.brand;				// Brand of the receiver device
+							// XXX And for the moment do nothing
 						break;
 						
 						case 'raw':
@@ -1612,7 +1617,6 @@ function start_LAMP(){
 								else {
 									val = pars[2];
 								}
-						
 								var ind = find_device(room, "D"+device);
 								console.log("onmessage:: room: "+room+", device: "+device+", val: "+val+", ind: "+ind);
 								devices[ind]['val']=val;
@@ -1751,7 +1755,7 @@ function start_LAMP(){
 							tcnt: ++w_tcnt%1000,
 							action: 'login',
 							login:  ret[0],
-							password:  ret[1],
+							password:  ret[1]
 						}
 						console.log(login_msg);
 						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
@@ -1774,7 +1778,21 @@ function start_LAMP(){
   					},
   					'Confirm Login'
 				); // askForm
+				break;
 				
+				case 'load':
+					// QQQ
+					rooms = rcv.response['rooms'];			// Array of rooms
+					devices = rcv.response['devices'];		// Array of devices			
+					scenes = rcv.response['scenes'];
+					timers = rcv.response['timers'];
+					handsets = rcv.response['handsets'];
+					settings = rcv.response['settings'];
+					brands = rcv.response['brands'];
+					weather = rcv.response['weather'];		// we want the id and name values
+					weatheron = rcv.response['weatheron'];	// which fields are on 0/1 off/on values
+					// XXX whaah
+					init();
 				break;
 				
 				default:
@@ -1852,7 +1870,7 @@ function start_LAMP(){
 		});	
 		
 		$("<div/>", {
-			text : 'Confirm Login',
+			text : 'Confirm Login'
 		}).appendTo($popUp);
 	
 		$(str,{}).appendTo($popUp);
@@ -2309,7 +2327,7 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 		});
 	
 		$("<div/>", {
-			text : dialogTitle,
+			text : dialogTitle
 		}).appendTo($popUp);
 	
 			$(dialogText,{}).appendTo($popUp);
@@ -3588,19 +3606,18 @@ function activate_scene(scn)
 					// Change a timer value in the scene screen
 					case "Ft":
 	// XXX MMM In LamPI, Scene id can be higher than 9, thus 2 chars (make function read_int(s,i) )
-						
 						var val= $(e.target).val();
 						//alert("scene current time val is: "+val);
 						
-						var hh=""; for(i=00;i<24;i++) {
+						var hh=""; for(var i=0;i<24;i++) {
 							if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
 						}
-						var mm=""; for(i=00;i<60;i++) {
+						var mm=""; for(var i=0;i<60;i++) {
 							if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 							else mm +='<option>'+("00"+i).slice(-2)+'</option>';
 						}
-						var ss=""; for(i=00;i<60;i++) {
+						var ss=""; for(var i=0;i<60;i++) {
 							if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 							else ss +='<option>'+("00"+i).slice(-2)+'</option>';
 						}
@@ -4083,11 +4100,11 @@ function activate_timer(tim)
 						$('#Ts').addClass( 'hover' );
 						// Find the text field for input and to output to
 						var val= $("#Tv").val();
-						var hh=""; for (i=00; i<24; i++) {
+						var hh=""; for (i=0; i<24; i++) {
 							if (i==12) hh +='<option selected>'+("00"+i).slice(-2)+'</option>';
 							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
 						}
-						var mm=""; for (i=00; i<60; i++) mm +='<option>'+("00"+i).slice(-2)+'</option>';
+						var mm=""; for (i=0; i<60; i++) mm +='<option>'+("00"+i).slice(-2)+'</option>';
 			
 						var ret=0;
 						var frm='<form id="addRoomForm"><fieldset>'
@@ -4131,7 +4148,7 @@ function activate_timer(tim)
 						$('#Tr').addClass( 'hover' );
 						//alert ("SunRise button pressed");
 						var val= $("#Tv").val();
-						var mm=""; for (i=-04; i<5; i++) {
+						var mm=""; for (i=-4; i<5; i++) {
 							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
 							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
 						}
@@ -4183,7 +4200,7 @@ function activate_timer(tim)
 						$('#Td').addClass( 'hover' );
 						
 						var val= $("#Tv").val();
-						var mm=""; for (i=-04; i<5; i++) {
+						var mm=""; for (i=-4; i<5; i++) {
 							if (i==0) mm += '<option selected>'+("00"+i).slice(-2)*30+'</option>';
 							else mm += '<option>'+("00"+i).slice(-2)*30+'</option>';
 						}
@@ -4615,15 +4632,15 @@ function activate_handset(hset)
 				
 				//alert("scene current time val is: "+val);
 				
-				var hh=""; for(i=00;i<24;i++) {
+				var hh=""; for(i=0;i<24;i++) {
 					if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 					else hh +='<option>'+("00"+i).slice(-2)+'</option>';
 				}
-				var mm=""; for(i=00;i<60;i++) {
+				var mm=""; for(i=0;i<60;i++) {
 					if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 					else mm +='<option>'+("00"+i).slice(-2)+'</option>';
 				}
-				var ss=""; for(i=00;i<60;i++) {
+				var ss=""; for(i=0;i<60;i++) {
 					if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
 					else ss +='<option>'+("00"+i).slice(-2)+'</option>';
 				}
@@ -5018,14 +5035,14 @@ function activate_setting(sid)
 					;
 			$(table).append(but);
 
-			var debug_help = " <br>\
-					This is some text to explain the use of the debug parameter. \
-					During normal operation, the parameter should  be set to 0, which means no debug messages are displayed \
-					and only a condensed set of status messages will be shown. \
-						<li>Level 1: Will set debug level so that more messages are displayed in the message area \
-						<li>Level 2: Will add popup alerts for the main things/buttons/events \
-						<li>Level 3: All error and comment messages are displayed <br /><br> \
-					";
+			var debug_help = ' <br>'
+					+ 'This is some text to explain the use of the debug parameter. '
+					+ 'During normal operation, the parameter should  be set to 0, which means no debug messages are displayed '
+					+ 'and only a condensed set of status messages will be shown. '
+					+ '<li>Level 1: Will set debug level so that more messages are displayed in the message area '
+					+ '<li>Level 2: Will add popup alerts for the main things/buttons/events '
+					+ '<li>Level 3: All error and comment messages are displayed <br /><br> '
+					;
 			$(table).append('<tr><td><span>' + debug_help + '</span>');
 			
 			debug = settings[0]['val'];
@@ -5078,13 +5095,13 @@ function activate_setting(sid)
 			}
 			$(table).append(but);
 
-			var debug_help = "<br> \
-								This parameter describes which controller we will use to send lamp commands to the devices. \
-								The ICS-1000 is a safe choice in case you have one. For users that have a Raspberry PI\
-								and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php) \
-								it's much more fun to use the latter. Remember to pair your device with either or both.\
-								<br /><br> \
-					";
+			var debug_help = "<br>"
+							+ "	This parameter describes which controller we will use to send lamp commands to the devices. "
+							+ "	The ICS-1000 is a safe choice in case you have one. For users that have a Raspberry PI "
+							+ "	and a 433 MHz transmitter (and implemented the commands as found in backend_rasp.php) "
+							+ "	it's much more fun to use the latter. Remember to pair your device with either or both."
+							+ "	<br /><br>"
+					;
 			$(table).append('<tr><td><span>' + debug_help + '</span>');	
 			
 			cntrl = settings[1]['val'];
@@ -5163,13 +5180,13 @@ function activate_setting(sid)
 					;
 			$(table).append(but);
 
-			var debug_help = "<br> \
-								This parameter describes what kind of storage we use on the backend. \
-								The simplest solution is using files for storage, but then we will not be able to\
-								synchronize all ations on the client with storage. <br><br>\
-								At the moment, only MySQL is implemented! (and it works like a charm)\
-								<br /><br> \
-					";
+			var debug_help = "<br>"
+							+ "	This parameter describes what kind of storage we use on the backend. "
+							+ "	The simplest solution is using files for storage, but then we will not be able to"
+							+ "	synchronize all ations on the client with storage. <br><br>"
+							+ "	At the moment, only MySQL is implemented! (and it works like a charm)"
+							+ "	<br /><br> "
+					;
 			$(table).append('<tr><td><span>' + debug_help + '</span>');	
 
 			mysql = settings[2]['val'];
@@ -5211,19 +5228,19 @@ function activate_setting(sid)
 					;
 			$(table).append(but);
 
-			var debug_help = "<br> \
-								This parameter deals with the persistence of the data to the SQL database. \
-						<li>Easy: Button changes are locally saved, and will be remembered in this session. \
-								Configuration changes to scenes/timers are saved to memory only. \
-								Re-ordering buttons in sequences are cosmetic only, as soon as you move away from the page \
-								changes are forgotten \
-						<li>Relaxed: Changes in devices are remembered during the session and are written to the backend \
-								changes in sequences are not. When other users use remotes or other jqmobile apps,\
-								relaxed still has advantages, although remembering buttons settings between sessions is less useful\
-						<li>Strict: As far as possible, every change in configuration data will be written to the \
-								backend database. More traffic overhead, slower performance, but maximum consistency of \
-								the database also between different webusers or sessions.\
-					";
+			var debug_help = "<br>"
+				+ "		This parameter deals with the persistence of the data to the SQL database. "
+				+ "<li>Easy: Button changes are locally saved, and will be remembered in this session. "
+				+ "		Configuration changes to scenes/timers are saved to memory only. "
+				+ "		Re-ordering buttons in sequences are cosmetic only, as soon as you move away from the page "
+				+ "		changes are forgotten "
+				+ "<li>Relaxed: Changes in devices are remembered during the session and are written to the backend "
+				+ "		changes in sequences are not. When other users use remotes or other jqmobile apps,"
+				+ "		relaxed still has advantages, although remembering buttons settings between sessions is less useful"
+				+ "<li>Strict: As far as possible, every change in configuration data will be written to the "
+				+ "		backend database. More traffic overhead, slower performance, but maximum consistency of "
+				+ "		the database also between different webusers or sessions."
+			;
 			$(table).append('<tr><td><span>' + debug_help + '</span>');	
 			persist = settings[3]['val'];	
 			$('#choice').buttonset();
@@ -5343,16 +5360,16 @@ function activate_setting(sid)
 					;
 			$(table).append(but);
 			
-			var debug_help = "<br> \
-						This page allows you to perform some backup and restore functions.<br>\
-						It allows you to restore your database to a previous/known state,\
-						for example if you messed up.<br>\
-						Making regular backups of your configuration to file will greatly help \
-						in restoring to a useful state if something goes wrong.<br /><br />\
-						The database.cfg file is one of the default files for the system, \
-						so please use another name for your backup.<br/><br/>\
-						NOTE: At this moment we do not check for overwriting existing files.<br/>\
-					";
+			var debug_help = "<br>"
+					+ "This page allows you to perform some backup and restore functions.<br>"
+					+ "It allows you to restore your database to a previous/known state,"
+					+ "for example if you messed up.<br>"
+					+ "Making regular backups of your configuration to file will greatly help "
+					+ "in restoring to a useful state if something goes wrong.<br/><br/>"
+					+ "The database.cfg file is one of the default files for the system, "
+					+ "so please use another name for your backup.<br/><br/>"
+					+ "NOTE: At this moment we do not check for overwriting existing files.<br/>"
+					;
 			$(table).append('<tr><td colspan="2"><span>' + debug_help + '</span></td>');	
 
 			var list = [];
@@ -5450,7 +5467,7 @@ function activate_setting(sid)
 					;
 			$(table).append(but);
 
-			// Now define the callback function for this cofig screen
+			// Now define the callback function for this config screen
 			//
 			$( "#gui_console" ).on("click", ".dbuttons", function(e) 
 			{
@@ -6018,6 +6035,65 @@ function decode_scene_string (str)
 	return (res);
 }
 
+// ---------------------------------------------------------------------------------------
+// SEND2DAEMON
+//
+// Universal function for sending buffers to the daemon
+// action: "gui","dbase","login"
+//
+function send2daemon(action,cmd,message)
+{
+	//
+	if (debug>=1) console.log("send2daemon: action: "+action+", cmd: "+cmd);
+	// Make the buffer we'll transmit. As you see, the message(s) are really simple
+	// and be same as ICS-1000, and will not be full-blown json.
+	var data = {
+		tcnt: ++w_tcnt%1000,
+		type: "raw",
+		action: action,				// actually the class of the action
+		cmd: cmd,					// The command for that class
+		message: message			// Message contains the parameter(s) necessary
+	};
+	//if (debug>=1) console.log("send2daemon:: jSon: "+JSON.stringify(data));
+		
+	// Now check the state of the socket. This could take forever, have to build a limit ...
+	// In practice, this sending part will likely NOT find out that the connection is lost,
+	// but the registered receiver handler (somewhere around line 1800) will.
+	
+	for (var i=0; i<4; i++) {				
+		switch (w_sock.readyState) {
+		// 0: Not yet ready, wait for connect
+		case 0:
+			console.log("send2daemon:: readystate not ready: "+w_sock.readyState);
+			setTimeout( function() { console.log("send2daemon:: socket not ready: "+w_sock.readyState); }, 1000);
+		break;
+		// 1: socket is ready, send the data
+		case 1: 
+			if (debug>=1) console.log("send2daemon:: sending: "+JSON.stringify(data));
+			w_sock.send(JSON.stringify(data));
+			return(0);
+		break;
+		// 2: close in progress
+		// Must wait the disconnect out?
+		case 2:
+			console.log("send2daemon:: readystate close in progress: "+w_sock.readyState);
+		break;
+		// 3: closed
+		// if closed, reopen the socket again
+		case 3:
+			console.log("send2daemon:: readystate closed: "+w_sock.readyState);
+			// wait with execution for 500 mSec
+			//setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+			//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+		break;
+	
+		default:
+			console.log("send2daemon:: readystate not defined: "+w_sock.readyState);
+		}
+	}// for
+	console.log("send2daemon:: unable to transmit message 4 times: "+w_sock.readyState);
+	return(-1);
+}
 
 
 // ---------------------------------------------------------------------------------------
@@ -6029,7 +6105,7 @@ function decode_scene_string (str)
 function load_database(dbase_cmd) 
 {
 	var sqlServer = murl + 'backend_sql.php';
-	if (debug>1) alert("load_database:: sqlServer:: " + sqlServer);
+	if (debug>=2) alert("load_database:: sqlServer:: " + sqlServer);
 	else console.log("load_database:: sqlServer: "+ sqlServer);
 	
 	$.ajax({
@@ -6049,7 +6125,6 @@ function load_database(dbase_cmd)
 			// does not make a lot of difference in time and processing
 			rooms = data.appmsg['rooms'];			// Array of rooms
 			devices = data.appmsg['devices'];		// Array of devices			
-			// XXX These 7 should be retrieved upon activation, but this finetuning not done yet!
 			scenes = data.appmsg['scenes'];
 			timers = data.appmsg['timers'];
 			handsets = data.appmsg['handsets'];
@@ -6124,7 +6199,17 @@ function message_device(action, controller_cmd)
 		activate_scene(s_scene_id);
 		return(1);
 	}
-	if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
+	//
+	// WEBSOCKETS
+	// if not using phonegap, and controller == raspberry, use websockets 
+	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
+	{
+		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
+		// and be same as ICS-1000, and will not be full-blown json.
+		send2daemon("gui","set",controller_cmd);
+	}
+	
+	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		$.ajax({
         	url: s_controller,
@@ -6176,61 +6261,15 @@ function message_device(action, controller_cmd)
          	}
 		}); // ajax
 	} // if ics
-	
-	// Else, if not using phonegap, and controller == raspberry, use websockets 
+
 	//
+	// nothing else
 	//
-	else if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
-	{
-		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
-		// and be same as ICS-1000, and will not be full-blown json.
-		var data = {
-			tcnt: ++w_tcnt%1000,
-			action: "gui",	
-			message: controller_cmd
-		};
-		
-		// Now check the state of the socket. This could take forever, have to build a limit ...
-		// In practice, this sending part will likely NOT find out that the connection is lost,
-		// but the registered receiver handler (somewhere around line 1800) will.
-		for (var i=0; i<4; i++) {				
-			switch (w_sock.readyState) {
-			// 0: Not yet ready, wait for connect
-			case 0:
-				console.log("Websocket:: readystate not ready: "+w_sock.readyState);
-				setTimeout( function() { console.log("message_device:: socket not ready: "+w_sock.readyState); }, 1000);
-			break;
-			// 1: socket is ready, send the data
-			case 1: 
-				if (debug>0) console.log("message_device:: sending: "+controller_cmd);
-				w_sock.send(JSON.stringify(data));
-				return(0);
-			break;
-			// 2: close in progress
-			// Must wait the disconnect out?
-			case 2:
-				console.log("Websocket:: readystate close in progress: "+w_sock.readyState);
-			break;
-			// 3: closed
-			// if closed, reopen the socket again
-			case 3:
-				console.log("Websocket:: readystate closed: "+w_sock.readyState);
-				// wait with execution for 500 mSec
-				//setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-				//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
-			break;
-		
-			default:
-				console.log("Websocket:: readystate not defined: "+w_sock.readyState);
-			}
-		}// for
-		console.log("Websocket:: unable to transmit message 3 times: "+w_sock.readyState);
-	}//else
 	else {
 		message("message_device:: xmit faked");
 	}
+	return(1);
 }
-
 
 
 // -------------------------------------------------------------------------------------------
@@ -6242,7 +6281,18 @@ function message_device(action, controller_cmd)
 //
 function send_2_dbase(dbase_cmd, dbase_arg) 
 {
-	$.ajax({
+	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
+	{
+		console.log("send_2_database:: Receiving websocket command "+dbase_cmd);
+		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
+		// and be same as ICS-1000, and will not be full-blown json.
+		send2daemon("dbase",dbase_cmd,dbase_arg);
+	}
+	
+	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
+	{
+		console.log("send_2_database:: Receiving ajax command "+dbase_cmd);
+		$.ajax({
    		url: murl + 'backend_sql.php',				   
 		type: "POST",
     	dataType: 'json',								// TO receive json ...
@@ -6277,10 +6327,12 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 			+ "\n\nFunction will finish now!" );
 			return(-1);
 		}
-	});
+		});
+	}
+	else {
+		message("send_2_dbase:: Error database message");
+	}
 };
-
-
 
 // --------------------------------------------------------------------------------------
 // Send_2_set: Send commands to the backend PHP system. 

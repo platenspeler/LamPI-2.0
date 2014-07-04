@@ -15,7 +15,7 @@
 // Val 1: Verbose mode
 // Val 2: Normal Debug level
 // Val 3: Detail debugging info. Will fill up the logfile Quickly
-	$debug = 1;
+	$debug = 0;
 
 // MySQL DATABASE SETTINGS
 // Default server is localhost for most situations. However, should you want to run the
@@ -24,34 +24,34 @@
 	$dbname = "dorm";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
-	$dbhost = "192.168.2.11";				// standard this should be "localhost"
+	$dbhost = "192.168.2.55";				// standard this should be "localhost"
 
 // USER ADMIN SETTINGS (could be in database too, but this is easy as well)
 // In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'aap',
-						'password' => '0000' , 
+						'login' => 'maarten',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'schapen',
-						'password' => '0000' , 
+						'login' => 'annemarie',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'noot',
-						'password' => '0000' , 
+						'login' => 'laurens',
+						'password' => '5143' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'mies',
-						'password' => '0000' , 
+						'login' => 'marloes',
+						'password' => '5143' , 
 						'server' => '' ,
-						'trusted' => '2'
+						'trusted' => '1'
 					) 
 			);
 	
@@ -89,6 +89,6 @@
 // The IP address of the Razberry machine. The Razberry is used to
 // relay and handle all Z-Wave 868MHz messaging to connected Z-Wave
 // devices and sensors
-	$razberry = "192.168.2.102";
+	$razberry = "192.168.2.52";
 
 ?>

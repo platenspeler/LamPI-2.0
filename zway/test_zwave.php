@@ -1,6 +1,6 @@
 <?php 
-require_once ( '../www/backend_cfg.php' );
-require_once ( '../www/backend_lib.php' );
+require_once ( '../www/frontend_cfg.php' );
+require_once ( '../www/frontend_lib.php' );
 
 
 

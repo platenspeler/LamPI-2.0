@@ -1,6 +1,7 @@
 <?php 
-require_once( '../www/backend_cfg.php' );
-require_once( '../www/backend_lib.php' );
+require_once( '../daemon/backend_cfg.php' );
+require_once( '../daemon/backend_lib.php' );
+require_once( '../daemon/backend_sql.php' );
 
 /*	------------------------------------------------------------------------------	
 // LamPI-daemon.php, Daemon Program for LamPI, controller of klikaanklikuit and action equipment
@@ -91,11 +92,13 @@ class User {
 }
 
 /* ----------------------------------------------------------------------------------
- *
+ * ZWAVE class
  *
  */
  
 class Zwave {
+	
+	
 }
 
 /** ---------------------------------------------------------------------------------- 
@@ -111,7 +114,7 @@ function zwave_scan($msg) {
 /** ---------------------------------------------------------------------------------- 
  * Send the $,sg to the Razberry machine. At this moment we have the Razberry server
  * as a separeate device on the network.
- *
+ * The function returns 1 on success.
  */
 function zwave_send($msg) {
 	global $log;
@@ -162,7 +165,7 @@ function zwave_send($msg) {
 	if ($output == false) {
 		$log->lwrite("zwave_send:: curl_exec Razberry execution error",0);
 		curl_close($ch);
-		return -1;
+		return(-1);
 	}
 	if ($output == '"'.$p.'"') {
 		$log->lwrite("zwave_send:: curl_exec set correctly",2);
@@ -809,7 +812,7 @@ class Sock {
 		$clientIP=0;
 		$usec = 10000;
 		
-		// Start with reading the UDP socket
+		// Start with reading the UDP socket. If there is a message read, return the buffer
 		if ( ($buf = $this->s_urecv() ) != -1 ) {
 			$log->lwrite("s_recv:: UDP s_urecv returned buffer: ".$buf,3);
 			return($buf);
@@ -1489,7 +1492,7 @@ function console_message($request) {
 
 
 /* ---------------------------------------------------------------------------------
-* MESSAGE_PARSE a socket
+* MESSAGE_PARSE a GUI or HANDSET message
 *
 * Parse a message coming from the outside world on a socket.
 * and parse it for commands. Commands may either be events for the run Queue
@@ -1878,7 +1881,8 @@ if ($config == -1)
 	$log->lwrite("main:: FATAL, exiting now\n");
 	exit(1);
 }
-else if ($debug>0) $log->lwrite("main:: Loaded the database, err: ".$apperr);
+else 
+	$log->lwrite("main:: Loaded the database, err: ".$apperr,1);
 
 $devices     = $config['devices'];
 $scenes      = $config['scenes'];
@@ -1947,9 +1951,10 @@ while (true):
 	
 	// -------------------------------
 	// 1. STAGE 1 - LISTEN TO THE SOCKET LAYER FOR INCOMING MESSAGES
+	
 	// Lets look to the socket layer and see whether there are messages for use
 	// and handle these messages. We will put actions in a QUEUE based on timestamp.
-	
+	// As long as there is data, continue reading
 	while ( ($buf = $sock->s_recv() ) != -1 )
 	{
 		// The data structure read is decoded into a human readible string. jSon or raw
@@ -1962,9 +1967,9 @@ while (true):
 		}
 		
 		// Make sure that if two json messages are present in the buffer
-		// that we decode both of them..
+		// that we decode both of them.. position of last(!) "}" in buffer
 		$i = 0;
-		while (($pos = strpos($buf,"}",$i)) != FALSE )
+		while (($pos = strrpos($buf,"}",$i)) != FALSE )
 		{
 			$log->lwrite("s_recv:: ".substr($buf,$i,($pos+1-$i)),1 );
 			
@@ -1986,7 +1991,7 @@ while (true):
             					$log->lwrite(" - Unexpected control character found");
         					break;
         					case JSON_ERROR_SYNTAX:
-            					$log->lwrite(" - Syntax error, malformed JSON");
+            					$log->lwrite(" - Syntax error, malformed JSON: ");
         					break;
         					case JSON_ERROR_UTF8:
             					$log->lwrite(" - Malformed UTF-8 characters, possibly incorrectly encoded");
@@ -2089,7 +2094,7 @@ while (true):
 					$log->lwrite("ERROR main:: failed writing answer on socket");
 				}
 				//
-				// Take action on the message based on the action field of the message
+				// Take action on the message received based on the action field of the message
 				//
 				switch ($data['action']) 
 				{
@@ -2101,15 +2106,19 @@ while (true):
 					// GUI message, probably in ICS coding
 					// For compatibility with raw message format, we just use ICS format
 					// NOTE that we have full json support implemented in LamPI-x.y.js, but NOT tested
-					$cmd = $data['message'];
-					message_parse($cmd);
+					message_parse($data['message']);
+				break;
+				
+				case "dbase":
+					// All commands that are sent to the daemon concerned with
+					// updating the datebase configuration
+					dbase_parse($data['cmd'],$data['message']);
 				break;
 				
 				case "handset":
 					// For compatibility with raw message format, we just use ICS format
 					// to encode all content in a message field.
-					$cmd = $data['message'];
-					message_parse($cmd);
+					message_parse($data['message']);
 				break;
 				
 				case "weather":
@@ -2139,7 +2148,6 @@ while (true):
 					);
 
 					$wthr->upd($item);
-
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
 					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],2);
@@ -2147,7 +2155,7 @@ while (true):
 				break;
 
 				case "energy":
-					// Energy cation message received
+					// Energy cation message received. Must be message from P1 connector
 					// XXX tbd
 					$log->lwrite("main:: action: ".$item['action'],1);
 				break;
@@ -2158,6 +2166,40 @@ while (true):
 					$log->lwrite("main:: action: ".$item['action'],1);
 				break;
 
+				case "load_database":
+					// Load the MySQL Database.
+					//
+					$log->lwrite("main:: action: ".$item['action'],1);
+					$config = load_database();					// load the complete configuration object
+					if ($config == -1) 
+					{
+						$log->lwrite("main:: Error loading database, error: ".$apperr);
+						$log->lwrite("main:: FATAL, exiting now\n");
+						exit(1);
+					}
+					else 
+						$log->lwrite("main:: Loaded the database, err: ".$apperr,1);
+						
+					$response = array (
+							'tcnt' => $tcnt."",
+							'type' => 'raw',
+							'action' => 'load',
+							'request' => $data['request'],
+							'response' => $config
+					);
+					if ( false === ($message = json_encode($response)) ) {
+						$log->lwrite("ERROR main:: json_encode failed: <"
+									 .$response['tcnt'].", ".$response['action'].">");
+					}
+					$log->lwrite("Json encoded console: ".$response['response'],2);
+					
+					if ( $sock->s_send($message) == -1) {
+						$log->lwrite("ERROR main:: failed writing login message on socket");
+						continue;
+					}
+					$log->lwrite("main:: writing load_database message on socket OK",2);	
+				break;
+				
 				case "login":
 					// Received a message for login. As the server will initiate this request
 					// and as we do the client is still untrusted, this will probably never happen.
@@ -2194,7 +2236,7 @@ while (true):
 				break;
 
 				default:
-					$log->lwrite("ERROR main:: json data type: <".$data['type']
+					$log->lwrite("ERROR main:: json data action: ".$data['action'].", type: <".$data['type']
 									."> not found using raw message");
 					$cmd = $data['message'];
 				}
@@ -2279,7 +2321,7 @@ while (true):
 	for ($j=0; $j<count($queue); $j++) {
 		// Queue records contain scene name, timers (in secs) and commands (ready for kaku_cmd)
 		// New records are put to the end of the queue, with timer being the secs to wait from initialization
-		if ($debug > 1) $log->lwrite("main:: Handling queue, timestamp : ".date('[d/M/Y:H:i:s]',$tim),2);
+		$log->lwrite("main:: Handling queue, timestamp : ".date('[d/M/Y:H:i:s]',$tim),2);
 		
 		$items = $queue->q_pop();
 		
@@ -2396,29 +2438,37 @@ while (true):
 						// First part of the record specifies this message type and characteristics
 						'tcnt' => "0",
 						'action' => "upd",					// code for remote command. upd tells we update a value
-						'type'   => "raw",					// type either raw or json. 
+						'type'   => "raw",					// type either raw or json.
+						'confirm' => "0",					// For 433MHz devices always 0, for Z-Wave may be 1
 						// Remainder of record specifies device parameters
 						'gaddr'  => $device['gaddr'],
 						'uaddr'  => $dev."",				// From the sscanf command above, cast to string
 						'brand'  => $brand,					// NOTE brand is a string, not an id here
 						'val'    => $sndval,				// Value is "on", "off", or a number (dimvalue) 1-32
-						'message' => $items[$i]['cmd']		// The GUI message, ICS encoded 
+						'message' => $items[$i]['cmd']		// The GUI message, ICS encoded
 					);
+					
+					
+					// XXX It is difficult to determine whether we should keep this here or put it in a
+					// separate function and call the bcast function from there.....
+					if ($brand == "zwave") {
+						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
+						// will then  have several Raspberries react. We only need the dedicated Razberry device 
+						// with Razberry to act on this command.
+						// We use $bcast array as it is available already (and not the coded Json $answer)
+						if (zwave_send($bcst) < 0) {	
+							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
+							// Send something to the connected GUI clients
+						}
+						else {
+							$log->lwrite("main:: zwave_send command success: ".$items[$i]['action'],2);
+							$bcst['confirm'] = "1";
+						}
+					}
+					
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("ERROR main:: broadcast encode: <".$bcst['tcnt']
 									.",".$bcst['action'].">");
-					}
-					
-					// XXX It is difficult to determine whether we should keep this here or put it in a
-					// separate function and call the bcats function from there.....
-					if ($brand == "zwave") {
-						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
-						// will then  have several Raspberries react. We only need the dedicated Razberry device to
-						// act on this command.
-						// We use $bcast as it is available already (and not coded Json)
-						if (zwave_send($bcst) < 0) {		
-							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
-						}
 					}
 					
 					$sock->s_bcast($answer);				// broadcast this command back to connected clients

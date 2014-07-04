@@ -2,27 +2,27 @@
 # This is the simple installer script for LamPI
 # (c) M. Westenberg, 2013, 2014
 #
+# Basically there are 3 types of installation:
+#
+# 1. The LamPI-master containing the LamPI-daemon, and possibly some sensors incl LamPI-receiver
+# 2. A LamPI slave, this is a Raspberry with only sensors or receiver/transmitter but is a slave 
+#    of the Master. It does not contain a LamPI-daemon nor a database
+# 3. A LamPI-z-way device. This is a Raspberry + Razberry combo acting as a gateway/slave
+#    for controlling Z-Wave devices
+#
 LINUX="y"; export LINUX
 WIRING="y"; export WIRING
 RRDTOOL="n"; export RRDTOOL
+RAZBERRY="n"; export RAZBERRY
 CRONTAB="y"; export CRONTAB
+HOMEDIR="/home/pi"; export HOMEDIR
 
-cd /home/pi
-echo "This script will upgrade your Raspberry to its latest revision of software."
-echo "It will instal MYSQL, PHP and Apache webserver packages which will take"
-echo "some time to install. Please press enter to continue or CTRL-C to abort."
-echo ""
-echo -n "<Press ENTER to start>"
-read a
 
 # --------------------------------------------------------------
 # General Linux bookkeeping and installatation of the latest packages
 #
-if [ $LINUX = "y" ]; then
-  echo "Next step is to install Linux PHP, Mysql and Apache library"
-  echo -n "<Press ENTER to continue>"
-  read a
-  echo ""
+install_linux()
+{
 	apt-get update
 	apt-get upgrade
 
@@ -42,106 +42,77 @@ if [ $LINUX = "y" ]; then
 
 	echo "All LamPI required packages have been installed"
 	echo ""
-fi
-echo "Finished installing Linux packages"
-echo ""
-
-# -------------------------------------------------------------
-# Some more administration to be done for modules
-#
-
-# Make sure that the database is in place
-# Make sure that /etc/modprobe.d/raspi.conf contains # in front of i2c lines
+}
 
 
 # -------------------------------------------------------------
 # Download, Install and build the RazBerry software.
 # Only do this if you have a Razberry installed 
 #
-if [ $RAZBERRY != "n" ]; then
-  echo "Next step is to install the Razberry software"
-  echo -n "<Press Y  + ENTER to continue>"
-  read a
-  if [ "$a" == "Y" ]; then
-	echo ""
+install_razberry()
+{
 	echo "Starting installation of Razberry"
-	wget -q -O - http://razberry.zwave.me/install | sudo bash 
+	wget -q -O - http://razberry.zwave.me/install/v1.7.1 | sudo bash 
 	# Edit the /opt/Z-Way/config.xml
 	# reboot
 	# http://192.168.2.52:8083
-	echo ""
-  else
-  	echo "Razberry software NOT installed"
-  fi
-fi
+    echo ""
+	echo "Installing node.js and npm packages"
+    sudo apt-get -y install node.js
+    sudo apt-get -y install npm
+}
 
 
 # -------------------------------------------------------------
 # Download, Install and build the wiringPI library of Gordon
 #
-if [ $WIRING != "n" ]; then
-  echo "Next step is to install the wiringPI library"
-  echo -n "<Press ENTER to continue>"
-  read a
-  echo ""
-  echo "Starting installation of Wiring Libraries"
-  sudo apt-get install git-core
-  if [ -d wiringPi ]; then
-	cd wiringPi
-	git pull origin
-  else
-	git clone git://git.drogon.net/wiringPi
-	cd wiringPi
-	./build
-  fi
+install_wiringpi()
+{
 	echo ""
-fi
+	echo "Starting installation of Wiring Libraries"
+	sudo apt-get install git-core
+	if [ -d wiringPi ]; then
+		cd wiringPi
+		git pull origin
+	else
+		git clone git://git.drogon.net/wiringPi
+		cd wiringPi
+		./build
+	fi
+	echo ""
+}
 
 # --------------------------------------------------------------
 # Install the LamPI software from the download server
 #
-cd /home/pi
+install_lampi()
+{
+	cd $HOMEDIR
 
-# The command below might FAIL if the PI-install script is put in /home/pi/scripts and
-# if the /home/pi directory is not empty. For safety we therefore copy to /tmp first.
-#
-rm -rf /tmp/effe
-mkdir /tmp/effe
-git clone git://github.com/platenspeler/LamPI-1.9 /tmp/effe
-cd /tmp/effe; tar cf - . | ( cd /home/pi; tar xpf - )
-rm -rf /tmp/effe
+	# The command below might FAIL if the PI-install script is put in $HOMEDIR/scripts and
+	# if the $HOMEDIR directory is not empty. For safety we therefore copy to /tmp first.
+	#
+	rm -rf /tmp/effe
+	mkdir /tmp/effe
+	git clone git://github.com/platenspeler/LamPI-2.0 /tmp/effe
+	cd /tmp/effe; tar cf - . | ( cd $HOMEDIR; tar xpf - )
+	rm -rf /tmp/effe
 
-# ----------------------------------------------------------------
-# Set the apache base directory
-#
-sudo sed 's|/var/www|/home/pi/www|g' /etc/apache2/sites-available/default > /tmp/effe
-sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
-sudo mv /tmp/effe /etc/apache2/sites-available/default
-sudo /etc/init.d/apache2 restart
+	# ----------------------------------------------------------------
+	# Set the apache base directory
+	#
+	sudo sed 's|/var/www|$HOMEDIR/www|g' /etc/apache2/sites-available/default > /tmp/effe
+	sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
+	sudo mv /tmp/effe /etc/apache2/sites-available/default
+	sudo /etc/init.d/apache2 restart
+}
 
-# ----------------------------------------------------------------
-# Configure MODULES
-# Make the w1 bus modules load at system startup
-# by adding module in the /etc/modules files
-#
-sudo echo 'w1-gpio' >> /etc/modules
-sudo echo 'w1-therm' >> /etc/modules
-sudo echo 'i2c-bcm2708' >> /etc/modules
-sudo echo 'i2c-dev' >> /etc/modules
-
-# Standard, there are two modules blacklisted in the raspi-blacklist.conf
-# file as found the modprobe.d directory. Just comment these blaklisted
-# modules out.
-#
-sudo sed 's|blacklist|#blacklist|g' /etc/modprobe.d/raspi-blacklist.conf > /tmp/effe
-sudo mv /etc/modprobe.d/raspi-blacklist.conf /etc/modprobe.d/raspi-blacklist.conf.org
-sudo mv /tmp/effe /etc/modprobe.d/raspi-blacklist.conf
 
 # ------------------------------------------------------------
 # Install RRDTOOL bindings
 #
-if [ $RRDTOOL != "n" ]; then
-	echo ""
+install_rrdtool()
+{
 	echo "Installing RRDTOOL"
 	sudo mkdir -p /usr/local/src/rrdtool-1.4.7
 	cd /usr/local/src/rrdtool-1.4.7
@@ -168,62 +139,150 @@ if [ $RRDTOOL != "n" ]; then
 	#sudo ./configure --with-rrdtool=/usr/bin/ --with-php-config=/usr/bin/php-config
 	sudo make
 	sudo make install
-fi
+}
 
-# -------------------------------------------------------------
-# Finally, set some LamPI- related directories and permissions
+# ----------------------------------------------------------------
+# Configure MODULES
+# Make the w1 bus modules load at system startup
+# by adding module in the /etc/modules files
 #
-mkdir /home/pi/log; chown pi /home/pi/log
-mkdir /home/pi/exe
-mkdir /home/pi/daemon
+setup_modules()
+{
+	sudo echo 'w1-gpio' >> /etc/modules
+	sudo echo 'w1-therm' >> /etc/modules
+	sudo echo 'i2c-bcm2708' >> /etc/modules
+	sudo echo 'i2c-dev' >> /etc/modules
 
-
-# --------------------------------------------------------------
-# Fix the .exe directory
-# And build the executables from source
-#
-cd /home/pi/receivers/sniffer; make; sudo make install
-cd /home/pi/receivers/livolo; make ; sudo make install
-cd /home/pi/receivers/kaku; make; sudo make install
-cd /home/pi/receivers/lights; make; sudo make install
-cd /home/pi/receivers/kopou; make; sudo make install
-
+	# Standard, there are two modules blacklisted in the raspi-blacklist.conf
+	# file as found the modprobe.d directory. Just comment these blaklisted
+	# modules out.
+	#
+	sudo sed 's|blacklist|#blacklist|g' /etc/modprobe.d/raspi-blacklist.conf > /tmp/effe
+	sudo mv /etc/modprobe.d/raspi-blacklist.conf /etc/modprobe.d/raspi-blacklist.conf.org
+	sudo mv /tmp/effe /etc/modprobe.d/raspi-blacklist.conf
+}
 
 
 # --------------------------------------------------------------
 # Setup the crontab so that daemon and receiver are enabled.
 #
-if [ $CRONTAB = "y" ]; then
-  echo "Next step is to install the crontab entries for the daemon"
-  echo -n "<Press ENTER to continue>"
-  read a
-  echo ""
-  echo "Setting up crontab"
-  crontab -u pi -l | grep "PI-run" > /dev/null
-  if [ $? = 0 ]; then
-	echo "-- Crontab already contains LamPI PI-run commands"
-  else
-	echo "-- Crontab adding LamPI commands"
-	crontab -u pi -l > /tmp/effe
-    echo "* * * * * cd /home/pi/scripts && sh ./PI-run" >> /tmp/effe
-    echo "* * * * * cd /home/pi/scripts && sh ./PI-rcv" >> /tmp/effe
-    echo "0 2 * * * cd /home/pi/scripts && sh ./PI-log" >> /tmp/effe
-    echo "* * * * * cd /home/pi/scripts && sh ./PI-1w"  >> /tmp/effe
-    echo "*/5 * * * * cd /home/pi/scripts && sh ./PI-rht03" >> /tmp/effe
-    crontab -u pi /tmp/effe
-  fi
-  
-  if [ -f /etc/cron.allow ]; then
-	cat /etc/cron.allow | grep pi > /dev/null
-	if [ $? != 0 ]; then
-		echo "pi" >> /etc/at.allow
+setup_cron()
+{
+	echo "Setting up crontab"
+	crontab -u pi -l | grep "PI-run" > /dev/null
+	if [ $? = 0 ]; then
+		echo "-- Crontab already contains LamPI PI-run commands"
+	else
+		echo "-- Crontab adding LamPI commands"
+		crontab -u pi -l > /tmp/effe
+		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-run" >> /tmp/effe
+		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-rcv" >> /tmp/effe
+		echo "0 2 * * * cd $HOMEDIR/scripts && sh ./PI-log" >> /tmp/effe
+		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-1w"  >> /tmp/effe
+		echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03" >> /tmp/effe
+		crontab -u pi /tmp/effe
 	fi
+  
+	if [ -f /etc/cron.allow ]; then
+		cat /etc/cron.allow | grep pi > /dev/null
+		if [ $? != 0 ]; then
+			echo "pi" >> /etc/at.allow
+		fi
+	fi
+	echo ""
+}
+
+
+# -------------------------------------------------------------
+# Some Wlan Network configuration settings
+#
+setup_wlan()
+{
+	grep "network" /etc/wpa_supplicant/wpa_supplicant.conf > /dev/null
+  if [ $? = 0 ]; then
+	echo "-- wpa_supplicant.conf already contains network clause"
+  else
+	sudo echo " \
+	network={ \
+        ssid="platenspeler" \
+        scan_ssid=0 \
+        psk="password" \
+        proto=RSN \
+        key_mgmt=WPA-PSK \
+        pairwise=CCMP \
+        auth_alg=OPEN \
+	}" >> /etc/wpa_supplicant/wpa_supplicant.conf
   fi
-  echo ""
+}
+
+
+
+
+# -----------------------------------------------------------------------
+# MAIN PROGRAM
+#
+#
+cd $HOMEDIR
+
+echo "This script will upgrade your Raspberry to its latest revision of software."
+echo "It will instal MYSQL, PHP and Apache webserver packages which will take"
+echo "some time to install. Please press enter to continue or CTRL-C to abort."
+echo ""
+echo -n "<Press ENTER to start>"
+read a
+
+#while
+echo "Do you want to install a LamPI master node (M), a slave node (S) or a Z-Way gateway (Z)?"
+echo -n "<Enter M, S, or Z  + ENTER to continue>"
+read a
+if [ "$a" == "M" ]; then
+	echo "Installing a Master Node"
+    
+    install_linux
+    install_wiringpi
+    install_lampi
+    install_rrdtool
+    
+	setup_wlan
+	setup_modules
+    setup_cron
+fi
+if [ "$a" == "S" ]; then
+	echo "Installing a LamPI Slave Node"
+    install_linux
+    install_wiringpi
+    setup_wlan
+fi
+if [ "$a" == "Z" ]; then
+	echo "Installing a Z-Way Gateway Node"
+    install_zway
 fi
 
-//
-//
+
+# -------------------------------------------------------------
+# Finally, set some LamPI- related directories and permissions
+#
+mkdir $HOMEDIR/log; chown pi $HOMEDIR/log
+mkdir $HOMEDIR/exe
+mkdir $HOMEDIR/daemon
+
+
+# --------------------------------------------------------------
+# Fix the .exe directory And build the executables from source
+#
+
+cd $HOMEDIR/receivers/sniffer; make; sudo make install
+cd $HOMEDIR/receivers/livolo; make ; sudo make install
+cd $HOMEDIR/receivers/kaku; make; sudo make install
+cd $HOMEDIR/receivers/lights; make; sudo make install
+cd $HOMEDIR/receivers/kopou; make; sudo make install
+
+
+# -------------------------------------------------------------
+# Some more administration to be done for modules
+# Make sure that the database is in place
+# Make sure that /etc/modprobe.d/raspi.conf contains # in front of i2c lines
+
 echo "Do not forget to setup Wifi controllers if you have these"
 echo "sudo vi /etc/network/interfaces"
 echo "sudo vi /etc/wpa_supplicant/wpa_supplicant.conf"
