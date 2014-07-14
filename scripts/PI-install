@@ -29,22 +29,22 @@ HOMEDIR="/home/pi"; export HOMEDIR
 #
 install_linux()
 {
-	sudo apt-get update
-	sudo apt-get upgrade
+	sudo apt-get -q update
+	sudo apt-get -q upgrade
 
-	sudo apt-get -y install php5
-	sudo apt-get -y install mysql-server
-    sudo apt-get -y install mysql-client
-    sudo apt-get -y install php5-mysql
-    sudo apt-get -y install php5-dev
-    sudo apt-get -y install php5-pear
-    sudo apt-get -y install php5-curl
-	sudo apt-get -y install apache2
-	sudo apt=get -y install rrdtool
-    sudo apt-get -y install i2c-tools
-    sudo apt-get -y install libpango1.0-dev libxml2-dev
-    // sudo apt-get -y install wpasupplicant wireless-tools
-    sudo apt-get -y install phpmyadmin
+	sudo apt-get -qy install php5
+	sudo apt-get -qy install mysql-server
+	sudo apt-get -y install mysql-client
+	sudo apt-get -y install php5-mysql
+	sudo apt-get -qy install php5-dev
+	sudo apt-get -qy install php5-pear
+	sudo apt-get -qy install php5-curl
+	sudo apt-get -qy install apache2
+	#sudo apt=get -y install rrdtool
+	sudo apt-get -qy install i2c-tools
+	sudo apt-get -qy install libpango1.0-dev libxml2-dev
+	# sudo apt-get -y install wpasupplicant wireless-tools
+	sudo apt-get -y install phpmyadmin
 
 	echo "All LamPI required packages have been installed"
 	echo ""
@@ -62,19 +62,19 @@ install_zway()
 	# Edit the /opt/Z-Way/config.xml
 	# reboot
 	
-    echo ""
-    cd $HOMEDIR
+	echo ""
+	cd $HOMEDIR
 	echo "Installing node.js and npm packages, takes a LOT of time"
-    # sudo apt-get -y install node.js
+	# sudo apt-get -y install node.js
 
-    wget http://nodejs.org/dist/node-latest.tar.gz
+	wget http://nodejs.org/dist/node-latest.tar.gz
 	tar xvfvz node-latest.tar.gz
 	cd node-v0* 
 	./configure
 	make
 	sudo make install 
    
-    sudo apt-get -y install npm 
+	sudo apt-get -y install npm 
 }
 
 
@@ -110,14 +110,19 @@ install_lampi()
 	rm -rf /tmp/effe
 	mkdir /tmp/effe
 	git clone git://github.com/platenspeler/LamPI-2.0 /tmp/effe
-	cd /tmp/effe; tar cf - . | ( cd $HOMEDIR; tar xpf - )
+	printf "Copying LamPI to its destination directory\n"
+	( cd /tmp/effe; tar cf - . ) | tar xpf - 
 	rm -rf /tmp/effe
 
+	sudo chown -R pi .
+	sudo chgrp -R pi .
+    
 	# ----------------------------------------------------------------
 	# Set the apache base directory, replace the standard /var/www directory
-    # withthe new /home/pi/www directory as in $HOMEDIR/www
+	# with the new /home/pi/www directory as in $HOMEDIR/www
 	#
-	sudo sed 's|/var/www|$HOMEDIR/www|g' /etc/apache2/sites-available/default > /tmp/effe
+	echo "editing sites-available"
+	sudo sed "s|/var/www|${HOMEDIR}/www|g" /etc/apache2/sites-available/default > /tmp/effe
 	sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
 	sudo mv /tmp/effe /etc/apache2/sites-available/default
 	sudo /etc/init.d/apache2 restart
@@ -129,6 +134,7 @@ install_lampi()
 #
 install_rrdtool()
 {
+
 	echo "Installing RRDTOOL"
 	sudo mkdir -p /usr/local/src/rrdtool-1.4.7
 	cd /usr/local/src/rrdtool-1.4.7
@@ -208,7 +214,7 @@ setup_cron()
 	if [ -f /etc/cron.allow ]; then
 		cat /etc/cron.allow | grep pi > /dev/null
 		if [ $? != 0 ]; then
-			echo "pi" >> /etc/at.allow
+			sudo echo "pi" >> /etc/at.allow
 		fi
 	fi
 	echo ""
@@ -220,20 +226,19 @@ setup_cron()
 #
 setup_wlan()
 {
-	grep "network" /etc/wpa_supplicant/wpa_supplicant.conf > /dev/null
+	sudo grep "network" /etc/wpa_supplicant/wpa_supplicant.conf > /dev/null
 	if [ $? = 0 ]; then
 		echo "-- wpa_supplicant.conf already contains network clause"
 	else
-		sudo echo " \
-network={ \
-	ssid="platenspeler" \
-	scan_ssid=0 \
-	psk="password" \
-	proto=RSN \
-	key_mgmt=WPA-PSK \
-	pairwise=CCMP \
-	auth_alg=OPEN \
-	}" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\nnetwork={ \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tssid=\"platenspeler\" \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tscan_ssid=0 \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tpsk=\"password\" \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tproto=RSN \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tkey_mgmt=WPA-PSK \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tpairwise=CCMP \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "\tauth_alg=OPEN \n" >> /etc/wpa_supplicant/wpa_supplicant.conf
+		sudo printf "}\n" >> /etc/wpa_supplicant/wpa_supplicant.conf
 	fi
 }
 
@@ -260,19 +265,19 @@ isdone="N"
 while [ "$isdone" != "Y"  ]
 do
 	clear
-	echo "Do you want to install a LamPI master node (M), a slave node (S) or a Z-Way gateway (Z)?"
-	echo -n "<Enter M, S, or Z  + ENTER to continue> "
+	echo "Do you want to install a LamPI master node (M), a slave node (S) Rrdtool (R) or a Z-Way gateway (Z)?"
+	echo -n "<Enter M, S, R or Z  + ENTER to continue> "
 	read a
 	if [ "$a" == "M" ]; then
 		echo "Installing a Master Node"
    	 	install_linux
-    	install_wiringpi
-    	install_lampi
-   	 	install_rrdtool
+		install_wiringpi
+		install_lampi
 		setup_wlan
 		setup_modules
-    	setup_cron -m
-        isdone="Y"
+		setup_cron -m
+		# install_rrdtool
+		isdone="Y"
 
 	elif [ "$a" == "S" ]; then
 		echo "Installing a LamPI Slave Node"
@@ -282,17 +287,21 @@ do
 		setup_wlan
 		setup_modules
 		setup_cron
-        isdone="Y"
+		isdone="Y"
 
 	elif [ "$a" == "Z" ]; then
 		echo "Installing a Z-Way Gateway Node"
-    	install_zway
-        isdone="Y"
+		install_zway
+		isdone="Y"
     
-    else
-    	echo "Incorrect Input, Please try again.."
-        sleep 2
-    fi
+	elif [ "$a"== "R" ]; then
+		install_rrdtool
+		isdone="Y"
+
+	else
+		echo "Incorrect Input, Please try again.."
+		sleep 2
+	fi
 done
 
 # -------------------------------------------------------------

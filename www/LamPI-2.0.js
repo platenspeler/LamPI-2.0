@@ -1733,7 +1733,7 @@ function start_LAMP(){
 					console.log("Lampi.js:: received login request");
 					
 					askForm('<form id="addRoomForm"><fieldset>'		
-					+ '<p>Since your computer '+rcv.address+' is outside our network, we ask '
+					+ '<p>Since your computer <'+rcv.address+'> is outside our network, we ask '
 					+ 'you to logon to the system and prove your identity </p>'
 					+ '<label for="val_1">Login: </label>'
 					+ '<input type="text" name="val_1" id="val_1" value="'+uname+'" class="text ui-widget-content ui-corner-all" />'

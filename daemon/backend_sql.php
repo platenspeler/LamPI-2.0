@@ -33,7 +33,8 @@ function load_database()
 {
 	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
+	global $log;
 	
 	$config = array();
 	$devices = array();
@@ -141,7 +142,7 @@ function load_weatherdb()
 {
 	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	$weatherdb = array();
 	
@@ -170,7 +171,7 @@ function load_weatherdb()
 function store_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "store_device:: device id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
@@ -192,8 +193,6 @@ function store_device($device)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "store_device successful\n" ;
 	return(3);
 }
 
@@ -206,7 +205,7 @@ function store_device($device)
 function delete_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr = "delete_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
@@ -225,8 +224,6 @@ function delete_device($device)
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "delete_device successful\n" ;
 	return(4);
 }
 
@@ -238,7 +235,7 @@ function delete_device($device)
 function add_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr = "add_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
@@ -268,8 +265,6 @@ function add_device($device)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "add_device successful\n" ;
 	return(6);
 }
 
@@ -282,7 +277,7 @@ function add_device($device)
 function add_room($room)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr = "add_room:: id: ".$room[id]." name: ".$room[name]."\n";
@@ -306,8 +301,6 @@ function add_room($room)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "add_room successful\n" ;
 	return(7);
 }
 
@@ -320,10 +313,10 @@ function add_room($room)
 function delete_room($room)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
-	$apperr .= "room id: " . $room[id] . " name: " . $room[name]  . "\n";
+	$apperr .= "room id: ".$room[id]." name: ".$room[name]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
@@ -335,12 +328,9 @@ function delete_room($room)
 	if (!mysqli_query($mysqli, "DELETE FROM rooms WHERE id='$room[id]' " ))
 	{
 		$apperr .= "mysqli_query error" ;
-
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "delete_room successful\n" ;
 	return(10);
 }
 
@@ -353,7 +343,7 @@ function delete_room($room)
 function read_scene($name)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	$res = array();
 	// We need to connect to the database for start
@@ -396,7 +386,7 @@ function read_scene($name)
 function add_scene($scene)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name] . "\n";
@@ -422,8 +412,6 @@ function add_scene($scene)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "add_scene successful\n" ;
 	return(9);
 }
 
@@ -435,7 +423,7 @@ function add_scene($scene)
 function store_scene($scene)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "Scene id: ".$scene[id]." name: ".$scene[name]." val: ".$scene[val].", seq".$scene[seq]."\n";
@@ -459,8 +447,6 @@ function store_scene($scene)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "store_scene successful\n" ;
 	return(8);
 }
 
@@ -474,7 +460,7 @@ function store_scene($scene)
 function delete_scene($scene)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name]  . "\n";
@@ -493,8 +479,6 @@ function delete_scene($scene)
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "delete_scene successful\n" ;
 	return(11);
 }
 
@@ -506,7 +490,7 @@ function delete_scene($scene)
 function add_timer($timer)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "timer id: " . $timer[id] . " name: " . $timer[name] . "\n";
@@ -535,7 +519,6 @@ function add_timer($timer)
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	$appmsg .= "add_timer successful\n" ;
 	return(12);
 }
 
@@ -546,7 +529,7 @@ function add_timer($timer)
 function store_timer($timer)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	
@@ -569,8 +552,6 @@ function store_timer($timer)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "store_timer successful\n" ;
 	return(13);
 }
 
@@ -583,7 +564,7 @@ function store_timer($timer)
 function delete_timer($timer)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
 	
 	// We need to connect to the database for start
 	$apperr .= "timer id: ".$timer['id']." name: ".$timer['name']."\n";
@@ -599,8 +580,6 @@ function delete_timer($timer)
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "delete_timer successful\n" ;
 	return(11);
 }
 
@@ -613,14 +592,15 @@ function delete_timer($timer)
 function store_setting($setting)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
-	$apperr .= "Setting id: ".$setting[id] ." name: ".$setting[name] ." val: " . $setting[val] . "\n";
+	$log->lwrite("store_setting id: ".$setting[id]." name: ".$setting[name]." val: ".$setting[val]."\n",2);
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		return (-1);
 	}
 	
@@ -636,8 +616,6 @@ function store_setting($setting)
 	
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "store_setting successful\n" ;
 	return(5);
 }
 
@@ -651,14 +629,15 @@ function store_setting($setting)
 function add_handset($handset)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
-	$apperr = "handset id: ".$handset[id]." name: ".$handset[name].", addr".$handset[addr]."\n";
+	$log->lwrite("add_handset id: ".$handset[id]." name: ".$handset[name].", addr".$handset[addr]."\n",2);
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("add_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		mysqli_close($mysqli);
 		return (-1);
 	}
 	
@@ -674,15 +653,11 @@ function add_handset($handset)
 							) 
 			)
 	{
-		$apperr .= "mysqli_query INSERT error(" . $mysqli->errno . ") " . $mysqli->error . "\n" ;
+		$log->lwrite("mysqli_query INSERT error(".$mysqli->errno.") ".$mysqli->error."\n",1);
 		mysqli_close($mysqli);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "add_handset successful\n" ;
 	return(17);
 }
 
@@ -694,30 +669,23 @@ function add_handset($handset)
 function store_handset($handset)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $log;
 	
+	$log->lwrite("store_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") ".$mysqli->connect_error , 1);
-		return (-1);
-	}
-//
-	$test = "UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' ";
-	$apperr = $test;
-	
-	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
-	{
-		$apperr .= "Error: Store handset, ";
-		$apperr .= "mysqli_query error" ;
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		mysqli_close($mysqli);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
+
+	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
+	{
+		mysqli_close($mysqli);
+		return (-1);
+	}
 	mysqli_close($mysqli);
-	
-	$appmsg .= "store_handset successful\n" ;
 	return(15);
 }
 
@@ -731,28 +699,26 @@ function store_handset($handset)
 function delete_handset($handset)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
-	$apperr .= "handset id: " . $handset[id] . " name: " . $handset[name]  . "\n";
+	$log->lwrite("delete_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		mysqli_close($mysqli);
+		return (-1);
 	}
-	
-	$msg = "DELETE FROM handsets WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' ";
-	$apperr .= $msg;
-	if (!mysqli_query($mysqli, "DELETE FROM handsets WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
-	{
-		$apperr .= "mysqli_query error" ;
 
+	if (!mysqli_query($mysqli, "DELETE FROM handsets WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' "))
+	{
+		mysqli_close($mysqli);
+		return (-1);
 	}
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
-	
-	$appmsg .= "delete_handset successful\n" ;
-	return(16);
+	return(1);
 }
 
 
@@ -761,7 +727,6 @@ function delete_handset($handset)
 //
 function dbase_parse($cmd,$message)
 {
-	//
 	switch($cmd)
 	{
 		case "add_device":
@@ -815,7 +780,7 @@ function dbase_parse($cmd,$message)
 		
 		default:
 	}
-	if ($ret >= 0) {									// Prepare structure to send back to the calling ajax client (in stdout)
+	if ($ret >= 0) {								// Prepare structure to send back to the calling ajax client (in stdout)
 		$send = array(
     		'tcnt' => $ret,
 			'appmsg'=> $appmsg,
@@ -824,7 +789,7 @@ function dbase_parse($cmd,$message)
     	);
 		$output=json_encode($send);
 	}
-	else {												//	Functions need to fill apperr themselves!	
+	else {											//	Functions need to fill apperr themselves!	
 		$send = array(
     		'tcnt' => $ret,
 			'appmsg'=> $appmsg,

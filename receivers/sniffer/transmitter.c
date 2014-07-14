@@ -370,7 +370,7 @@ next:
 				cJSON_Delete(root);
 				
 				// We know now that we parsed a JSON message. If there are more JSON messages
-				// in the buffer, we will have to parse them as well. So move the ppointers in buf
+				// in the buffer, we will have to parse them as well. So move the pointers in buf
 				// and loop again.
 			
 				if ((ptr2 - buf) < rc) {

@@ -3,8 +3,9 @@ require_once( '../daemon/backend_cfg.php' );
 require_once( '../daemon/backend_lib.php' );
 require_once( '../daemon/backend_sql.php' );
 
-/*	------------------------------------------------------------------------------	
-// LamPI-daemon.php, Daemon Program for LamPI, controller of klikaanklikuit and action equipment
+//	------------------------------------------------------------------------------	
+// LamPI-daemon.php, Daemon Program for LamPI, controller for 
+// Z-Wave (Fibaro) and 433MHz (klikaanklikuit and action) equipment
 //	
 // Author: M. Westenberg (mw12554 @ hotmail.com)
 // (c). M. Westenberg, all rights reserved	
@@ -39,15 +40,15 @@ require_once( '../daemon/backend_sql.php' );
 //	It will read timer command from MySQL and then run them either immediately or on
 //	certain moments based on timer settings.
 //	
-	-------------------------------------------------------------------------------	*/
+//	-------------------------------------------------------------------------------	*/
 				
 
 // Global setting vars
 //
-$interval = 30;									// If no messages on socket and NO scheduled timing events, sleep
+$interval = 30;								// If no messages on socket and NO scheduled timing events, sleep
 
-$apperr = "";									// Global Error. Just append something and it will be sent back
-$appmsg = "";									// Application Message (from backend to Client)
+$apperr = "";								// Global Error. Just append something and it will be sent back
+$appmsg = "";								// Application Message (from backend to Client)
 
 $timers=  array();
 $rooms=   array();
@@ -58,20 +59,20 @@ $handsets=array();
 $brands = array();
 $weather= array();
 
-/** --------------------------------------------------------------------------------------
-	RRDTOOL
-	The class for rrdtool functions. Creat a rrtool database and add data to it.
-	
-*/
+// --------------------------------------------------------------------------------------
+//	RRDTOOL
+//	The class for rrdtool functions. Creat a rrtool database and add data to it.
+//	
+//
 class Rrd {
 	
 }
 
 
-/** --------------------------------------------------------------------------------------
-	Some user related functions needed for credential checking etc.
-	The class is extensible
-*/
+// --------------------------------------------------------------------------------------
+//	Some user related functions needed for credential checking etc.
+//	The class is extensible
+//
 class User {
 	
 	// Password Check function
@@ -91,31 +92,31 @@ class User {
 	
 }
 
-/* ----------------------------------------------------------------------------------
- * ZWAVE class
- *
- */
+// ----------------------------------------------------------------------------------
+// ZWAVE class
+//
+//
  
 class Zwave {
 	
 	
 }
 
-/** ---------------------------------------------------------------------------------- 
- * Retrieve the current value of a switch. We need to see how we can periodically pull
- * values of all connected Z-Wave devices in our network
- *
- */
+// ---------------------------------------------------------------------------------- 
+// Retrieve the current value of a switch. We need to see how we can periodically pull
+// values of all connected Z-Wave devices in our network
+//
+//
 function zwave_scan($msg) {
 	
 }
 
 
-/** ---------------------------------------------------------------------------------- 
- * Send the $,sg to the Razberry machine. At this moment we have the Razberry server
- * as a separeate device on the network.
- * The function returns 1 on success.
- */
+// ---------------------------------------------------------------------------------- 
+// Send the $,sg to the Razberry machine. At this moment we have the Razberry server
+// as a separeate device on the network.
+// The function returns 1 on success.
+//
 function zwave_send($msg) {
 	global $log;
 	global $razberry;
@@ -131,7 +132,8 @@ function zwave_send($msg) {
 	$log->lwrite("zwave_send started\n",2);
 	
 	// Device address is 1 less than the address in the user interface
-	$addr = $msg['uaddr'] - 1;
+	// $addr = $msg['uaddr'] - 1;
+	$addr = $msg['uaddr'];
 	
 	$ch = curl_init();
 	if ($ch == false) {
@@ -142,7 +144,7 @@ function zwave_send($msg) {
 	$p = '';
 	switch ($msg['val']) {
 		case 'on':
-			$p = 32;
+			$p = 99;
 		break;
 		case 'off':
 			$p = 0;
@@ -162,6 +164,7 @@ function zwave_send($msg) {
 		));
 
 	$output = curl_exec($ch);
+	
 	if ($output == false) {
 		$log->lwrite("zwave_send:: curl_exec Razberry execution error",0);
 		curl_close($ch);
@@ -180,66 +183,6 @@ function zwave_send($msg) {
 	return(1);
 }
 
-
-/** --------------------------------------------------------------------------------------
- * Logging class:
- * - contains lfile, lwrite and lclose public methods
- * - lfile sets path and name of log file
- * - lwrite writes message to the log file (and implicitly opens log file)
- * - lclose closes log file
- * - first call of lwrite method will open log file implicitly
- * - message is written with the following format: [d/M/Y:H:i:s] (script name) message
- */
-class Logging {
-
-    // declare log file and file pointer as private properties
-    private $log_file, $fp;
-    // set log file (path and name)
-	
-    public function lfile($path) {
-        $this->log_file = $path;
-    }
-	
-    // write message to the log file
-    public function lwrite($message,$dlevel=false) {
-		global $debug;
-		// If we specify a minimum debug level required to log the message
-		if (($dlevel) && ($dlevel>$debug)) return(0);
-        // if file pointer doesn't exist, then open log file
-        if (!is_resource($this->fp)) {
-            $this->lopen();
-        }
-        // define script name
-        $script_name = pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME);
-        // define current time and suppress E_WARNING if using the system TZ settings
-        // (don't forget to set the INI setting date.timezone)
-        $time = @date('[d/M/y, H:i:s]');
-        // write current time, script name and message to the log file
-        fwrite($this->fp, "$time ($script_name) $message" . PHP_EOL);
-    }
-	
-    // close log file (it's always a good idea to close a file when you're done with it)
-    public function lclose() {
-        fclose($this->fp);
-    }
-	
-    // open log file (private method)
-    private function lopen() {
-        // in case of Windows set default log file
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $log_file_default = 'c:/php/logfile.txt';
-        }
-        // set default log file for Linux and other systems
-        else {
-            $log_file_default = '/tmp/logfile.txt';
-        }
-        // define log file from lfile method or use previously set default
-        $lfile = $this->log_file ? $this->log_file : $log_file_default;
-        // open log file for writing only and place file pointer at the end of the file
-        // (if the file does not exist, try to create it)
-        $this->fp = fopen($lfile, 'a') or exit("Can't open $lfile!");
-    }
-}
 
 /** ---------------------------------------------------------------------------------- 
  * Check if a client IP is in our Server subnet
@@ -368,24 +311,24 @@ class Queue {
 }// Class QUEUE
 
 
-/* -----------------------------------------------------------------------------------------------
-	CLASS SOCKet
-	Handles all socket communication functions.
-	Until version 1.4 all sockets were UDP based. Starting version 1.5 the LamPI daemon will change
-	to TCP connection based sockets. This will allow websockets (that are TCP only) migration in the
-	front-end app.
-	
- * Websockets work just like normal sockets. ONLY, when the client makes a connection
- * it is required that we upgrade the regular web/browser connection to a full
- * tcp connect including json support and masking of the data (security)
- *
- * Therefore functiosn mask/s_unmask are introduced. It is possible to have regular and
- * websockets work next to each other, but funcing out whether the message just received
- * is a websocket message is a little creative/tricky.
-	
-	The select call for socket can wait on several connection end-points. Therefore we will also
-	introduce some security in later versions, so that some devices may and other may not control LamPI.
-*/
+// -----------------------------------------------------------------------------------------------
+//	CLASS SOCKet
+//	Handles all socket communication functions.
+//	Until version 1.4 all sockets were UDP based. Starting version 1.5 the LamPI daemon will change
+//	to TCP connection based sockets. This will allow websockets (that are TCP only) migration in the
+//	front-end app.
+//	
+// Websockets work just like normal sockets. ONLY, when the client makes a connection
+// it is required that we upgrade the regular web/browser connection to a full
+// tcp connect including json support and masking of the data (security)
+//
+// Therefore functiosn mask/s_unmask are introduced. It is possible to have regular and
+// websockets work next to each other, but funcing out whether the message just received
+// is a websocket message is a little creative/tricky.
+//	
+//	The select call for socket can wait on several connection end-points. Therefore we will also
+//	introduce some security in later versions, so that some devices may and other may not control LamPI.
+//
 
 class Sock {
 	
@@ -1153,7 +1096,7 @@ class Device {
 function load_scenes()
 {
 	global $log, $debug;
-	global $appmsg, $apperr;
+	global $apperr;
 	global $dbname, $dbuser, $dbpass, $dbhost;
 	
 	$config = array();
@@ -1250,7 +1193,6 @@ function load_timers()
  -------------------------------------------------------------------------------------*/
 function load_handsets()
 {
-	global $appmsg;
 	global $apperr;
 	global $debug;
 	global $log;
@@ -1382,36 +1324,6 @@ class Weather {
 }// class Weather
 
 
-
-
-/*	-------------------------------------------------------
-	function post_parse()
-	Get into the $_POST to see if there is more work....
-	
-	-------------------------------------------------------	*/
-function post_parse()
-{
-  global $appmsg, $apperr, $debug, $action, $icsmsg;
-	if (empty($_POST)) { 
-		// $log->lwrite("No _POST commands");
-		return(-1);
-	}
-	foreach ( $_POST as $ind => $val )
-	{
-		switch ( $ind )
-		{
-			case "action":
-				$action = $val;
-			break;	
-			case "message":
-				$icsmsg = $val;
-//				$value  = json_encode($val);
-			break;		
-		} // switch $ind
-	} // for
-} // function
-
-
 /*	--------------------------------------------------------------------------------	
 	function get_parse. 
 	Parse the $_GET  for commands
@@ -1420,7 +1332,7 @@ function post_parse()
 	--------------------------------------------------------------------------------	*/
 function get_parse() 
 {
-  global $appmsg, $apperr, $action, $icsmsg;
+  global $apperr, $action, $icsmsg;
   global $log;
   foreach ($_GET as $ind => $val )
   {
@@ -1790,7 +1702,7 @@ $ret = 0;
 set_time_limit();							// NO execution time limit imposed
 ob_implicit_flush();
 
-$log = new Logging();						// Logging class initialization
+$log = new Logging();						// Logging class initialization XXX maybe init at declaration
 $wlog = new Logging();						// Weather Log
 
 $queue = new Queue();
@@ -1799,17 +1711,14 @@ $dlist = new Device();						// Class for handling of device specific commands
 $wthr = new Weather();						// Class for Weather handling in database
 
 // set path and name of log file (optional)
-$log->lfile('/home/pi/log/LamPI-daemon.log');
-$wlog->lfile('/home/pi/log/LamPI-weather.log');
+$log->lfile($log_dir.'/LamPI-daemon.log');
+$wlog->lfile($log_dir.'/LamPI-weather.log');
 
 
 $log->lwrite("-------------- STARTING DAEMON ----------------------");
 
-// Parse the $_GET (starting) or even the $_POST for commandparameters
+// Parse the $_GET (starting) for commandparameters
 	// 1. Parse the URL sent by client (not working, but could restart itself later version)
-	// post_parse will parse the commands that are sent by the java app on the client
-	// $_POST is used for data that should not be sniffed from URL line, and
-	// for changes sent to the devices
 
 	$ret = get_parse();
 	if ($ret != -1 )
@@ -1824,28 +1733,13 @@ $log->lwrite("-------------- STARTING DAEMON ----------------------");
 				$appmsg = load_database();
 				$ret = 0;
 			break;
-		
-			case "setTimer":
-				$apperr .= "Calling setTimer: par: $icsmsg\n";
-				//$appmsg = load_database();
-				$apperr .= "\nsetTimer OK: $appmsg[rooms][1]";
-				$ret = 0;
-			break;
-	
-			case "store":
-				// What happens if we receive a complex datastructure?
-				$apperr .= "Calling store: par: $icsmsg\n";
-				$appmsg = store_database($icsmsg);
-				$apperr .= "\nStore OK";
-				$ret = 0;
-			break;
 	
 			default:
 				$appmsg .= "action: " . $action;
 				$log->lwrite("main:: parse default, no command or command not recognized");
 				$ret = 0; 
 		}
-		if ($ret > -1) {
+		if ($ret >= 0) {
 			$send = array(
    				'tcnt' => $ret,
 				'appmsg'=> $appmsg,
@@ -1864,10 +1758,10 @@ $log->lwrite("-------------- STARTING DAEMON ----------------------");
     		);
 			$output=json_encode($send);
 		}
-		if ($debug>1) $log->lwrite ( $output . " at " . date("l") . "\n" )  ;
+		$log->lwrite($output." at ".date("l")."\n",2);
 	}
 	else {
-		if ($debug>0) $log->lwrite("No GET Commands " . date("l") . "\n");
+		$log->lwrite("No GET Commands ".date("l")."\n",1);
 	}
 	
 // Start with loading the database into a local $config structure. This takes 
@@ -1877,12 +1771,11 @@ $log->lwrite("main:: Loading the database");
 $config = load_database();					// load the complete configuration object
 if ($config == -1) 
 {
-	$log->lwrite("main:: Error loading database, error: ".$apperr);
-	$log->lwrite("main:: FATAL, exiting now\n");
+	$log->lwrite("main:: FATAL Error loading database, exiting now");
 	exit(1);
 }
 else 
-	$log->lwrite("main:: Loaded the database, err: ".$apperr,1);
+	$log->lwrite("main:: Loaded the database",1);
 
 $devices     = $config['devices'];
 $scenes      = $config['scenes'];
@@ -1905,7 +1798,6 @@ $log->lwrite("Sunset on : ".date('H:i:s',date_sunset(time(), SUNFUNCS_RET_TIMEST
 while (true):
 							
 // three scenarios/phases during the loop:
-//
 //
 // 1. Read and parse the socket for for SCENE commands.
 //		Run device commands immediately (set timeout or so), and add scene commands to the queue
@@ -2019,7 +1911,7 @@ while (true):
 			//
 			if ( $sock->s_trusted() <= 0 ) 
 			{
-				// Here is when we do not trust the client
+				// Here is for when we do not trust the client
 				// It could be however that the client just sent his login data, therefore
 				// we check for these first
 				//
@@ -2056,7 +1948,8 @@ while (true):
 				$logmsg = array (
 							'tcnt' => $tcnt."",
 							'action' => 'login',
-							'type' => 'raw'
+							'type' => 'raw',
+							'address' => $sock->clientIP
 				);
 				if ( false === ($message = json_encode($logmsg)) ) {
 					$log->lwrite("ERROR main:: json_encode failed: <".$logmsg['tcnt'].", ".$logmsg['action'].">");

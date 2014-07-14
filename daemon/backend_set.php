@@ -1,6 +1,6 @@
 <?php 
-require_once ( 'frontend_cfg.php' );
-require_once ( 'frontend_lib.php' );
+require_once ( '../daemon/backend_cfg.php' );
+require_once ( '../daemon/backend_lib.php' );
 
 /*	======================================================================================	
 	Note: Program to switch klikaanklikuit and coco equipment
@@ -12,6 +12,7 @@ require_once ( 'frontend_lib.php' );
 	Version 1.6 : Nov 10, 2013
 	Version 1.7 : Dec 2013
 	Version 1.8 : Jan 17, 2014
+	Version 2.0; Jun 15, 2014
 
 	This is a supporting file for LamPI-x.x.js front end application
 	
@@ -167,7 +168,7 @@ function fill_database($cfg)
 	if (!$mysqli->query("DROP TABLE IF EXISTS rooms") ||
     	!$mysqli->query("CREATE TABLE rooms(id INT, name CHAR(20) )") )
 	{
-    	echo "Table creation rooms failed: (" . $mysqli->errno . ") " . $mysqli->error;
+    	echo "Table creation rooms failed: (".$mysqli->errno.") ".$mysqli->error;
 	}
 	for ($i=0; $i < count($rooms); $i++)
 	{
@@ -177,7 +178,7 @@ function fill_database($cfg)
 							) 
 			)
 		{
-			echo "Table Insert failed: (" . $mysqli->errno . ") " . $mysqli->error . "\n";
+			echo "Table Insert failed: (".$mysqli->errno.") ".$mysqli->error . "\n";
 		}
 	}
 	
