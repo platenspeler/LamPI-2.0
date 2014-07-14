@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This is the simple installer script for LamPI
 # (c) M. Westenberg, 2013, 2014
 #
@@ -17,28 +17,34 @@ RAZBERRY="n"; export RAZBERRY
 CRONTAB="y"; export CRONTAB
 HOMEDIR="/home/pi"; export HOMEDIR
 
+# --------------------------------------------------------------
+# NOTE: Since WIFI does not work out of the box, this initial setup must be
+# done over a network connection. As soon as WIFI works further access
+# can be done over WIFI
+
+
 
 # --------------------------------------------------------------
 # General Linux bookkeeping and installatation of the latest packages
 #
 install_linux()
 {
-	apt-get update
-	apt-get upgrade
+	sudo apt-get update
+	sudo apt-get upgrade
 
-	apt-get -y install php5
-	apt-get -y install mysql-server
-    apt-get -y install mysql-client
-    apt-get -y install php5-mysql
-    apt-get -y install php5-dev
-    apt-get -y install php5-pear
-    apt-get -y install php5-curl
-	apt-get -y install apache2
-	apt=get -y install rrdtool
-    apt-get -y install i2c-tools
-    apt-get -y install libpango1.0-dev libxml2-dev
-    // apt-get -y install wpasupplicant wireless-tools
-    apt-get -y install phpmyadmin
+	sudo apt-get -y install php5
+	sudo apt-get -y install mysql-server
+    sudo apt-get -y install mysql-client
+    sudo apt-get -y install php5-mysql
+    sudo apt-get -y install php5-dev
+    sudo apt-get -y install php5-pear
+    sudo apt-get -y install php5-curl
+	sudo apt-get -y install apache2
+	sudo apt=get -y install rrdtool
+    sudo apt-get -y install i2c-tools
+    sudo apt-get -y install libpango1.0-dev libxml2-dev
+    // sudo apt-get -y install wpasupplicant wireless-tools
+    sudo apt-get -y install phpmyadmin
 
 	echo "All LamPI required packages have been installed"
 	echo ""
@@ -49,17 +55,26 @@ install_linux()
 # Download, Install and build the RazBerry software.
 # Only do this if you have a Razberry installed 
 #
-install_razberry()
+install_zway()
 {
-	echo "Starting installation of Razberry"
+	echo "Starting installation of Z-Way Razberry"
 	wget -q -O - http://razberry.zwave.me/install/v1.7.1 | sudo bash 
 	# Edit the /opt/Z-Way/config.xml
 	# reboot
-	# http://192.168.2.52:8083
+	
     echo ""
-	echo "Installing node.js and npm packages"
-    sudo apt-get -y install node.js
-    sudo apt-get -y install npm
+    cd $HOMEDIR
+	echo "Installing node.js and npm packages, takes a LOT of time"
+    # sudo apt-get -y install node.js
+
+    wget http://nodejs.org/dist/node-latest.tar.gz
+	tar xvfvz node-latest.tar.gz
+	cd node-v0* 
+	./configure
+	make
+	sudo make install 
+   
+    sudo apt-get -y install npm 
 }
 
 
@@ -99,7 +114,8 @@ install_lampi()
 	rm -rf /tmp/effe
 
 	# ----------------------------------------------------------------
-	# Set the apache base directory
+	# Set the apache base directory, replace the standard /var/www directory
+    # withthe new /home/pi/www directory as in $HOMEDIR/www
 	#
 	sudo sed 's|/var/www|$HOMEDIR/www|g' /etc/apache2/sites-available/default > /tmp/effe
 	sudo mv /etc/apache2/sites-available/default /etc/apache2/sites-available/default.org
@@ -175,11 +191,17 @@ setup_cron()
 	else
 		echo "-- Crontab adding LamPI commands"
 		crontab -u pi -l > /tmp/effe
-		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-run" >> /tmp/effe
+
 		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-rcv" >> /tmp/effe
 		echo "0 2 * * * cd $HOMEDIR/scripts && sh ./PI-log" >> /tmp/effe
 		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-1w"  >> /tmp/effe
 		echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03" >> /tmp/effe
+        if [ "$1" == "-m" ]; then
+			echo "Setting up contab with PI-run for manager"
+			echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-run" >> /tmp/effe
+		else
+        	echo "Setting up contab for slave"
+        fi
 		crontab -u pi /tmp/effe
 	fi
   
@@ -199,20 +221,20 @@ setup_cron()
 setup_wlan()
 {
 	grep "network" /etc/wpa_supplicant/wpa_supplicant.conf > /dev/null
-  if [ $? = 0 ]; then
-	echo "-- wpa_supplicant.conf already contains network clause"
-  else
-	sudo echo " \
-	network={ \
-        ssid="platenspeler" \
-        scan_ssid=0 \
-        psk="password" \
-        proto=RSN \
-        key_mgmt=WPA-PSK \
-        pairwise=CCMP \
-        auth_alg=OPEN \
+	if [ $? = 0 ]; then
+		echo "-- wpa_supplicant.conf already contains network clause"
+	else
+		sudo echo " \
+network={ \
+	ssid="platenspeler" \
+	scan_ssid=0 \
+	psk="password" \
+	proto=RSN \
+	key_mgmt=WPA-PSK \
+	pairwise=CCMP \
+	auth_alg=OPEN \
 	}" >> /etc/wpa_supplicant/wpa_supplicant.conf
-  fi
+	fi
 }
 
 
@@ -231,33 +253,47 @@ echo ""
 echo -n "<Press ENTER to start>"
 read a
 
-#while
-echo "Do you want to install a LamPI master node (M), a slave node (S) or a Z-Way gateway (Z)?"
-echo -n "<Enter M, S, or Z  + ENTER to continue>"
-read a
-if [ "$a" == "M" ]; then
-	echo "Installing a Master Node"
-    
-    install_linux
-    install_wiringpi
-    install_lampi
-    install_rrdtool
-    
-	setup_wlan
-	setup_modules
-    setup_cron
-fi
-if [ "$a" == "S" ]; then
-	echo "Installing a LamPI Slave Node"
-    install_linux
-    install_wiringpi
-    setup_wlan
-fi
-if [ "$a" == "Z" ]; then
-	echo "Installing a Z-Way Gateway Node"
-    install_zway
-fi
 
+a=""
+isdone="N"
+
+while [ "$isdone" != "Y"  ]
+do
+	clear
+	echo "Do you want to install a LamPI master node (M), a slave node (S) or a Z-Way gateway (Z)?"
+	echo -n "<Enter M, S, or Z  + ENTER to continue> "
+	read a
+	if [ "$a" == "M" ]; then
+		echo "Installing a Master Node"
+   	 	install_linux
+    	install_wiringpi
+    	install_lampi
+   	 	install_rrdtool
+		setup_wlan
+		setup_modules
+    	setup_cron -m
+        isdone="Y"
+
+	elif [ "$a" == "S" ]; then
+		echo "Installing a LamPI Slave Node"
+		install_linux
+		install_wiringpi
+		install_lampi
+		setup_wlan
+		setup_modules
+		setup_cron
+        isdone="Y"
+
+	elif [ "$a" == "Z" ]; then
+		echo "Installing a Z-Way Gateway Node"
+    	install_zway
+        isdone="Y"
+    
+    else
+    	echo "Incorrect Input, Please try again.."
+        sleep 2
+    fi
+done
 
 # -------------------------------------------------------------
 # Finally, set some LamPI- related directories and permissions
@@ -285,7 +321,7 @@ cd $HOMEDIR/receivers/kopou; make; sudo make install
 
 echo "Do not forget to setup Wifi controllers if you have these"
 echo "sudo vi /etc/network/interfaces"
-echo "sudo vi /etc/wpa_supplicant/wpa_supplicant.conf"
+
 echo ""
 echo "If you plan to run one database server and have clients connect"
 echo "make sure you update bind in /etc/mysql/my.cnf"

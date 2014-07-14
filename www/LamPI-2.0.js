@@ -1711,17 +1711,16 @@ function start_LAMP(){
 					//var msg   = rcv.message;
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
-						//alert("Support for localstorage");
-  						//uname= window.localStorage.getItem("uname");		// username
-						uname= localStorage.getItem("uname");		// username
-						pword= localStorage.getItem("pword");		// pin
+						// alert("Support for localstorage");
+  						// uname= window.localStorage.getItem("uname");		// username
+						uname= localStorage.getItem('uname');		// username
+						pword= localStorage.getItem('pword');		// pin
 						if (debug>=2) {
 							console.log("Support for localstorage, uname: "+uname);
-							alert("Username: "+uname);
 						}
 						
 						if (uname == null) uname = "";
-						if (pword == null) uname = "";
+						if (pword == null) pword = "";
  					}
 					else {
   						// Sorry! No Web Storage support..
@@ -1734,7 +1733,7 @@ function start_LAMP(){
 					console.log("Lampi.js:: received login request");
 					
 					askForm('<form id="addRoomForm"><fieldset>'		
-					+ '<p>Since your computer is outside the network, we ask '
+					+ '<p>Since your computer '+rcv.address+' is outside our network, we ask '
 					+ 'you to logon to the system and prove your identity </p>'
 					+ '<label for="val_1">Login: </label>'
 					+ '<input type="text" name="val_1" id="val_1" value="'+uname+'" class="text ui-widget-content ui-corner-all" />'
@@ -1757,18 +1756,19 @@ function start_LAMP(){
 							login:  ret[0],
 							password:  ret[1]
 						}
+						w_sock.send(JSON.stringify(login_msg));
+						
 						console.log(login_msg);
-						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
 						if(typeof(Storage)!=="undefined")
   						{
   							// Code for localStorage/sessionStorage.
-  							localStorage.setItem("uname",uname);
-							localStorage.setItem("pword",pword);
-							//window.localStorage.setItem("saddr",saddr);
+  							localStorage.setItem('uname',uname);
+							localStorage.setItem('pword',pword);
  						}				
 						// Send the password back to the daemon
-						message("Login and Password sent to server",1);
-						w_sock.send(JSON.stringify(login_msg));
+						// message("Login and Password sent to server",1);
+						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
+						
 						return(1);										//return(1);
 						
 						// Cancel	
@@ -1777,7 +1777,7 @@ function start_LAMP(){
 						return(0); 									// Avoid further actions for these radio buttons 
   					},
   					'Confirm Login'
-				); // askForm
+					); // askForm
 				break;
 				
 				case 'load':
@@ -2309,7 +2309,7 @@ function checkLength( o, n, min, max ) {
 //
 function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 
-  if (jqmobile ==1) {
+  if (jqmobile == 1) {
 
 		$( "#header" ).empty();
 	
