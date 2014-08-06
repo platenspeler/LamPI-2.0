@@ -101,8 +101,7 @@ class Logging {
 //	The function received/reads a jSon message from the client
 //	side and decodes it. After decoding, the resulting
 //	datastructure will be written to file.
-//	The datastructure describes the configuration of the
-//	ICS-1000/PI controller
+//	The datastructure describes the configuration of the ICS-1000/PI controller
 //	----------------------------------------------------------------------------------	*/
 function store_database($inp)
 {
@@ -377,7 +376,6 @@ function kaku_cmd($cmd_str)
 		$apperr .= "\nERROR: kaku " . $result . "\n ";
 		return (-1);
 	}
-	
 	return($_SESSION['tcnt']);
 }
 

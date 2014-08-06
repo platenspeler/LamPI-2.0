@@ -506,8 +506,8 @@ int wt440h(int p_length)
 				{
 					// Fill the Json buffer, 0 for empty value...
 					sprintf(snd_buf, 
-					 "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"wt440h\",\"type\":\"json\",\"address\":\"%d\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
-						socktcnt%1000,address,channel,temperature/10,temperature%10,humidity,-1,-1,-1);
+					 "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"wt440h\",\"type\":\"json\",\"address\":\"%d\",\"channel\":\"%d\",\"temperature\":\"%d.%d\",\"humidity\":\"%d\"}", 
+						socktcnt%1000,address,channel,temperature/10,temperature%10,humidity);
 					
 					// Do NOT use check_n_write_socket as weather stations will not
 					// send too many repeating messages (1 or 2 will come in one trasmission)

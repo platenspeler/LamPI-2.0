@@ -279,7 +279,6 @@ int buf_2_server(int sockfd,
 
 	if (mode == SOCK_STREAM) 
 	{	
-		
 					
 		// Do NOT use check_n_write_socket as weather stations will not
 		// send too many repeating messages (1 or 2 will come in one transmission)
@@ -333,25 +332,17 @@ int send_2_server(int sockfd,
 				int mode,					// Either SOCK_STREAM or SOCK_DGRAM
 				char * address,
 				long channel, 
-				float temperature,
-				float humidity,
-				int windspeed,
-				int winddirection,
-				int rainfall
+				char* temperature			// For compatibility reasons, sensor values etc should be char*
 				)
 {
 	char snd_buf[256];
 	// Daemon, output to socket
 	
-	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
+	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%s\"}", 
 				socktcnt%1000,
 				address,							// address
 				channel,							// channel
-				temperature,						// temperature
-				humidity,							// humidity
-				windspeed,							// windspeed
-				winddirection,						// winddirection
-				rainfall);							// rainfall
+				temperature);						// temperature
 				
 	socktcnt++;
 	

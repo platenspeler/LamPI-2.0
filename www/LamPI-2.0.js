@@ -80,7 +80,7 @@ var w_tcnt = 0;											// Transaction counter
 var phonegap=0;											// Phonegap setting, init to no phonegap
 var jqmobile=0;											// This specifies what jQuery library file be used
 var dynamicIP=1;										// Use a static IP for daemon or a dynamicIP (standard)
-var murl='';											// For Phonegap and Ajax usage, build a url. DO NOT CHANGE!
+var murl='/';											// For Phonegap and Ajax usage, build a url. DO NOT CHANGE!
 
 // ----------------------------------------------------------------------------
 // 
@@ -204,9 +204,6 @@ var timers={};			// Timing actions that work on a defined scene
 var brands={};			// All brands of equipment that is recognized by the daemon
 var handsets={};		// Handsets or transmitters of code. Action/Impuls, Klikaanklikuit supported
 var weather={};			// The administration of weather receivers, and their last values
-var weatherdb={};		// An array with ALL historical values for the weather station (Ouch)
-var weatheron={};		// determines which fields of the weather record are used for THIS sensor
-						// It is used to fill and display the dials in the weather screen
 var energy={};			// Energy sensors and values
 var settings={};		// Set debug level and backup/restore the configuration
 
@@ -1171,6 +1168,31 @@ function start_LAMP(){
 	}); // weather
 
 
+// ------------------------------------------------------------------------------
+// Weather
+// Handle the Weather (=remote) selection in the Content area
+// This function deals with the Command Weather (cw) buttons diaplayed in the content section.
+// If the user selects one of these buttons, the corresponding weather action is activated.
+//
+	$("#gui_content").on("click", ".cw_button", function(e){
+			e.preventDefault();
+//			e.stopPropagation();
+			selected = $(this);
+						
+			value=$(this).val();							// Value of the button
+			id = $(e.target).attr('id');					// should be id of the button (array index substract 1)
+			$( '.cw_button' ).removeClass( 'hover' );
+			$( this ).addClass ( 'hover' );
+			//activate_weather(id);
+			//alert("Clicked Weather Button, id: "+id+", value: "+value);
+			
+			// Based on the row that is clicked, we should be able to determine the
+			// right type of 
+			var win=window.open('graphs/temperature.html', '_blank');
+			
+			$( this ).removeClass( 'hover' );
+	}); // weather
+
 
 // ----------------------------------------------------------------------------
 // WEATHER and Sensors
@@ -1327,14 +1349,14 @@ function start_LAMP(){
 						
 						// There might be more than one record with the same id
 						// We work our way back in the array, so index i remains consistent
-						for (var i=handsets.length-1; i>=0; i--) {
-							if (debug>2) alert("working with i: "+i+", handset id: "+handsets[i]['name']);
-							if (handsets[i]['name'] == sname) {
+						for (var i=weather.length-1; i>=0; i--) {
+							if (debug>2) alert("working with i: "+i+", weather id: "+weather[i]['name']);
+							if (weather[i]['name'] == sname) {
 								// Is the array empty? Maybe we do not care, 
-								//everything for hendset is IN the record itself
-								var handset_id = handsets[i]['id'];
+								//everything for weather is IN the record itself
+								var weather_id = weather[i]['id'];
 								// Removed is an array too, one element only
-								var removed = handsets.splice(i ,1);
+								var removed = weather.splice(i ,1);
 								if ( persist > 0 ) {
 									console.log(removed[0]);
 									// Remove the handset from MySQL
@@ -1656,11 +1678,12 @@ function start_LAMP(){
 					// and partly needs to be filled with the latest sensor values received.
 					if (j<weather.length)
 					{
-						weather[j]['temperature']=rcv.temperature;
-						weather[j]['humidity']=rcv.humidity;
-						weather[j]['windspeed']=rcv.windspeed;
-						weather[j]['winddirection']=rcv.winddirection;
-						weather[j]['rainfall']=rcv.rainfall;
+						weather[j]['temperature']	=rcv.temperature;
+						weather[j]['humidity']		=rcv.humidity;
+						weather[j]['airpressure']	=rcv.airpressure;
+						weather[j]['windspeed']		=rcv.windspeed;
+						weather[j]['winddirection']	=rcv.winddirection;
+						weather[j]['rainfall']		=rcv.rainfall;
 						
 						var msg="";
 						// Only send for the just received sensor
@@ -1670,7 +1693,7 @@ function start_LAMP(){
 							msg += ": temp: "+weather[j]['temperature'];
 							msg += ", humi: "+weather[j]['humidity']+"%<br\>";
 							
-							console.log("Weather @ "+weather[j]['location']
+							console.log("Weather "+weather[j]['name']+"@"+weather[j]['location']
 								+": temp: "+weather[j]['temperature']
 								+", humi: "+weather[j]['humidity']+"%");
 						//}
@@ -1790,7 +1813,6 @@ function start_LAMP(){
 					settings = rcv.response['settings'];
 					brands = rcv.response['brands'];
 					weather = rcv.response['weather'];		// we want the id and name values
-					weatheron = rcv.response['weatheron'];	// which fields are on 0/1 off/on values
 					// XXX whaah
 					init();
 				break;
@@ -2238,23 +2260,23 @@ function helpForm(dialogTitle, dialogText, moreFunc, doneFunc ) {
         	}
 			switch (s_screen) {
 				case 'room':
-					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/rooms.html', '_blank');
+					var win=window.open('http://platenspeler.github.io/LamPI-2.0/gh-pages/UserGuide/rooms.html', '_blank');
 					win.focus();
 				break;
 				case 'scene':
-					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/scenes.html', '_blank');
+					var win=window.open('http://platenspeler.github.io/LamPI-2.0/gh-pages/UserGuide/scenes.html', '_blank');
 					win.focus();
 				break;
 				case 'timer':
-					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/timers.html', '_blank');
+					var win=window.open('http://platenspeler.github.io/LamPI-2.0/gh-pages/UserGuide/timers.html', '_blank');
 					win.focus();
 				break;
 				case 'handset':
-					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/handsets.html', '_blank');
+					var win=window.open('http://platenspeler.github.io/LamPI-2.0/gh-pages/UserGuide/handsets.html', '_blank');
 					win.focus();
 				break;
 				case 'weather':
-					var win=window.open('http://platenspeler.github.io/LamPI-1.9/gh-pages/weather.html', '_blank');
+					var win=window.open('http://platenspeler.github.io/LamPI-2.0/gh-pages/UserGuide/weather.html', '_blank');
 					win.focus();
 				break;
 				default:			
@@ -2723,6 +2745,7 @@ function init_menu(cmd)
 		but += '<tr><td></td>'
 		+ '<tr><td></td>'
 		+ '<tr class="switch"><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
+		+ '</table>'
 		;
 		$(table).append(but);
 	}
@@ -4407,8 +4430,6 @@ function activate_handset(hset)
 		}// if a handset is s_handset_id
 	}// for each handset
 	
-	
-	
 	// NOTE::: This handler runs asynchronous! No values above might be valid!!
 	// So after click we need to sort out for which handler, which scene etc :-)
 	// Therefore, collect all scene data again in this handler.
@@ -4757,7 +4778,6 @@ function activate_handset(hset)
 
 
 
-
 // --------------------------------- ACTIVATE WEATHER -------------------------------------
 // At the moment I do have 3 temperature/humidity sensors.
 // It is quite good possible to config the sceen so that for 2 or 4 or 6 sensors
@@ -4801,11 +4821,10 @@ function activate_weather(location)
 	// so that we can fill more rows with dial canvas for those fields (e.g. windspeed).
 	// XXX placeholder
 	
-	// First row; Create the canvasses and make room for the dials..
-	// Temperature, first row of dials	
+	// First row; Create the canvasses and make room for the temprature dials..	
 	buf += '<tr>';
 	for (var i=0; i< wl; i++) {
-		buf += '<td width="'+wi+'%">';
+		buf += '<td width="'+wi+'%" class="cw_button">';
         buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
 		buf += '</td>';
 	}
@@ -4815,7 +4834,7 @@ function activate_weather(location)
 	buf += '<tr>';
 	for (var i=0; i< wl; i++) {
 		var canv = 'canvasRadial'+(wl+i+1)+'';
-		buf += '<td width="'+wi+'%">';
+		buf += '<td width="'+wi+'%" class="cw_button">';
         buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
 		buf += '</td>';
 	}
@@ -4827,8 +4846,7 @@ function activate_weather(location)
 	$(table).append(buf);							// Display the table with canvas
 	//$( "#gui_weather" ).append( buf );
 	
-	// From the demo
-	// XXX When working OK, switch to min version
+	// XXX When working OK, switch to min version of steel asap
 	// We load the .js file for steel animation. This is done in jQuery so that once
 	// loaded all functions are available, but the functions are no integral/permanent part
 	// of the code
@@ -4861,6 +4879,14 @@ function activate_weather(location)
                                                           new steelseries.rgbaColor(200, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1) ]);
+			pressGrad = new steelseries.gradientWrapper( 700,
+                                                        1200,
+                                                        [ 0, 0.33, 0.66, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
 		
 		var radial={};
 		var i=0;
@@ -4868,7 +4894,6 @@ function activate_weather(location)
 		{
 			if (weather[j]['location'] == location ) 
 			{
-
 				// temperature
 				// XXX We assume that we ALWAYS have a temperature as part of the sensor
 				// reading. This may NOT be true in which case the radial below needs to be
@@ -4890,7 +4915,8 @@ function activate_weather(location)
 				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
 			
 				// humidity radial gauges
-				if (weather[j]['humidity'] > -1)
+				
+				if (('humidity' in weather[j]) && (weather[j]['humidity'] != ""))
 				{
 					//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
@@ -4900,6 +4926,7 @@ function activate_weather(location)
                             	useValueGradient: true,
                             	titleString: weather[j]['location'],
                             	unitString: 'Humidity %',
+								threshold: 80,
                             	lcdVisible: true
                         });
 					radial[i+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
@@ -4907,31 +4934,57 @@ function activate_weather(location)
 					radial[i+wl].setValueAnimated(weather[j]['humidity']);
 				}
 				else {
-					console.log("weather humi "+i+" is false");
+					console.log("weather humidity "+i+" is not defined");
+				}
+				
+				// Airpressure radial gauges. 
+				
+				if (('airpressure' in weather[j]) && (weather[j]['airpressure'] != ""))
+				{
+					console.log("iradial "+ (i+wl) +",j: "+j+" set airpressure: "+weather[j]['airpressure']);
+					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE3,
+                            	size: 201,
+								minValue: 900,							// Set the min value on the scale
+								maxValue: 1100,
+                            	valueGradient: pressGrad,
+                            	useValueGradient: true,
+                            	titleString: weather[j]['location'],
+                            	unitString: 'Pressure Pa',
+								threshold: 80,
+                            	lcdVisible: true
+                        });
+					radial[i+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+					radial[i+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+					radial[i+wl].setValueAnimated(weather[j]['airpressure']);
+				}
+				else {
+					console.log("weather airpressure "+i+" is not defined");
 				}
 			
+
 				// windspeed radial gauges
 				// XXX Make sure that the gauge is defined above
 				// before making this selectable
-				if (weather[j]['windspeed'] > 0)
-				{
-					console.log("weather windspeed "+i+" is true");
-					radial[i+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(i+wl*2+1), {
-                            	gaugeType: steelseries.GaugeType.TYPE4,
-                            	size: 201,
-                            	valueGradient: valGrad,
-                            	useValueGradient: true,
-                            	titleString: weather[j]['location'],
-                            	unitString: 'Humidity %',
-                            	lcdVisible: true
-                        });
-					radial[i+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-					radial[i+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-					radial[i+wl*2].setValueAnimated(weather[j]['windspeed']);
-				}
-				else {
-					console.log("weather windspeed "+i+" is false");
-				}
+				//if (weather[j]['windspeed'] != "")
+				//{
+				//	console.log("weather windspeed "+i+" is true");
+				//	radial[i+wl*2] = new steelseries.RadialBargraph('canvasRadial'+(i+wl*2+1), {
+                //            	gaugeType: steelseries.GaugeType.TYPE4,
+                //            	size: 201,
+                //            	valueGradient: valGrad,
+                //           	useValueGradient: true,
+                //            	titleString: weather[j]['location'],
+                //            	unitString: 'Windspeed %',
+                //            	lcdVisible: true
+                //        });
+				//	radial[i+wl*2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+				//	radial[i+wl*2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+				//	radial[i+wl*2].setValueAnimated(weather[j]['windspeed']);
+				//}
+				//else {
+				//	console.log("weather windspeed "+i+" is not defined");
+				//}
 				i++;
 			}
 		}
@@ -4950,25 +5003,34 @@ function activate_weather(location)
 				{
 					if (weather[j]['location'] == location)
 					{
-						radial[i].setValueAnimated(weather[j]['temperature']);
+						// First row of dials!!
+						if (('temperature' in weather[j]) && (weather[j]['temperature'] !== undefined) && (weather[j]['temperature'] != "")) {
+							radial[i].setValueAnimated(weather[j]['temperature']);
+						}
+						else { message("not set temperature. ",3); }
 						
-						if (weather[j]['humidity'] > -1) {
-							//console.log("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+						// Second row of dials
+						if (('humidity' in weather[j]) && (weather[j]['humidity'] !== undefined) && (weather[j]['humidity'] != "")) {
+							message("radial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity'],2);
 							radial[i+wl].setValueAnimated(weather[j]['humidity']);
 						}
-						else {
-							console.log("not set humidity: "+weather[j]['humidity']);
-						}
+						else { message("not set humidity. ",3); }
 						
-						if (weather[j]['windspeed'] >= 0) {
-							console.log("windspeed: " + weather[j]['windspeed']);
-							radial[i+wl].setValueAnimated(weather[j]['windspeed']);
+						// Experience shows that most if not all sensors show only two values
+						// Temperature+ humidity is most existent, but temperature + airpressure os also possible for example
+						// therefore, we assume that if humidity is not used, we can use that dial for other readings...
+						if (('airpressure' in weather[j]) && (weather[j]['airpressure'] !== undefined ) &&(weather[j]['airpressure'] != "" )) {
+							message("airpressure: " + weather[j]['airpressure'],2);
+							radial[i+wl].setValueAnimated(weather[j]['airpressure']);
 						}
+						else { message("not set airpressure. ",3); }
 						
-						if (weather[j]['winddirection'] >= 0) {
-							console.log("winddirection");
-							radial[i+wl].setValueAnimated(weather[j]['winddirection']);
-						}
+						// Windspeed
+						//if (('windspeed' in weather[j]) && (weather[j]['windspeed'] != "" )) {
+						//	console.log("windspeed: " + weather[j]['windspeed']);
+						//	radial[i+wl].setValueAnimated(weather[j]['windspeed']);
+						//}
+						//else if (debug>=3) { console.log("not set windspeed."); }
 						
 						i++;
 					}
@@ -5028,9 +5090,9 @@ function activate_setting(sid)
 					+ '<td>'
 					+ '<span id="choice" class="buttonset">'
 					+ '<input type="radio" name="choice" id="d0" value="0" class="buttonset" checked="checked"><label for="d0">L0</label>'
-					+ '<input type="radio" name="choice" id="d1" value="1" class="buttonset" ><label for="d1">L1</label>'
-					+ '<input type="radio" name="choice" id="d2" value="2" class="buttonset" ><label for="d2">L2</label>'
-					+ '<input type="radio" name="choice" id="d3" value="3" class="buttonset" ><label for="d3">L3</label>'
+					+ '<input type="radio" name="choice" id="d1" value="1" class="buttonset"><label for="d1">L1</label>'
+					+ '<input type="radio" name="choice" id="d2" value="2" class="buttonset"><label for="d2">L2</label>'
+					+ '<input type="radio" name="choice" id="d3" value="3" class="buttonset"><label for="d3">L3</label>'
 					+ '</span></td>'
 					;
 			$(table).append(but);
@@ -5350,7 +5412,7 @@ function activate_setting(sid)
 			var table = $( "#gui_backup" ).children();		// to add to the table tree in DOM
 			//html_msg = '<div id="gui_backup"></div>';
 			//$( "#gui_content" ).append (html_msg);	
-			// Create a few buttons and call backend_set.php directly!!
+			// Create a few buttons and call frontend_set.php directly!!
 			// Cosmetically not the most beutiful solution but it works great for the moment
 			var but =  ''	
 					+ '<thead><tr class="switch">'
@@ -5457,7 +5519,7 @@ function activate_setting(sid)
 			$(table).append(but);
 			$(table).append('</tr>');
 			
-			// Create a few buttons and call backend_set.php directly!!
+			// Create a few buttons and call frontend_set.php directly!!
 			// Cosmetically not the most beutiful solution but it works great for the moment
 			var but =  ''	
 					+ '<thead><tr class="switch">'
@@ -5559,9 +5621,9 @@ function activate_setting(sid)
 //
 function room_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hr_button ' + hover + '">'
-			return (  but );
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hr_button '+hover+'">'
+	return ( but );
 }
 
 //
@@ -5570,9 +5632,9 @@ function room_button(id, val, hover)
 //
 function scene_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hs_button ' + hover + '">'
-			return (  but );	
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hs_button '+hover+'">'
+	return ( but );	
 }
 //
 // Menu button
@@ -6104,7 +6166,7 @@ function send2daemon(action,cmd,message)
 //
 function load_database(dbase_cmd) 
 {
-	var sqlServer = murl + 'backend_sql.php';
+	var sqlServer = murl + 'frontend_sql.php';
 	if (debug>=2) alert("load_database:: sqlServer:: " + sqlServer);
 	else console.log("load_database:: sqlServer: "+ sqlServer);
 	
@@ -6131,7 +6193,6 @@ function load_database(dbase_cmd)
 			settings = data.appmsg['settings'];
 			brands = data.appmsg['brands'];
 			weather = data.appmsg['weather'];		// we want the id and name values
-			weatheron = data.appmsg['weatheron'];	// which fields are on 0/1 off/on values
 
 			// For all rooms write a button to the document
 			$("#gui_header").append('<table border="0">');	// Write table def to DOM
@@ -6185,7 +6246,7 @@ function load_database(dbase_cmd)
 //  are based on those buttons
 //
 //	The backend function will take care of the command interpretation, at this
-// moment the iCS command structure serves as a universal piece of code
+// moment the ICS command structure serves as a universal piece of code
 //
 // input : STRING action setting "device", "scene", "timer" makes easier for backend
 // input : STRING controller_cmd (only ics) in the form of "!R1D2F1"
@@ -6274,7 +6335,8 @@ function message_device(action, controller_cmd)
 
 // -------------------------------------------------------------------------------------------
 // Sync the MySQL or file database on the backend
-// This function gets called by a button on the GUI Parameter for the Ajax peer; "store_xxx" command
+// This function uses webbservices (preferred) or old style ICS/Ajax
+// For Ajax the function gets called by a button on the GUI Parameter for the Ajax peer; "store_xxx" command
 //		followed by the records in rooms, devices and scenes
 //
 //	We want to store the data to the other side and there they need to sort whether that is in files or SQL
@@ -6349,7 +6411,7 @@ function send_2_set(command, parameter)
 	var result = {};
 	$.ajax({
 		async: false,								// Synchronous operation
-   		url: murl + "backend_set.php",
+   		url: murl + "frontend_set.php",
 		type: "POST",
     	dataType: 'json',
 		//contentType: 'application/json',

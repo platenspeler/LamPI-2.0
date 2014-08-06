@@ -25,35 +25,6 @@
 	$dbuser = "coco";
 	$dbpass = "coco";
 	$dbhost = "192.168.2.55";				// standard this should be "localhost"
-
-// USER ADMIN SETTINGS (could be in database too, but this is easy as well)
-// In future we could add a function to the database, in the user CLASS
-	$u_admin = array (
-					array (
-						'login' => 'aap',
-						'password' => '0000' , 
-						'server' => '' ,
-						'trusted' => '2'
-					),
-					array (
-						'login' => 'noot',
-						'password' => '0000' , 
-						'server' => '' ,
-						'trusted' => '1'
-					),
-					array (
-						'login' => 'mies',
-						'password' => '0000' , 
-						'server' => '' ,
-						'trusted' => '1'
-					),
-					array (
-						'login' => 'gijs',
-						'password' => '0000' , 
-						'server' => '' ,
-						'trusted' => '1'
-					) 
-			);
 	
 // Are we still debugging or testing or operational? 
 // $_GET is not allowed in operational!!

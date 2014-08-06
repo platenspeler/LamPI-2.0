@@ -11,7 +11,7 @@ SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 LOGDIR="/home/pi/log"; export LOGDIR
 #
 cd $LOGDIR
-for i in LamPI-receiver LamPI-daemon PI-rcv PI-run PI-1w PI-rht03
+for i in LamPI-receiver LamPI-daemon PI-rcv PI-run PI-1w PI-rht03 PI-i2c rrdtool
 do
 	mv $LOGDIR/$i.3.log $LOGDIR/$i.4.log
 	mv $LOGDIR/$i.2.log $LOGDIR/$i.3.log
@@ -19,6 +19,13 @@ do
 	mv $LOGDIR/$i.log   $LOGDIR/$i.1.log
     cp /dev/null $LOGDIR/$i.log
 done
+
+# Required, as also the www server is writing log files. LamPI-daemon is running as pi/pi
+# All group permissons are set for the www daemon as well. Running as www-data/www-data
+# when files are owned by pi or www-data ancd group is set to www-data all is fine.
+#
+chgrp www-data $LOGDIR/*.log
+chmod 664 $LOGDIR/*.log
 #
 # Restart the daemons
 #

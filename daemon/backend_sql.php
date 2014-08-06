@@ -27,7 +27,7 @@ require_once( '../daemon/backend_cfg.php' );
 // NOTE: This function is VERY sensitive to the right fields of the objects etc.
 //		So make sure you have exactly the right number of argument and if you change
 // the record/object definition in the configuration object, make sure that MySQL
-// follows (backend_set.php)
+// follows (frontend_set.php)
 //
 function load_database()
 {
@@ -46,15 +46,16 @@ function load_database()
 	$controllers = array();
 	$brands = array();
 	$weather = array();
-	$weatheron = array();
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return(-1);
 	}
+	$log->lwrite("load_database:: Connected to MySQL database",3);
 	//mysqli_free_result($query);
 	
+	$log->lwrite("load_database:: Reading devices table from MySQL database",3);
 	$sqlCommand = "SELECT id, gaddr, room, name, type, val, lastval, brand FROM devices";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
@@ -62,6 +63,7 @@ function load_database()
 	}
 	mysqli_free_result($query);
 	
+	$log->lwrite("load_database:: Reading rooms table from MySQL database",3);
 	$sqlCommand = "SELECT id, name FROM rooms";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
@@ -90,6 +92,7 @@ function load_database()
 	}
 	mysqli_free_result($query);	
 	
+	$log->lwrite("load_database:: Reading handsets table from MySQL database",3);
 	$sqlCommand = "SELECT id, name, brand, addr, unit, val, type, scene FROM handsets";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
@@ -111,12 +114,14 @@ function load_database()
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, name, location, brand, address, channel, temperature, humidity, windspeed, winddirection rainfall FROM weather";
+	$log->lwrite("load_database:: Reading weather table from MySQL database",3);
+	$sqlCommand = "SELECT id, name, location, brand, address, channel, temperature, humidity, airpressure, windspeed, winddirection, rainfall FROM weather";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$weather[] = $row ;
 	}
 	mysqli_free_result($query);
+	$log->lwrite("load_database:: Done reading tables from MySQL database",3);
 	
 	$config ['rooms']   = $rooms;
 	$config ['devices'] = $devices;
@@ -127,40 +132,10 @@ function load_database()
 	$config ['controllers']= $controllers;
 	$config ['brands']= $brands;
 	$config ['weather']= $weather;
-	$config ['weatheron']= $weather;
 	
 	mysqli_close($mysqli);
 	$apperr = "";										// No error
 	return ($config);
-}
-
-// ---------------------------------------------------------------------------------
-//
-//	Function load_weatherdb database
-//	
-function load_weatherdb()
-{
-	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
-	
-	$weatherdb = array();
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-		return(-1);
-	}
-	
-	$sqlCommand = "SELECT id, timestamp, brand, location, brand, address, channel, temperature, humidity, windspeed, winddirection, rainfall FROM weatherdb";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$weatherdb[] = $row ;
-	}
-	mysqli_free_result($query);	
-	mysqli_close($mysqli);
-	$apperr = "";										// No error
-	return ($weatherdb);
 }
 
 

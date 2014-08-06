@@ -8,7 +8,9 @@
 	mw12554@hotmail.com
 
 */	
-
+// Use rrdtool for making graphs
+	$use_rrd = 1;
+	
 // Use this var as a way to determine what details are logged and what not...
 // At the moment, the user has to kill the daemon and restart with new debug value.   
 // Val 0: No Debug, Only Errors and logging of events in queue
@@ -30,26 +32,26 @@
 // In future we could add a function to the database, in the user CLASS
 	$u_admin = array (
 					array (
-						'login' => 'maarten',
-						'password' => '5143' , 
+						'login' => 'aap',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '2'
 					),
 					array (
-						'login' => 'annemarie',
-						'password' => '5143' , 
+						'login' => 'noot',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'laurens',
-						'password' => '5143' , 
+						'login' => 'mies',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'marloes',
-						'password' => '5143' , 
+						'login' => 'teun',
+						'password' => '0000' , 
 						'server' => '' ,
 						'trusted' => '1'
 					) 
@@ -64,10 +66,12 @@
 	$fake=0;					
 //
 // Looking from the webhost directory, where are other important directories.
-// BUt also works for LamPI-daemon.php in the daemon directory
-	$config_dir="config/";
-	$skin_dir  ="styles/";
-	$log_dir="../log/";
+// But also works for LamPI-daemon.php in the daemon directory
+	$base_dir	="/home/pi/";
+	$rrd_dir	=$base_dir."rrd/";
+	$config_dir=$base_dir."config/";
+	$skin_dir  =$base_dir."styles/";
+	$log_dir	="../log/";
 
 // Port Settings for the LamPI Daemon (!) LamPI-daemon.php file
 	$rcv_daemon_port = "5000";										

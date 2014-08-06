@@ -263,20 +263,23 @@
 			height:35px;
 			width: 35px;
 		}
+		
 		/* Command Handset button */
 		.ch_button {
 			height:35px;
 			width: 35px;
 		}
+		/* Command Help button */
+		.ch_button:help_button {
+			align: right;
+		}
+		
 		/* Command Weather button */
 		.cw_button {
 			height:35px;
 			width: 35px;
 		}
-
-		.ch_button:help_button {
-			align: right;
-		}
+		
 		/* Command Config button */
 		.cc_button {
 			height:35px;

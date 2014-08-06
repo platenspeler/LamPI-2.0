@@ -11,14 +11,14 @@
 <p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
 <h3>Control your lights and switches</h3>
 <p>This is where I developed LamPI for initially. It will control your light switches and your dimmers and your other switches as well (so your stereo too). </p>
-<p><img src="gh-pages/screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
+<p><img src="gh-pages/UserGuide/screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
 <p>The screen above is one of the main screens of LamPI, and should give you a taste of what LamPI is about. As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
 <h3>Weather</h3>
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
 <p>Actually, what you see below is just a small example of what &quot;steel&quot; can do for your project. The library is highly customizable so you can make your own background, color an other settings if you like.</p>
 <p>What you see below is the first version  for LamPI 1.8 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms.</p>
 <p>The definitions of sensors are stored in the configuration file database.cfg.</p>
-<p><img src="gh-pages/screenshots/weather_screen_1.JPG" width="966" height="637"></p>
+<p><img src="gh-pages/UserGuide/screenshots/weather_screen_1.JPG" width="966" height="637"></p>
 <p>Apart from the latest sensor info, or even near-real-time information received, I like to add support for historical charts etc. At the moment, all sensor readings are stored in a log file, and also in the MySQL database. </p>
 <p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can take a few days before I answer..</p>
 <p>&nbsp;</p>
@@ -31,21 +31,21 @@
 <p>LamPI contains 5 main screens: Rooms, Scenes, Timers, Handsets and Config. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. </p>
 <p>The documentation for the LamPI functions can be found on this site on the following pages.</p>
 <ul>
-  <li><a href="gh-pages/setup.html">Initial Setup</a></li>
-  <li><a href="gh-pages/rooms.html">The Rooms Screen</a></li>
-  <li><a href="gh-pages/scenes.html">The Scenes Screen</a></li>
-  <li><a href="gh-pages/timers.html">The Timers Screen</a></li>
-  <li><a href="gh-pages/handsets.html">The Handsets Screen</a></li>
-  <li><a href="gh-pages/weather/weather.html">The Weather screen (optional)</a></li>
-  <li><a href="gh-pages/config.html">The Config Screen</a><br>
+  <li><a href="gh-pages/Installation Manual/setup.html">Initial Setup</a></li>
+  <li><a href="gh-pages/UserGuide/rooms.html">The Rooms Screen</a></li>
+  <li><a href="gh-pages/UserGuide/scenes.html">The Scenes Screen</a></li>
+  <li><a href="gh-pages/UserGuide/timers.html">The Timers Screen</a></li>
+  <li><a href="gh-pages/UserGuide/handsets.html">The Handsets Screen</a></li>
+  <li><a href="gh-pages/UserGuide/weather.html">The Weather screen (optional)</a></li>
+  <li><a href="gh-pages/UserGuide/config.html">The Config Screen</a><br>
     <br>
   </li>
-  <li>Transceiver interface; If you only want to use the <a href="gh-pages/hardware/transceiver.html">LamPI-receiver  command-line</a> to send/receive 433MHz messages </li>
-  <li><a href="gh-pages/hardware.html">Background information  433MHz hardware for RaspberryPI</a></li>
-  <li><a href="gh-pages/sensors/sensors.html">Background information on Wired Sensors for PI (temperature, humidity etc).</a><br>
+  <li>Transceiver interface; If you only want to use the <a href="gh-pages/Hardware/transceiver.html">LamPI-receiver  command-line</a> to send/receive 433MHz messages </li>
+  <li><a href="gh-pages/Hardware/hardware_guide.html">Background information  433MHz hardware for RaspberryPI</a></li>
+  <li><a href="gh-pages/sensors/weather_sensors_msg_format.html">Background information on Wired Sensors for PI (temperature, humidity etc).</a><br>
     <br>
   </li>
-  <li>Background information on the <a href="gh-pages/architecture/architecture.html">Architecture</a></li>
+  <li>Background information on the <a href="gh-pages/Architecture Guide/architecture.html">Architecture</a></li>
 </ul>
 <h1>What Switches, Dimmers and other devices are supported?</h1>
 <p>LamPI can support receiver devices (making transmitter modules for various brands is often easy). Also, several brand share almost the same protocol or work or can be made to work with minor modifications, Therefore, the list below is probably just a snapshot of a much larger list...</p>
@@ -89,7 +89,7 @@
 </ul>
 <p>&nbsp;</p>
 <h1>Architectural Considerations</h1>
-<p>I did make an architecture document which can be found &lt;<a href="gh-pages/architecture/architecture.html">HERE</a>&gt;.</p>
+<p>I did make an architecture document which can be found &lt;<a href="gh-pages/Architecture Guide/architecture.html">HERE</a>&gt;.</p>
 <p>&nbsp;</p>
 <h1>Planned Functions</h1>
 <p>Of course I'm always thinking about new functions, as long as I do not have to put the current system up-side-down too much. After all, I do have other day-time work to do and it has to make sense for me to spend additional time. Therefore, you are welcome to ask for new functions, but if it will cost me days to implement them and I will not benefit from them in any way I will probably give priority to other changes.</p>

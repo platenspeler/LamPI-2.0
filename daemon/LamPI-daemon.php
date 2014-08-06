@@ -4,7 +4,7 @@ require_once( '../daemon/backend_lib.php' );
 require_once( '../daemon/backend_sql.php' );
 
 //	------------------------------------------------------------------------------	
-// LamPI-daemon.php, Daemon Program for LamPI, controller for 
+// LamPI-daemon.php, Daemon Program for LamPI, controller for 868MHz
 // Z-Wave (Fibaro) and 433MHz (klikaanklikuit and action) equipment
 //	
 // Author: M. Westenberg (mw12554 @ hotmail.com)
@@ -60,13 +60,113 @@ $brands = array();
 $weather= array();
 
 // --------------------------------------------------------------------------------------
-//	RRDTOOL
-//	The class for rrdtool functions. Creat a rrtool database and add data to it.
+//	CLASS Sensor
+//	The class for rrdtool functions. 
+// If necessary create a rrdtool database and add data to it.
 //	
 //
-class Rrd {
+class Sensor {
 	
+	// private $rrd_log=$rrd_dir."log/";
+	
+	// Lookup the name of the weather entry based on value of address+channel
+	//
+	private function lookup($data) {
+		global $log;
+		global $weather;
+		
+		for ($i=0; $i < count($weather); $i++) {
+			if (($data['address'] == $weather[$i]['address']) &&
+				($data['channel'] == $weather[$i]['channel'])) {
+				return($weather[$i]['name']);
+			}
+		}
+		return(0);
+	}
+	
+	//
+	// If a database does not yest exist, create one
+	// We create all weather related fields of the specific sensor 
+	// At a later stage we might have to check this.
+	// XXX Note: If the first ever message does not contain all fields for that sensor,
+	// we will generate a database without the omitted field!
+	public function rrdcreate($db, $sensor) {
+		global $log;
+		
+		// We take care not to define fields that we do not need!!
+		// Not that we need the storage, but it will enhance performance
+		$exec_str  = "rrdtool create " . $db . " ";
+		$exec_str .= "--step 180 ";
+		if (array_key_exists('temperature', $sensor))		$exec_str .= "DS:temperature:GAUGE:600:-20:95 ";
+		if (array_key_exists('humidity', $sensor))			$exec_str .= "DS:humidity:GAUGE:600:0:100 ";
+		if (array_key_exists('airpressure', $sensor))		$exec_str .= "DS:airpressure:GAUGE:600:900:1100 ";
+		if (array_key_exists('altitude', $sensor))			$exec_str .= "DS:altitude:GAUGE:600:-100:1200 ";
+		if (array_key_exists('windspeed', $sensor))			$exec_str .= "DS:windspeed:GAUGE:600:0:200 ";
+		if (array_key_exists('winddirection', $sensor))		$exec_str .= "DS:winddirection:GAUGE:600:0:359 ";
+		if (array_key_exists('rainfall', $sensor))			$exec_str .= "DS:rainfall:GAUGE:600:0:25 ";
+		
+		$exec_str .= "RRA:AVERAGE:0.5:1:480 ";			// Day: every 3 min sample counts, 20 per minute, 200*24=480 a day
+		$exec_str .= "RRA:AVERAGE:0.5:5:672 ";			// Week: 3 min sample, consolidate 5 (=15 min); thus 4 per hour * 24 hrs * 7 day
+		$exec_str .= "RRA:AVERAGE:0.5:20:744 ";			// Monnth: 20 samples of the hour, * 24 hrs * 31 days
+		$exec_str .= "RRA:AVERAGE:0.5:480:365 ";		// Year: 3 min sample * 20 (=hour) * 24 = consolidate per day. Do 365 days a year
+		$exec_str .= "RRA:MIN:0.5:20:720 ";
+		$exec_str .= "RRA:MAX:0.5:20:720 ";
+		$exec_str .= "RRA:AVERAGE:0.5:20:720 ";
+		
+		$log->lwrite("rrd create:: command: ".$exec_str,2);
+		if (shell_exec( $exec_str . " 2>&1 && echo ' '")  === NULL ) {
+			$log->lwrite("rrd create:: error: " . "Exec failed. " . "\n ");
+			return (-1);
+		}
+		$log->lwrite("rrd create of db: ".$db." successful",1);
+	}
+	
+	// Log a sensor value to its own rrd database. 
+	//
+	// $data['brand'], $data['address'], $data['channel'], $data['temperature'], $data['humidity'], 
+	// $data['windspeed'], $data['winddirection'], $data['rainfall']
+	//
+	public function rrdupdate($sensor){
+		global $log;
+		global $rrd_dir;
+		$rrd_db = $rrd_dir."db/";
+		
+		# Lookup the name of the sensor
+		if (! ($name = $this->lookup($sensor))) {
+			$log->lwrite("rrdupdate:: ERROR Sensor not found: ".$sensor['address'].":".$sensor['channel']);
+			return(0);
+		}
+		// Does the directory dbd exist?
+		if (! file_exists($rrd_db)) { 
+			$log->lwrite("rrdupdate:: Creating database directory: ".$rrd_db,1);
+			mkdir($rrd_db, 0775 );
+		}
+		// Does the database file exist already?
+		$db = $rrd_db.$name.".rrd";
+		$log->lwrite("rrdupdate:: Checking for .rrd file: ".$db,2);
+		if (! file_exists($db)) { 
+			$log->lwrite("rrdupdate:: Creating database file: ".$db,1);
+			$this->rrdcreate($db, $sensor);
+		}
+		$values  = "";
+		if (array_key_exists('temperature', $sensor))	$values .= ":".$sensor['temperature'];
+		if (array_key_exists('humidity',$sensor))		$values .= ":".$sensor['humidity'];
+		if (array_key_exists('airpressure',$sensor))	$values .= ":".$sensor['airpressure'];
+		if (array_key_exists('altitude',$sensor))		$values .= ":".$sensor['altitude'];
+		if (array_key_exists('windspeed',$sensor))		$values .= ":".$sensor['windspeed'];
+		if (array_key_exists('winddirection',$sensor))	$values .= ":".$sensor['winddirection'];
+		if (array_key_exists('rainfall',$sensor))		$values .= ":".$sensor['rainfall']; 
+		$exec_str = "rrdtool update ".$db." N".$values;
+		
+		$log->lwrite("rrdupdate:: cmd: ".$exec_str,1);
+		
+		if (shell_exec($exec_str . " 2>&1 && echo ' '")  === NULL ) {
+			$log->lwrite("rrdupdate ERROR: " . "Exec failed. " . "\n ");
+			return (-1);
+		}
+	}
 }
+
 
 
 // --------------------------------------------------------------------------------------
@@ -94,13 +194,15 @@ class User {
 
 // ----------------------------------------------------------------------------------
 // ZWAVE class
-//
+// XXX tbd further
 //
  
 class Zwave {
 	
 	
 }
+
+
 
 // ---------------------------------------------------------------------------------- 
 // Retrieve the current value of a switch. We need to see how we can periodically pull
@@ -158,9 +260,8 @@ function zwave_send($msg) {
 	$log->lwrite("zwave_send:: razberry is: ".$razberry.", uaddr: ".$addr.", val: ".$p);
 	curl_setopt_array (
 		$ch, array (
-		
-		CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchMultilevelSet/'.$addr.'/0/'.$p ,
-		CURLOPT_RETURNTRANSFER => true
+			CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchMultilevelSet/'.$addr.'/0/'.$p ,
+			CURLOPT_RETURNTRANSFER => true
 		));
 
 	$output = curl_exec($ch);
@@ -673,11 +774,11 @@ class Sock {
 		$log->lwrite("s_send:: writing message <".$cmd_pkg.">",3);				
     	if (socket_write($this->ssock, $message, strlen($message)) === false)
    		{
-     		$log->lwrite( "s_send:: socket_write failed:: ".socket_strerror(socket_last_error()) );
+     		$log->lwrite( "s_send:: ERROR socket_write failed:: ".socket_strerror(socket_last_error()) );
 			socket_close($this->ssock);					//  This is one of the accepted connections
 			return(-1);
     	}
-		$log->lwrite("s_send:: socket_write to IP: ".$clientIP.":".$clientPort." success",1);
+		$log->lwrite("s_send:: socket_write to IP: ".$clientIP.":".$clientPort." success",2);
 		return(0);
 	}// s_send
 	
@@ -1291,13 +1392,17 @@ class Weather {
             $this->sql_open();
         }
 		// Write to log
-		$log->lwrite("Weather upd:: address: ".$w['address'].", channel: ".$w['channel'].", temperature: "
-											.$w['temperature'].", humidity: ".$w['humidity']);
+		$log->lwrite("Weather upd:: address: ".$w['address'].", channel: ".$w['channel']
+												.", temperature: ".$w['temperature']
+												.", humidity: ".$w['humidity']
+												.", airpressure: ".$w['airpressure']
+												,2);
 
-		// Write to SQL
+		// Write to SQL. For the moment we write ALL fields in the table, even if not used
 		$query = "UPDATE weather SET 
 									temperature='".$w['temperature']."',
 									humidity='".$w['humidity']."',
+									airpressure='".$w['airpressure']."',
 									windspeed='".$w['windspeed']."',
 									winddirection='".$w['winddirection']."',
 									rainfall='".$w['rainfall']."' 
@@ -1319,7 +1424,7 @@ class Weather {
 		if (!is_resource($this->mysqli)) {
             $this->sql_open();
         }
-		// XXX NOt implemented yet
+		// XXX Not implemented yet
 	}
 }// class Weather
 
@@ -1497,7 +1602,7 @@ function message_parse($cmd) {
 	break;	
 	//	
 	// All room and device commands start with !R
-	// These room commands are received from the client application.
+	// These room commands are received from the GUI application.
 	//
 	case "!R":
 		list( $room, $value ) = sscanf ($cmd, "!R%dF%s" );
@@ -1703,7 +1808,7 @@ set_time_limit();							// NO execution time limit imposed
 ob_implicit_flush();
 
 $log = new Logging();						// Logging class initialization XXX maybe init at declaration
-$wlog = new Logging();						// Weather Log
+$sensor = new Sensor();						// Weather Log
 
 $queue = new Queue();
 $sock = new Sock();
@@ -1712,7 +1817,6 @@ $wthr = new Weather();						// Class for Weather handling in database
 
 // set path and name of log file (optional)
 $log->lfile($log_dir.'/LamPI-daemon.log');
-$wlog->lfile($log_dir.'/LamPI-weather.log');
 
 
 $log->lwrite("-------------- STARTING DAEMON ----------------------");
@@ -1859,11 +1963,12 @@ while (true):
 		}
 		
 		// Make sure that if two json messages are present in the buffer
-		// that we decode both of them.. position of last(!) "}" in buffer
+		// that we decode both of them.. determine position of  "}" in buffer
 		$i = 0;
-		while (($pos = strrpos($buf,"}",$i)) != FALSE )
+		while (($pos = strpos($buf,"}",$i)) != FALSE )
+		//while (($pos = strrpos($buf,"}",$i)) != FALSE ) // XXX unclear why last } was searched. Only if we have complex/multi level jSon 
 		{
-			$log->lwrite("s_recv:: ".substr($buf,$i,($pos+1-$i)),1 );
+			$log->lwrite("s_recv:: decoding substr: ".substr($buf,$i,($pos+1-$i)),1 );
 			
 			$data = json_decode(substr($buf,$i,($pos+1-$i)), true);
 			$tcnt = $data['tcnt'];						// Must be present in every communication
@@ -2015,16 +2120,9 @@ while (true):
 				break;
 				
 				case "weather":
-					// Weather station message recognized.
-					// Write the received values to the logfile, and read all fields.
-					$wlog->lwrite("address: ". 
-									 $data['address'].
-									 ", channel: ". $data['channel'].			   
-									 ", temperature: ". $data['temperature'].
-									 ", humidity: ".  $data['humidity'] 
-									 );
+					// Weather station/sensor message recognized.
 					
-					// Send something to the client GUI?
+					// Send something to the client GUI, and updated the database
 					$item = array (
 						'secs'  => time(),					// Set execution time to now or asap
 						'tcnt' => $tcnt."",					// Transaction count
@@ -2033,14 +2131,26 @@ while (true):
 						'brand' => $data['brand'],
 						'address' => $data['address'],
 						'channel' => $data['channel'],
-						'temperature' => $data['temperature'],
-						'humidity' => $data['humidity'],
-						'windspeed' => $data['windspeed'],
-						'winddirection' => $data['winddirection'],
-						'rainfall' => $data['rainfall']
+						// The lines below make sure the indexes exist even if there are no values!
+						'temperature' => "",
+						'humidity' => "",
+						'windspeed' => "",
+						'airpressure' => "",
+						'winddirection' => "",
+						'rainfall' => ""
 					);
-
+					if (array_key_exists('temperature',$data)) $item['temperature']=$data['temperature'];
+					if (array_key_exists('humidity',$data)) $item['humidity']=$data['humidity'];
+					if (array_key_exists('windspeed',$data)) $item['windspeed']=$data['windspeed'];
+					if (array_key_exists('winddirection',$data)) $item['winddirection']=$data['winddirection'];
+					if (array_key_exists('rainfall',$data)) $item['rainfall']=$data['rainfall'];
+					if (array_key_exists('airpressure',$data)) $item['airpressure']=$data['airpressure'];
+					
+					// Update the weather structure in the MySQL database
 					$wthr->upd($item);
+					// Write the received values to the rrd database file, and update all fields.
+					$sensor->rrdupdate($data);
+					
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
 					$log->lwrite("main:: q_insert action: ".$item['action'].", temp: ".$item['temperature'],2);
@@ -2102,7 +2212,7 @@ while (true):
 				break;
 
 				case "console":
-					// Handling of interfaces. Fields:
+					// Handling of LamPI operation. Fields:
 					// action=="console", request=="clients","logs",
 					$log->lwrite("main:: Received console message: ".$data['action'].", request: ".$data['request'],2);
 					
@@ -2139,7 +2249,10 @@ while (true):
 			// one buffer) but also messgae might be split over several buffers...
 			//
 			$i = $pos+1;
-			if ($pos >= strlen($buf)) break;
+			if ($pos >= strlen($buf)) {
+				$log->lwrite("main:: No more messages in buffer, break",1);
+				break;
+			}
 		}// while !end of encoded string read
 		
 		// test for empty message
@@ -2153,7 +2266,7 @@ while (true):
 		//
 		else 
 		{
-			if ($debug>=1) $log->lwrite("ERROR main:: Rcv raw data cmd on rawsocket: <".$data.">");
+			$log->lwrite("ERROR main:: Rcv raw data cmd on rawsocket: <".$data.">",1);
 			list ($tcnt, $cmd) = explode(',' , $data);
 			// 
 			// Messages start with a tcnt number, then a command, Then an argument all comma separated
@@ -2246,13 +2359,14 @@ while (true):
 						'action' => "weather",				// code for weather
 						'type'   => "json",					// type either raw or json, we code content here too. 
 						// Remainder of record specifies device parameters
-						'brand'  => $items[$i]['brand'],
-						'address'  => $items[$i]['address'],
-						'channel'  => $items[$i]['channel'],
-						'temperature'  => $items[$i]['temperature'],
-						'humidity'  => $items[$i]['humidity'],
-						'windspeed'  => $items[$i]['windspeed'],
-						'winddirection' => $items[$i]['winddirection']
+						'brand'			=> $items[$i]['brand'],
+						'address'		=> $items[$i]['address'],
+						'channel'		=> $items[$i]['channel'],
+						'temperature'	=> $items[$i]['temperature'],
+						'humidity'		=> $items[$i]['humidity'],
+						'airpressure'	=> $items[$i]['airpressure'],
+						'windspeed'		=> $items[$i]['windspeed'],
+						'winddirection'	=> $items[$i]['winddirection']
 					);
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("main:: error weather broadcast encode: <".$bcst['tcnt']

@@ -32,7 +32,7 @@ LDFLAGS	= -L/usr/local/lib
 LDLIBS    = -lwiringPi -lwiringPiDev -lpthread -lm
 INSTALL = /home/pi/exe
 
-SRC	= testBMP085.c smbus.c
+SRC	= BMP085.c smbus.c
     
 # Should not alter anything below this line
 ###############################################################################
@@ -59,9 +59,9 @@ sensor:	$(OBJ)
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:
-	@cp sensor $(INSTALL)/i2c-sensor
-	chown root $(INSTALL)/i2c-sensor
-	chmod u+s $(INSTALL)/i2c-sensor
+	@cp sensor $(INSTALL)/bmp085-sensor
+	chown root $(INSTALL)/bmp085-sensor
+	chmod u+s $(INSTALL)/bmp085-sensor
 
 clean:
 	@echo "[Clean]"

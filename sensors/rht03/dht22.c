@@ -270,17 +270,18 @@ int open_tcp_socket(char *host, char *port) {
 int send_2_server(int sockfd, float humidity, float temperature)
 {
 	char snd_buf[256];
+	if (temperature > 50) {
+		fprintf(stderr,"dht22:: ERROR temperature too high: %2.1f\n",temperature);
+		return(-1);
+	}
 	
 	// Daemon, output to socket
-	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"dht22\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%d\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"%d\",\"winddirection\":\"%d\",\"rainfall\":\"%d\"}", 
+	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"dht22\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%s\",\"temperature\":\"%3.1f\",\"humidity\":\"%2.1f\",\"windspeed\":\"\"}", 
 				socktcnt%1000,
 				"0",								// address
-				0,									// channel
+				"0",								// channel
 				temperature,
-				humidity,
-				-1,									// windspeed not selected
-				-1,									// winddirection not selected
-				-1									// rainfall not selected
+				humidity
 				);
 	socktcnt++;			
 	// If this is a TCP connections
@@ -830,9 +831,14 @@ int main(int argc, char **argv)
 		else {
 		// Use the brute force method and wait all reads out
 			attempts = dht22_read_old(i); 
-		}	
+		}
 		
-		printf(" It took %d attempts to read\n",attempts);
+		if (attempts <= 100) {
+			printf(" It took %d attempts to read\n",attempts);
+		}
+		else {
+			printf(" dht22: Unable to read a value in 100 attempts\n");
+		}
 		delay(2000);							// wait 2.0 secs
 	}
 	

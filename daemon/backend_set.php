@@ -352,14 +352,14 @@ function fill_database($cfg)
 	// --------------------------------------------------------------
 	// Weather
 	if (!$mysqli->query("DROP TABLE IF EXISTS weather") ||
-    	!$mysqli->query("CREATE TABLE weather(id INT, name CHAR(20), location CHAR(20), brand CHAR(20), address CHAR(20), channel CHAR(8), temperature CHAR(8), humidity CHAR(8), windspeed CHAR(8), winddirection CHAR(8), rainfall CHAR(8) )") )
+    	!$mysqli->query("CREATE TABLE weather(id INT, name CHAR(20), location CHAR(20), brand CHAR(20), address CHAR(20), channel CHAR(8), temperature CHAR(8), humidity CHAR(8), airpressure CHAR(8), windspeed CHAR(8), winddirection CHAR(8), rainfall CHAR(8) )") )
 	{
     	echo "Table creation weather failed: (" . $mysqli->errno . ") " . $mysqli->error;
 	}
 	// Insert weather data
 	for ($i=0; $i < count($weather); $i++)
 	{
-		if (!$mysqli->query("INSERT INTO weather (id, name, location, brand, address, channel, temperature, humidity, windspeed, winddirection, rainfall ) VALUES ('" 
+		if (!$mysqli->query("INSERT INTO weather (id, name, location, brand, address, channel, temperature, humidity, airpressure, windspeed, winddirection, rainfall ) VALUES ('" 
 					. $weather[$i][id]. "','" 
 					. $weather[$i][name]. "','"
 					. $weather[$i][location]. "','"
@@ -368,6 +368,7 @@ function fill_database($cfg)
 					. $weather[$i][channel]. "','"
 					. $weather[$i][temperature]. "','"
 					. $weather[$i][humidity]. "','"
+					. $weather[$i][airpressure]. "','"
 					. $weather[$i][windspeed]. "','"
 					. $weather[$i][winddirection]. "','"
 					. $weather[$i][rainfall]. "')"
