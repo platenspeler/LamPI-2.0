@@ -45,4 +45,4 @@ Design:
 	probably with little effort can be made to run on Arduino too... 
 	The supporting executables for 	devices need to be there as well (in exe directory)
 
-Nov. 2013
+Aug. 2014
