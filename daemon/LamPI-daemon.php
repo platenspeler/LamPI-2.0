@@ -3,7 +3,7 @@ require_once( '../daemon/backend_cfg.php' );
 require_once( '../daemon/backend_lib.php' );
 require_once( '../daemon/backend_sql.php' );
 require_once( '../daemon/backend_set.php' );
-
+//error_reporting(E_ALL);
 error_reporting(E_ERROR | E_PARSE | E_NOTICE);				// For a daemon, suppress warnings!!
 
 //	------------------------------------------------------------------------------	
