@@ -55,31 +55,33 @@ $graphSensors = array();	// List of sensor values we like to graph
 //
 function make_graph ($type, $period, $sensors)
 {
-	global $log, $logfile, $appmsg, $apperr;
+	global $log, $logfile, $appmsg, $apperr, $ret;
 	$rrd_dir='/home/pi/rrd/db/';
-	$output='/home/pi/www/graphs/';
+	$output='/home/pi/www/graphs/';	// Directory to output the graph
 	$DEFpart='';
 	$LINEpart='';
 	$GRPINTpart='';
-	$width='720';
-	$height='360';
-	$eol="";
-	$sensorType="";
-	$graphName="";
-	$graphColor = array(
+	$width='750';
+	$height='400';
+	$eol='';
+	$sensorType='';					// "T" emperature, "H" umidity, air "P" ressure
+	$graphName='';
+	$graphColor = array(			// Predefined array of line colors
 			0 => "111111",
 			1 => "ff0000",
 			2 => "00ff00",
 			3 => "0000ff",
-			4 => "ffff00",
+			4 => "ff00ff",
 			5 => "666666",
-			6 => "00ffff"
+			6 => "00ffff",
+			7 => "ff3399",
+			8 => "ffff00"
 			);				
 	// Check which type of sensor we want to display and set the commands accordingly
 	switch($type) {
 		case 'T':
-			$sensorType="temperature";
-			$graphName="temp";
+			$sensorType='temperature';
+			$graphName='temp';
 		break;
 		case 'H':
 			$sensorType="humidity";
@@ -95,7 +97,57 @@ function make_graph ($type, $period, $sensors)
 	$log->lwrite("make_graph:: Starting .. type: ".$type.", period: ".$period);
 
 	// Check on permissions for "graphs" directory. owner=pi, group=www-data, mode: 664
-	
+	// Start with teh setting of the right group for the directory
+	$grp = posix_getgrgid(filegroup($output));
+	if ($grp['name'] != "www-data") {
+		$log->lwrite("graphs.php:: make_graph ERROR, dir ".$output." not owned by group www-data but by ".$grp['name'].", gid: ".filegroup($output));
+		$apperr="graphs.php:: make_graph ERROR, directory ".$output." not owned by group www-data";
+		$log->lwrite("make_graphs: Trying to set group right for dir ".$output." only when pi is owner of the dir");
+		// Try to set the gid to the gid of the calling process (www-data);
+		$ownr = posix_getpwuid(fileowner($output));
+		$i = 'make_graphs: Unsuccessful in setting group of '.$output.' to www-data. Please do "sudo chgrp www-data '.$output.'" from the commandline';
+		if ($ownr['name']=="pi") {
+			$log->lwrite("make_graphs: Try setting the group of ".$output." to ".posix_getgid() );
+			if (!chgrp ($output, posix_getgid() )) {
+				$log->lwrite($i);
+				$apperr=$i;
+				$ret = -1;
+				return (false);
+			}
+		}
+		else {
+			$log->lwrite($i);
+			$apperr=$i;
+			$ret = -1;
+			return (false);
+		}
+	}
+	// Are the right permissions set? Remember thsi is ONLY of immediate importance if there is not
+	// yet a writable output file present. If there is, we can use that file.
+	$perms = fileperms($output);
+	if (!($perms & 0x0010)) {
+		$log->lwrite("graphs.php:: make_graph ERROR, directory ".$output." not writable for group www-data");
+		$apperr="graphs.php:: make_graph ERROR, directory ".$output." not writable for group www-data, trying to fix";
+		// If owner is pi, then we can try to set the permissions. But we probably are not pi!!!
+		$i = 'Not successful in setting the permissions of the directory, please do a "sudo chmod 775 '.$output.'" from the commandline';
+		$ownr = posix_getpwuid(fileowner($output));
+		if ($ownr['name']=="pi") {
+			$log->lwrite("make_graphs: Try setting the mode of ".$output." to 775" );
+			// We do nto return an unsuccessful value as we do not know
+			if (! chmod ($output, 0775 )) {
+				$log->lwrite($i);
+				$apperr=$i;
+				$ret=-1;
+				return(false);
+			}
+		}
+		else {
+			$log->lwrite($i);
+			$apperr=$i;
+			$ret = -1;
+			return (false);
+		}
+	}
 	
 	// Check whether rrdtool exists
 	
@@ -103,7 +155,7 @@ function make_graph ($type, $period, $sensors)
 	// and its own LINE part  
 	for ($i=0; $i< count($sensors); $i++) {
 		if (($i + 1) == count($sensors) ) {
-			$eol="\n";
+			$eol='\n';
 			$log->lwrite("Setting newline for index ".$i);
 		} else {
 			$eol="";
@@ -132,10 +184,12 @@ function make_graph ($type, $period, $sensors)
 			$log->lwrite("make_graph:: ERROR executing rrdtool");
 			$apperr .= "\nERROR: generate_graphs ".$graphsPeriod."\n ";
 			$ret = -1;
+			return(false);
 	}
 	
 	$log->lwrite("Command rrdtool executed");
-	return(1);
+	$ret = 1;
+	return(true);
 }
 
 
@@ -168,7 +222,7 @@ function post_parse()
 			break;
 		} // switch $ind
 	} // for
-	return(1);
+	return(true);
 } // function
 
 
@@ -211,9 +265,13 @@ switch($graphAction)
 	// In case the user defines his own graph
 	case "user":
 		$log->lwrite("Starting User specific graphs, type: ".$graphType.", period: ".$graphPeriod);
-		make_graph ($graphType,$graphPeriod,$graphSensors);
-		$appmsg .="Success generate_graphs\n";
-		$ret = 1;
+		if (! make_graph ($graphType,$graphPeriod,$graphSensors) ) {
+			$appmsg .="user error. ";
+		}
+		else {
+			$appmsg .="Success generate_graphs\n";
+			$ret = 1;
+		}
 	break;
 	
 	default:
@@ -234,8 +292,6 @@ if ($ret >= 0)
 }
 else
 {	
-	//$apperr .= $appmsg;
-	$apperr .= "\nfunction returns error \n".$ret;
 	$send = array(
     	'tcnt' => $ret,
     	'status' => 'ERR',

@@ -113,15 +113,25 @@ extern int sockerr;
 extern int sockfd;								// The socket number/id for the server
 
 
+// --------------------------------------------------------------------------------
+// GET THE TIME IN A STRING
+//
+int get_time(char *s)
+{
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
 
-/*
- *********************************************************************************
- * Get In Addr
- *
- * get sockaddr, IPv4 or IPv6: These new way of dealing with sockets in Linux/C 
- * makes use of structs.
- *********************************************************************************
- */
+	sprintf(s, "[%d-%02d-%02d %02d:%02d:%02d] ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+	return(tm.tm_sec);
+}
+
+
+// --------------------------------------------------------------------------------
+// Get In Addr
+//
+// get sockaddr, IPv4 or IPv6: These new way of dealing with sockets in Linux/C 
+// makes use of structs.
+//
 void *get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET) {
@@ -308,48 +318,16 @@ int buf_2_server(int sockfd,
 		servaddr.sin_port = htons(s_port);
 		servaddr.sin_addr.s_addr = inet_addr(serverIP);
 		
-		printf("UDP dest: %s , port: %d\n", serverIP, s_port);
+		if (verbose) printf("UDP dest: %s , port: %d\n", serverIP, s_port);
 		
 		if (sendto(sockfd, snd_buf, strlen(snd_buf), 0, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
 	 		perror("sendto failed"); 
 			return(-1); 
 		}
-		printf("buf_2_server:: serverIP: %s:%s, buf: %s\n", serverIP, port, snd_buf);
+		if (verbose) printf("buf_2_server:: serverIP: %s:%s, buf: %s\n", serverIP, port, snd_buf);
 	}
 	return(1);
 }
-
-
-/*
- *********************************************************************************
- * send_2_server
- * Send a message buffer to the server over either TCP or UDP
- *********************************************************************************
- */
-int send_2_server(int sockfd,	
-				char * hostip,
-				char * port,			
-				int mode,					// Either SOCK_STREAM or SOCK_DGRAM
-				char * address,
-				long channel, 
-				char* temperature			// For compatibility reasons, sensor values etc should be char*
-				)
-{
-	char snd_buf[256];
-	// Daemon, output to socket
-	
-	sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%s\"}", 
-				socktcnt%1000,
-				address,							// address
-				channel,							// channel
-				temperature);						// temperature
-				
-	socktcnt++;
-	
-	buf_2_server(sockfd, hostip, port, snd_buf, mode);
-	return (1);
-}
-
 
 #ifdef __cplusplus
 }

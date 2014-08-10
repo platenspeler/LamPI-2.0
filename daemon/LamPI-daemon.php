@@ -2,6 +2,9 @@
 require_once( '../daemon/backend_cfg.php' );
 require_once( '../daemon/backend_lib.php' );
 require_once( '../daemon/backend_sql.php' );
+require_once( '../daemon/backend_set.php' );
+
+error_reporting(E_ERROR | E_PARSE | E_NOTICE);				// For a daemon, suppress warnings!!
 
 //	------------------------------------------------------------------------------	
 // LamPI-daemon.php, Daemon Program for LamPI, controller for 868MHz
@@ -16,6 +19,7 @@ require_once( '../daemon/backend_sql.php' );
 // Version 1.8, Jan 18, 2014 Added temperature sensor support
 // Version 1.9, Mar 10, 2014 Support for sensors, and remote access
 // Version 2.0, Jun 15, 2014 Initial support for Z-Wave devices (868MHz)
+// Version 2.1, Jul 31, 2014 rrdtool support, graphs and performance enhancements of daemon
 //
 // Copyright, Use terms, Distribution etc.
 // ===================================================================================
@@ -282,53 +286,6 @@ function zwave_send($msg) {
 	$log->lwrite("zwave_send:: Output is: ".$output,2);	
 	curl_close($ch);
 	return(1);
-}
-
-
-/** ---------------------------------------------------------------------------------- 
- * Check if a client IP is in our Server subnet
- *
- * @param string $client_ip
- * @param string $server_ip
- * @return boolean
- *
- * Original function taken from internet, but modified to read server address from ifconfig
- * It provides a solution, even for multiple adpters, provided they are all in same subnet.
- * If we use PHP as a server, then we are NOT sure about the used IP address, 
- * especially if we rely on /etc/hosts as a guide (127.0.1.1)
- * as we might manually set the IP address in /etc/network/interfaces
- * Therefore, best is to use ifconfig output and scan for that interface that has a Bcast
- * next to the inet address.
- */
-function clientInSameSubnet($client_ip=false,$server_ip=false) {
-	global $log;
-    if (!$client_ip)
-        $client_ip = $_SERVER['REMOTE_ADDR'];
-    //if (!$server_ip) {
-    //    $server_ip = $_SERVER['SERVER_ADDR'];	// For a daemon, this does NOT work
-	//}
-    // Extract broadcast and netmask from ifconfig
-    if (!($p = popen("/sbin/ifconfig","r"))) return false;
-    $out = "";
-    while(!feof($p))
-        $out .= fread($p,1024);
-    
-    $match  = "/^.*inet addr:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
-    $match .= ".*Bcast:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
-    $match .= ".*Mask:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/im";
-	
-    if (!preg_match($match,$out,$regs)) {
-		$log->lwrite("clientInSameSubnet preg_match failed");
-        return false;
-	}
-	$log->lwrite("clientInSameSubnet:: Inet: ".$regs[1].", Bcast: ".$regs[2].", Mask: ".$regs[3],3);
-	$server_ip = $regs[1];
-    $bcast = ip2long($regs[2]);
-    $smask = ip2long($regs[3]);
-    $ipadr = ip2long($client_ip);
-	if ($client_ip == '127.0.0.1') return(1);				// localhost is local subnet too.
-    $nmask = $bcast & $smask;
-    return (($ipadr & $smask) == ($nmask & $smask));
 }
 
 
@@ -643,8 +600,6 @@ class Sock {
 		$usec = 10000;
 		
 		$i1=time();
-
-		
 		if (!is_resource($this->usock)) {
             $this->s_uopen();
         }
@@ -844,6 +799,9 @@ class Sock {
 	//
 	// s_recv. Main receiver code for all messages on all socket connections to clients
 	// $this->read contains the modified read array of socket to read
+	// XXX Actually we read only one successful message and then return back to caller
+	// XXX This si not strict what the manual says: We should read all sockets with data available
+	// XXX before calling select again.
 	//
 	public function s_recv() {
 		global $log;
@@ -856,12 +814,6 @@ class Sock {
 		$clientIP=0;
 		$usec = 10000;
 		
-		// Start with reading the UDP socket. If there is a message read, return the buffer
-		if ( ($buf = $this->s_urecv() ) != -1 ) {
-			$log->lwrite("s_recv:: UDP s_urecv returned buffer: ".$buf,3);
-			return($buf);
-		}
-		
 		$i1=time();
 
 		$log->lwrite("s_recv:: calling socket_select, timeout: ".$this->wait,3);
@@ -869,7 +821,9 @@ class Sock {
             $this->s_open();
         }
 		
-		// Wait for activities on the set of sockets in ->read, which includes the general server socket
+		// socket_select waits for incoming messages on datagram and stream sockets
+		// the this->wait timeout parameter is dynamic which allows the program to wait
+		// in system mode until something happens.
 		$ret = socket_select($this->read, $write = NULL, $except = NULL, $this->wait, $usec);
 		if ($ret === false)
      	{
@@ -896,7 +850,31 @@ class Sock {
 		// $ret contains the number of sockets with messages. We will only serve one at a time!!
 		$log->lwrite("s_recv:: socket_select success, returned: ".$ret,3);
 		
-		// New connections? (coming from a previous call of socket_select() in $read)
+		// DATAGRAM?
+		// Is this a datagram message?
+		if (in_array($this->usock, $this->read)) 
+		{
+			$log->lwrite("s_recv:: Reading Datagram message on usock",2);
+			// Start with reading the UDP socket. If there is a message read, return the buffer
+			if ( ($buf = $this->s_urecv() ) != -1 ) {
+				$log->lwrite("s_recv:: UDP s_urecv returned buffer: ".$buf,3);
+				// Remove the usock from the read array
+				$key = array_search($this->usock, $this->read);
+				if (false === $key)
+					$log->lwrite("s_recv:: ERROR: unable to find usock key: ".$key." in the read array");
+				else {
+					$log->lwrite("s_recv:: Masking usock from read array, key: ".$key,3);
+					unset($this->read[$key]);
+				}
+				return($buf);
+			}
+			else {
+				return(-1);
+			}
+		}
+		
+		// NEW CONNECTION? 
+		// (coming from a previous call of socket_select() in $read)
 		// Incoming connect request comes in on server socket rsock only
 		$log->lwrite("s_recv:: checking for new connections in this->read",2);
 		if (in_array($this->rsock, $this->read)) 
@@ -942,7 +920,8 @@ class Sock {
 			}
 		}
 		
-		// Handle incoming messages. Messages com in on one of the sockets we connected to.
+		// STREAM SOCKET MESSAGE?
+		// Handle incoming messages. Messages come in on one of the sockets we connected to.
 		// As we handle incoming messages immediately. Set the sender socket in private var
 		// so the s_Send command knows where to send response to for last message
 		
@@ -1073,11 +1052,15 @@ class Sock {
 		global $log;
 		global $interval;
 		
-		if (!is_resource($this->rsock)) {	// Not really necessary now
+		if (!is_resource($this->rsock)) {						// Not really necessary now
             $this->s_open();
         }
+		if (!is_resource($this->usock)) {						// Need to open this socket some time
+            $this->s_uopen();
+		}
 		$this->read = array();
-		$this->read[] = $this->rsock;
+		$this->read[] = $this->usock;							// Listen to the datagram socket
+		$this->read[] = $this->rsock;							// Listen to the general stream receive socket
 		$this->read = array_merge($this->read,$this->clients);
 		
 		// Could be that due to longer execution the first queue item timed by qtime should
@@ -1181,149 +1164,6 @@ class Device {
 	}
 }
 
-
-
-/* -----------------------------------------------------------------------------------
-  Load the scene(s_ with 'name' from the SQL database
-  
-  We start readingthe scene as soon as we determine that it is time to start a
-  command based o timer settings. If so, we lookup the scene and its seq(uence)
-  element. The scene['seq'] contains the string of commands to be sent to the 
-  devices......
-  
-  We read the database scenes and determine if action need to be taken.
-  NOTE: Scene names and timer names need to be unique.
- -------------------------------------------------------------------------------------*/
-function load_scenes()
-{
-	global $log, $debug;
-	global $apperr;
-	global $dbname, $dbuser, $dbpass, $dbhost;
-	
-	$config = array();
-	$scenes = array();
-
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
-		return(-1);
-	}
-	
-	$sqlCommand = "SELECT * FROM scenes";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-
-		$scenes[] = $row ;
-	}
-	// There will be an array returned, even if we only have ONE result
-	mysqli_free_result($query);
-	mysqli_close($mysqli);
-	
-	if (count($scenes) == 0) {	
-		return(-1);
-	}
-	return($scenes);								// Return all scenes
-}
-
-
-
-// ------------------------------------------------------------------------------------
-// Find a single name in the scene database array opject.
-function load_scene($name)
-{
-	global $log, $debug;
-	$scenes = load_scenes();
-	if (count($scenes) == 0) return(-1);
-
-	for ($i=0; $i<count($scenes); $i++) {
-		
-		if ($scenes[$i]['name'] == $name) return($scenes[$i]);
-	}
-	// If there is more than 1 result (impossible), we return the first result
-	return(-1);
-}
-
-
-/* -----------------------------------------------------------------------------------
-  Load the array of timers from the SQL database into a local array object
-  
-  Communication between the running program and this backend daemon is done solely
-  based on MySQL database content. In a later version, we might work with sockets 
-  also.
-  
-  We read the database timers and determine if action need to be taken.
- -------------------------------------------------------------------------------------*/
-function load_timers()
-{
-	$config = array();
-	$timers = array();
-	
- 	// We assume that a database has been created by the user
-	global $dbname;
-	global $dbuser;
-	global $dbpass;
-	global $dbhost;
-	
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
-		return(-1);
-	}
-	
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$timers[] = $row ;
-	}
-	
-	mysqli_free_result($query);
-	mysqli_close($mysqli);
-	return($timers);
-}
-
-/* -----------------------------------------------------------------------------------
-  Load the array of handsets from the SQL database into a local array object
-  
-  Communication between the running program and this backend daemon is done solely
-  based on MySQL database content. In a later version, we might work with sockets 
-  also.
-  
-  We read the database handses and determine if action need to be taken.
- -------------------------------------------------------------------------------------*/
-function load_handsets()
-{
-	global $apperr;
-	global $debug;
-	global $log;
- 	// We assume that a database has been created by the user
-	global $dbname;
-	global $dbuser;
-	global $dbpass;
-	global $dbhost;
-	
-	$config = array();
-	$handsets = array();
-	
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_handsets:: Failed to connect to MySQL: (".$mysqli->connect_errno . ") ".$mysqli->connect_error);
-		return(-1);
-	}
-	
-	$sqlCommand = "SELECT * FROM handsets";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$handsets[] = $row ;
-	}
-	if ($debug>1) $log->lwrite("load_handsets:: loaded MySQL handsets object");
-	
-	mysqli_free_result($query);
-	mysqli_close($mysqli);
-	return($handsets);
-}
 
 
 /* -----------------------------------------------------------------------------------
@@ -1439,21 +1279,35 @@ function get_parse()
 {
   global $apperr, $action, $icsmsg;
   global $log;
-  foreach ($_GET as $ind => $val )
+  global $doinit, $doreset, $dofile;
+  
+  $shortopts = "r";						// options without argument, r=reset
+  $shortopts.= "i::";					// Options with optional argument, l=load with optional argument "file"
+  $shortopts.= "f:";						// Required value argument
+  $longopts  = array(
+    "required:",     					// Required value
+    "init::",    						// Optional value, init the database again
+    "reset",        					// No value
+	);
+  $options = getopt($shortopts, $longopts);
+  
+  foreach ($options as $ind => $val )
   {
     $log->lwrite ("get_parse:: index: $ind and val: $val<br>");
     switch($ind) 
 	{
-	case "action":
-		$action = $val;
-	break;
-	case "message":
-		$icsmsg = json_decode($val);
-		$apperr .= "\n ics: " . $icsmsg;
-	break;
+		case "init":
+		case "i":
+			$doinit = true;
+			$dofile = $val;
+		break;
+		case "reset":
+		case "r":
+			$doreset = true;
+		break;
     } //   Switch ind
   }	//  Foreach
-  return(0);
+  return(true);
 } // Func
 
 
@@ -1500,6 +1354,12 @@ function console_message($request) {
 			$ret .= system('/home/pi/scripts/PI-run -r &');
 		break;
 		
+		case 'reloadconfig':
+			// Actually it will take max a minute before the crontab kicks in
+			$ret = "Reload config and restart daemon process .. this may take a minute";
+			$ret .= system('/home/pi/scripts/PI-run -r -c &');
+		break;
+		
 		default:
 			$ret = "console_message:: Not recognized: <".$request.">";
 		break;
@@ -1530,6 +1390,7 @@ function message_parse($cmd) {
 	global $debug, $log, $queue;
 	global $devices, $scenes, $handsets;
 
+	$log->lwrite("message_parse:: strting for command ".$cmd,1);
 	// XXX use json to properly receive commands?
 	$tim = time();
 	switch ( substr($cmd,0,2) ) 
@@ -1817,55 +1678,42 @@ $wthr = new Weather();						// Class for Weather handling in database
 
 // set path and name of log file (optional)
 $log->lfile($log_dir.'/LamPI-daemon.log');
-
-
 $log->lwrite("-------------- STARTING DAEMON ----------------------");
+sleep(5);
 
-// Parse the $_GET (starting) for commandparameters
+// Some variables that are probably (re)set by get_parse();
+$doinit=false;
+$doreset=false;
+$dofile="";
+
+// Parse the comamndline (starting) for commandparameters
 	// 1. Parse the URL sent by client (not working, but could restart itself later version)
+	// XXX Need to adapt get_parse to also read URL-like (should that be necessary)
 
-	$ret = get_parse();
-	if ($ret != -1 )
+	if ( get_parse() )
 	{
-		// Do Processing
-		// XXX Needs some cleaning and better/consistent messaging specification
+		// Do some Processing of commandline arguments. For init, the standard filename IS database.cfg
 		// could also include the setting of debug on the client side
-		switch($action)
-		{
-			case "load":
-				$log->lwrite("Calling load: par: ".$icsmsg."\n");
-				$appmsg = load_database();
-				$ret = 0;
-			break;
-	
-			default:
-				$appmsg .= "action: " . $action;
-				$log->lwrite("main:: parse default, no command or command not recognized");
-				$ret = 0; 
+		if ( $doinit ) {
+			$dbfile = $config_dir . "database.cfg";
+			if ($dofile != "") {
+				$dbfile = $dofile;
+			}
+			$log->lwrite("main:: Option do_init selected, reading db file: ".$dofile,1);
+			$cfg = read_database($dbfile);			// Load $cfg Object from File
+			$ret = fill_database($cfg);									// Fill the MySQL Database with $cfg object
+			$ret = file_database($config_dir . "newdbms.cfg", $cfg);	// Make backup to other file
+			$ret = print_database($cfg);
 		}
-		if ($ret >= 0) {
-			$send = array(
-   				'tcnt' => $ret,
-				'appmsg'=> $appmsg,
-   	 			'status' => 'OK',
-				'apperr'=> $apperr,
-    		);
-			$output=json_encode($send);
+		if ($doreset) {
+			$log->lwrite("main:: Option do_reset selected",1);
+			
 		}
-		else {	
-			$apperr .= "ics_cmd returns error code";
-			$send = array(
-    			'tcnt' => $ret,
-				'appmsg'=> $appmsg,
-    			'status' => 'ERR',
-				'apperr' => $apperr,
-    		);
-			$output=json_encode($send);
-		}
-		$log->lwrite($output." at ".date("l")."\n",2);
+
+		$log->lwrite("Done processing command parameters at ".date("r")."\n",2);
 	}
 	else {
-		$log->lwrite("No GET Commands ".date("l")."\n",1);
+		$log->lwrite("main:: get_parse had no commandline parameters ".date("r")."\n",1);
 	}
 	
 // Start with loading the database into a local $config structure. This takes 
@@ -1879,7 +1727,7 @@ if ($config == -1)
 	exit(1);
 }
 else 
-	$log->lwrite("main:: Loaded the database",1);
+	$log->lwrite("main:: database successfully loaded",1);
 
 $devices     = $config['devices'];
 $scenes      = $config['scenes'];
@@ -1965,9 +1813,20 @@ while (true):
 		// Make sure that if two json messages are present in the buffer
 		// that we decode both of them.. determine position of  "}" in buffer
 		$i = 0;
-		while (($pos = strpos($buf,"}",$i)) != FALSE )
-		//while (($pos = strrpos($buf,"}",$i)) != FALSE ) // XXX unclear why last } was searched. Only if we have complex/multi level jSon 
+		// There may be nested json messages in the buffer. Therefore we cannot rely on either
+		// the first (1) or the last (2) position of a } character in the buffer.
+		// 1. { ... { ... } ... } would not work
+		// 2. { ... }{ ......} will not be decoded correctly
+		// The sencond form is not corect json for a string anyway. So the solution might be to substr() for "}{" and make sure we
+		// decode these strings one by one. And expect in between these are valid json constructs.
+		// XXX A situation arises when the json buf is multilevel yet still incomplete. Chances are few
+		while (($pos = strrpos($buf,"}",$i)) !== FALSE )
 		{
+			// The first occurrence of }{ means we have at least 2 jSon messages
+			if (($pos2 = strpos($buf,"}{",$i)) !== FALSE )
+			{
+				$pos = $pos2;
+			}
 			$log->lwrite("s_recv:: decoding substr: ".substr($buf,$i,($pos+1-$i)),1 );
 			
 			$data = json_decode(substr($buf,$i,($pos+1-$i)), true);
@@ -2067,7 +1926,7 @@ while (true):
 				$log->lwrite("main:: writing message on socket OK",2);
 			}
 			
-			// Else we trust the client
+			// Else we trust the client, ans will continue to serve gui messages
 			else {
 				$log->lwrite("main:: client is trusted: ".$sock->clientIP,2);
 			
@@ -2186,7 +2045,7 @@ while (true):
 					$response = array (
 							'tcnt' => $tcnt."",
 							'type' => 'raw',
-							'action' => 'load',
+							'action' => 'load_database',
 							'request' => $data['request'],
 							'response' => $config
 					);
@@ -2255,7 +2114,7 @@ while (true):
 			}
 		}// while !end of encoded string read
 		
-		// test for empty message
+		// test for empty message XXX strlen() only for strings. $data is an object? count()?
 		if (strlen($data) == 0) 
 		{
 			$log->lwrite("main:: s_recv returned empty data object",3);

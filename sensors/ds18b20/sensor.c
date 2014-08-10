@@ -82,7 +82,6 @@ int ds18b20_read(char *dir)
 	char * crcpos = NULL;
 	//int cntr = 0;
 
-	
 	strcpy(dev,SPATH);
 	strcat(dev,"/");
 	strcat(dev,dir);
@@ -147,6 +146,8 @@ int main(int argc, char **argv)
 	int mode = SOCK_DGRAM;					// Datagram is standard
 	char *hostname = "255.255.255.255";		// Default setting for our host == this host
 	char *port = UDPPORT;					// default port, 5000
+	char snd_buf[256];						// Buffer to send to LamPI-daemon
+	int seconds;							// The actual nr of seconds (from the current time)
 	
     extern char *optarg;
     extern int optind, optopt;
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
 	// -p <port> ; Portnumber for daemon socket
 	// -v ; Verbose, Give detailed messages
 	//
-    while ((c = getopt(argc, argv, ":bc:dh:p:r:stvx")) != -1) {
+    while ((c = getopt(argc, argv, ":c:dh:p:r:tv")) != -1) {
         switch(c) {
 			case 'c':
 				cflg = 1;					// Checks
@@ -195,13 +196,12 @@ int main(int argc, char **argv)
     }
 	
 	// -------------------- PRINT ERROR ---------------------------------------
-	// Print error message if parsing the commandline
-	// was not successful
+	// Print error message if parsing the commandline was not successful
 	
     if (errflg) {
         fprintf(stderr, "usage: argv[0] (options) \n\n");
 		fprintf(stderr, "-d\t\t; Daemon mode. Codes received will be sent to another host at port 5000\n");
-		fprintf(stderr, "-t\t\t; Test mode, will output received code from remote\n");
+		fprintf(stderr, "-t\t\t; Test mode, will output received codes from sensors, even if in error\n");
 		fprintf(stderr, "-v\t\t; Verbose, will output more information about the received codes\n");
         exit (2);
     }
@@ -223,6 +223,8 @@ int main(int argc, char **argv)
 	// MAIN LOOP
 	// 
 
+	delay(1000);											// Wait some time so that not every sensor fires ate same time
+	
 	if (verbose) printf("\nRepeats: %d::\n",repeats);
 	for (i=0; i<repeats; i++)  
 	{  
@@ -244,24 +246,23 @@ int main(int argc, char **argv)
 					sprintf(str_temp,"%3.1f",(float) temp/1000);
 					
 					if (dflg) {
+						char t[20];
+						
 						// If we are in daemon mode, initialize sockets etc.
 						if ((sockfd = socket_open(hostname, port, mode)) == -1) {
 							fprintf(stderr,"socket_open failed\n");
 							exit(1);
-						}						
+						}
 						
-						// Daemon, output to socket
-						send_2_server(
-							sockfd,	
-							hostname,				// Actually HostIP
-							port,			
-							mode,					// Either SOCK_STREAM or SOCK_DGRAM
-							ent->d_name,			// Address
-							0, 						// Channel
-							str_temp
-						);
-						
-						printf("Sent to host: %s:%s, temp: %s\n", hostname, port, str_temp);
+						seconds = get_time(t);
+						sprintf(snd_buf, "{\"tcnt\":\"%d\",\"action\":\"weather\",\"brand\":\"ds18b20\",\"type\":\"json\",\"address\":\"%s\",\"channel\":\"%ld\",\"temperature\":\"%s\"}", 
+							seconds,							// Nr of seconds as a message reference
+							ent->d_name,						// address
+							0,									// channel
+							str_temp);							// temperature
+											
+						buf_2_server(sockfd, hostname, port, snd_buf, mode);
+						printf("%s Sent to host: %s:%s, sensor: %s, temp: %s\n", t, hostname, port, ent->d_name, str_temp);
 					}
 					else {
 					// Commandline
@@ -274,6 +275,10 @@ int main(int argc, char **argv)
 											ent->d_name, temp/1000,temp%1000);
 						}
 					}
+				}
+				else {
+					// This would mean another sensor than the ds18b20
+					// which is highly unlikely (there are no others)
 				}
 			}
 			closedir (dir);

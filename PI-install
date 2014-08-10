@@ -133,23 +133,26 @@ install_lampi()
 	sudo chown -R pi $HOMEDIR
 	sudo chgrp -R pi $HOMEDIR
 
-	mkdir $HOMEDIR/log
+	mkdir $HOMEDIR/log; sudo chgrp www-data $HOMEDIR/log
 	mkdir $HOMEDIR/exe
 	mkdir $HOMEDIR/daemon
+    #mkdir $HOMEDIR/daemon	# assume this is not necessary, daemon directory exists
 
 	sudo chown -R root $HOMEDIR/exe
+    sudo chmod 755 $HOMEDIR/exe/*
 	sudo chmod u+s $HOMEDIR/exe/*
 	sudo chmod 755 $HOMEDIR/scripts/PI*
 
 	# --------------------------------------------------------------
-	# Fix the .exe directory And build the executables from source
+	# Fix the .exe directory And build the executables from source directories
     #
 
 	cd $HOMEDIR/receivers/sniffer; make; sudo make install
-	cd $HOMEDIR/receivers/livolo; make ; sudo make install
-	cd $HOMEDIR/receivers/kaku; make; sudo make install
-	cd $HOMEDIR/receivers/lights; make; sudo make install
-	cd $HOMEDIR/receivers/kopou; make; sudo make install 
+    
+	cd $HOMEDIR/transmitters/livolo; make ; sudo make install
+	cd $HOMEDIR/transmitters/kaku; make; sudo make install
+	cd $HOMEDIR/transmitters/lights; make; sudo make install
+	cd $HOMEDIR/transmitters/kopou; make; sudo make install 
     
 }
 
@@ -200,9 +203,10 @@ setup_cron()
         	echo "Setting up contab for slave"
         fi
         echo "# Setting up rrdtool graphs" >> /tmp/effe
-        echo "*/3 * * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1d" >> /tmp/effe
-        echo "0 */2 * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1w" >> /tmp/effe
-        echo "0 3 */7 * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1m" >> /tmp/effe
+        echo "#*/3 * * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1d" >> /tmp/effe
+        echo "#0 */2 * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1w" >> /tmp/effe
+        echo "#0 3 */7 * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1m" >> /tmp/effe
+        
 		crontab -u pi /tmp/effe
 	fi
   

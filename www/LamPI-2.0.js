@@ -99,7 +99,7 @@ var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
 // IF the variable is diaplayed on the screen
 //
 var s_screen = 'room';									// Active screen: 1=room, 2=scene, 3=timer, 4=config
-var s_controller = murl + 'backend_rasp.php';			// default device handles transmits to the lamps/devices
+var s_controller = murl + 'frontend_rasp.php';			// default device handles transmits to the lamps/devices
 var s_room_id =1;										// Screen room_id
 var s_scene_id =1;
 var s_timer_id = 1;
@@ -1596,7 +1596,7 @@ function start_LAMP(){
 				// The daemon wants to display something on the message area, or if the debug level
 				// is high enough will display through an alert.
 				case "alert":
-				
+					if (debug>1) alert("Server msg:: "+rcv.message);
 				break;
 				
 				// Update messages can contain updates of devices, scenes, timers or settings.
@@ -1628,7 +1628,6 @@ function start_LAMP(){
 							if ( msg.substr(0,2) == "!R" ){
 								var room = pars[0];
 								var device = pars[1];
-						
 								// Now we need to check if it's a dim or F1 command. If dim
 								// we need not use value 1 but last used value in devices!
 								// XXX
@@ -1706,12 +1705,14 @@ function start_LAMP(){
 				//
 				case 'sensor':
 					console.log("Lampi.js:: received sensor message");
+					
 				break;
 				
 				// Support for energy systems is tbd
 				//
 				case 'energy':
 					console.log("Lampi.js:: received energy message");
+					
 				break;
 				
 				//
@@ -1803,7 +1804,7 @@ function start_LAMP(){
 					); // askForm
 				break;
 				
-				case 'load':
+				case 'load_database':
 					// QQQ
 					rooms = rcv.response['rooms'];			// Array of rooms
 					devices = rcv.response['devices'];		// Array of devices			
@@ -1813,6 +1814,7 @@ function start_LAMP(){
 					settings = rcv.response['settings'];
 					brands = rcv.response['brands'];
 					weather = rcv.response['weather'];		// we want the id and name values
+					// energy = rcv.response['energy'];
 					// XXX whaah
 					init();
 				break;
@@ -1827,7 +1829,8 @@ function start_LAMP(){
 	}//function init_websockets
 
 
-	// --------------------- MAIN -----------------------------------------
+	// --------------------- MAIN PROGRAM FOR start_LAMPI -----------------------------------------
+	//
 	// For jqmobile and regular jqueryUI there are differences,
 	// especially for jqmobile combined with phonegap.
 	
@@ -2055,10 +2058,10 @@ function init() {
 	debug = settings[0]['val'];
 	cntrl = settings[1]['val'];
 	if (cntrl == 0) {
-		s_controller = murl + 'backend_ics.php';
+		s_controller = murl + 'frontend_ics.php';
 	}
 	else {
-		s_controller = murl + 'backend_rasp.php';
+		s_controller = murl + 'frontend_rasp.php';
 	}
 	mysql = settings[2]['val'];
 	persist = settings[3]['val'];
@@ -5177,10 +5180,10 @@ function activate_setting(sid)
  					//alert("button: "+cntrl);
 					if (cntrl == 0) {
 						alert ("Setting controller to ICS-1000");
-						s_controller = murl + 'backend_ics.php';
+						s_controller = murl + 'frontend_ics.php';
 					} else {
 						alert ("Setting controller to Raspberry");
-						s_controller = murl + 'backend_rasp.php';
+						s_controller = murl + 'frontend_rasp.php';
 					}
 					message("Controller value value set to "+ cntrl);
 					// XXX Ooops, we directly address the array here, as controller is second array element
@@ -5201,10 +5204,10 @@ function activate_setting(sid)
 					//alert("cntrl: "+cntrl);
 					if (cntrl == 0) {
 						myAlert ("Setting controller to ICS-1000");
-						s_controller = murl + 'backend_ics.php';
+						s_controller = murl + 'frontend_ics.php';
 					} else {
 						myAlert ("Setting controller to Raspberry");
-						s_controller = murl + 'backend_rasp.php';
+						s_controller = murl + 'frontend_rasp.php';
 					}
 					message("Controller value value set to "+ cntrl);
 					// XXX Ooops, we directly address the array here, as controller is second array element
@@ -6110,7 +6113,7 @@ function send2daemon(action,cmd,message)
 	// Make the buffer we'll transmit. As you see, the message(s) are really simple
 	// and be same as ICS-1000, and will not be full-blown json.
 	var data = {
-		tcnt: ++w_tcnt%1000,
+		tcnt: ++w_tcnt%1000+"",
 		type: "raw",
 		action: action,				// actually the class of the action
 		cmd: cmd,					// The command for that class
@@ -6303,9 +6306,7 @@ function message_device(action, controller_cmd)
 						message(but);
 					break;
 				}
-
           		if (debug>=2) {
-
           			myAlert('message_device: ' + action
 						  + '\ntransaction:' + data.tcnt
 						  + '\nStatus: '    + data.status
@@ -6345,7 +6346,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 {
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
-		console.log("send_2_database:: Receiving websocket command "+dbase_cmd);
+		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd);
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("dbase",dbase_cmd,dbase_arg);
@@ -6355,7 +6356,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 	{
 		console.log("send_2_database:: Receiving ajax command "+dbase_cmd);
 		$.ajax({
-   		url: murl + 'backend_sql.php',				   
+   		url: murl + 'frontend_sql.php',				   
 		type: "POST",
     	dataType: 'json',								// TO receive json ...
 		//contentType: 'application/json; charset=UTF-8',				// MMM To SEND(!) json???
@@ -6398,7 +6399,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 
 // --------------------------------------------------------------------------------------
 // Send_2_set: Send commands to the backend PHP system. 
-// These commands are used for retrieving skins, setting and other stuff
+// These commands are used for retrieving skins, settings and other stuff
 // supporting the GUI program.
 // As we need the results of this call for our program, we need SYNC call, so
 // we can wait for the results in our program.
@@ -6410,14 +6411,14 @@ function send_2_set(command, parameter)
 {
 	var result = {};
 	$.ajax({
-		async: false,								// Synchronous operation
+		async: false,									// Synchronous operation
    		url: murl + "frontend_set.php",
 		type: "POST",
     	dataType: 'json',
 		//contentType: 'application/json',
 		data: {
 			action: command,
-			message: parameter						// Can be several command types !!
+			message: parameter							// Can be several command types !!
 		},
 		timeout: 7000,
     	success: function( data )
@@ -6426,7 +6427,7 @@ function send_2_set(command, parameter)
 			if (debug>0) message("send_2_set:: Success");
 					
 			// Send debug message if desired
-			if (debug>1) {							// Show result with alert	
+			if (debug>1) {								// Show result with alert	
           		alert('Ajax call send_2_set success: \n' 
 					+ ',\nStatus: ' + data.status
 					+ '.\nApp Msg: ' + data.appmsg

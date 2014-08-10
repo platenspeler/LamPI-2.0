@@ -1,14 +1,17 @@
-// LamPI, Javascript/jQuery GUI for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
+// TemPI, Javascript/jQuery GUI for graphing temperature, humidit and other sensors
+// TemPI is part of the LamPI project, a system for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
+//
 // Author: M. Westenberg (mw12554 @ hotmail.com)
 // (c) M. Westenberg, all rights reserved
 //
-// Contributions:
+// LamPI Releases:
 //
 // Version 1.6, Nov 10, 2013. Implemented connections, started with websockets option next (!) to .ajax calls.
 // Version 1.7, Dec 10, 2013. Work on the mobile version of the program
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
+// Version 2.1, Jul 31, 2014, Use of rrdtool to make graphs for Sensors.First release of TemPI
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -31,16 +34,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with LamPI.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-// #gui_header: Here are the buttons for selecting the active rooms 
-// #gui_content: The main screen where user can change the values of the active devices for the curently
-//		active room. For the moment, the devices can have 2 types: switches and dimmers (see below)
-// #gui_mssages: This is the area where the function message("text") will output its messages
-// #gui_menu: This is the right side of the screen where we have the main menu where user can select the 
-//		main activities: <home> <rooms> <scenes> <timers> <settings>
+// Dcumentation: http://platenspeler.github.io
 //
 // Function init, Initialises variables as far as needed
-// NOTE:: VAriables can be changed in the index.html file before calling start_LAMP
+// NOTE:: Variables can be changed in the index.html file before calling start_TemPI
 //
 // DIV class="class_name"  corresponds to .class_name in CSS
 // DIV id="id_name" corresponds to #id_name above
@@ -49,6 +46,7 @@
 // ----------------------------------------------------------------------------
 // SETTINGS!!!
 // XXX: For adaptation to jqmobile changed all pathnames of backend to absolute URL's
+// XXX We started the codebase with a copy of LamPIxxxxx.js and still have to cleanup
 //
 var fake=0;												// Set to 1 if we fake communication 
 
@@ -346,13 +344,13 @@ function init_graph(type, period) {
 	$("#gui_content").empty();
 	switch (type) {
 		case "T":
-			but += '<div><img id="graph" src="all_temp_'+period+'.png" width="720" height="360"></div>';
+			but += '<div><img id="graph" src="all_temp_'+period+'.png" width="750" height="400"></div>';
 		break;
 		case "H":
-			but += '<div><img id="graph" src="all_humi_'+period+'.png" width="720" height="360"></div>';
+			but += '<div><img id="graph" src="all_humi_'+period+'.png" width="750" height="400"></div>';
 		break;
 		case "P":
-			but += '<div><img id="graph" src="all_press_'+period+'.png" width="720" height="360"></div>';
+			but += '<div><img id="graph" src="all_press_'+period+'.png" width="750" height="400"></div>';
 		break;
 		case "S":
 			alert("Error Windspeed sensor not yet implemented");
@@ -695,7 +693,7 @@ function make_graphs(gcmd,gtype,gperiod,gsensors)
 						return(data.result);
 					break;
 					case "ERR":
-						alert("make_graphs:: ERROR: result: "+data.result+", error: "+data.error);
+						alert("\t\tmake_graphs found an ERROR\n\nresult: "+data.result+",\n\nERROR MSG: "+data.error);
 						return(data.error);
 					break
 			}
@@ -705,7 +703,7 @@ function make_graphs(gcmd,gtype,gperiod,gsensors)
 		{
           	// data.responseText is what you want to display, that's your error.
 			if (debug>=1) {
-          		alert("load_database:: Error " + graphServer
+          		alert("make graphs:: Error " + graphServer
 					+ " sending type:: " + graphType+", period: "+gperiod
 					+ "\nError: " + jqXHR.status
 					+ "\nTextStatus: "+ textStatus

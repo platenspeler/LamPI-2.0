@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>LamPI 433Mhz controller for RaspberryPI</title>
+</head>
+
+<body>
+
+<h1>Getting Started with LamPI</h1>
+<p>This short chapter describes the basic and minimal steps to take to get LamPI up and running. </p>
+<ul>
+  <li>Install all required packages and system files on you Raspberry</li>
+  <li>Install the minimal hardware for LamPI: A 433MHz transmitter if you only like to control your lights and a 433MHz received and one or more sensors if you like to see weather or energy sensors in motion</li>
+  <li>Install the packages needed for your LamPI environment. Probably doing this by downloading the ~/PI-install file and use this file to install LamPI further</li>
+  <li>Setp your MySQL database (if not already done)</li>
+</ul>
+<h2>Start the daemon</h2>
+<p>Wthou the daemon running, LamPI will not have a database and will not run correctly</p>
+<ul>
+  <li>Start ~/daemon/LamPI-daemon.php with the command ~/scripts/PI-run -i</li>
+</ul>
+<p>Check whether LamPI will start correctly now and read the database. </p>
+<h2>Configure the backend_cfg.php file</h2>
+<p>The ~/daemon/backend.cfg file contains the settings for the network communication, contains database data (including password) and some othe rconfiguration settings. You probably have to configure the network setting as these differ for every home situation.</p>
+<h2>Configure the database.cfg file</h2>
+<p>As shipped, your LamPI system contains the standard database.cfg file, which is mine and probably not useful for others. Therefore edit the ~/www/config/database.cfg file</p>
+<p>&nbsp;</p>
+</body>
+</html>

@@ -23,10 +23,10 @@
 // Default server is localhost for most situations. However, should you want to run the
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
-	$dbname = "dorm";						// This one is not easy to guess
+	$dbname = "coco";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
-	$dbhost = "192.168.2.55";				// standard this should be "localhost"
+	$dbhost = "localhost";					// standard this should be "localhost"
 
 // USER ADMIN SETTINGS (could be in database too, but this is easy as well)
 // In future we could add a function to the database, in the user CLASS

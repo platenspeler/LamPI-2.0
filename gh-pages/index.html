@@ -7,9 +7,10 @@
 <body>
 
 <h1>LamPI Introduction</h1>
-<h4>LamPI is a Home Automation project for switching equipment in the house over 434 MHz transmitters/receivers on a RaspberryPI. As of release 2.0 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is implemented with a separate Raspberry bridge computer using the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave.html">Here</a>&gt;</h4>
-<p>This page contains a short introducton of LamPI, the table of contents for ALL LamPI documentation is &lt;<a href="LamPI_ToC.html"><strong>Here</strong></a>&gt;.<br>
-You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, and the documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
+<p>This page contains a short introducton of LamPI, the table of contents for ALL LamPI documentation is &lt;<a href="LamPI_ToC.html"><strong>Here</strong></a>&gt;. Please start reading on that page when you finished reading this page<br>
+</p>
+<p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, and the documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
+<p>LamPI is a Home Automation project for switching equipment in your house over 434 MHz transmitters/receivers on a RaspberryPI. As of release 2.0 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is implemented with a separate Raspberry bridge computer using the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave.html">Here</a>&gt;</p>
 <h2>Control your lights and switches</h2>
 <p>This is where I initially developed LamPI for. It will control your light switches and your dimmers and your other switches as well (if you want it can switch your stereo or microwave too). </p>
 <p><img src="UserGuide/screenshots/room_screen_grey.JPG" width="962" height="637" /></p>
@@ -18,7 +19,7 @@ You can find its GIT repository on <a href="https://github.com/platenspeler">htt
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
 <p>Actually, what you see below is just a small example of what &quot;steel&quot; can do for your project. The library is highly customizable so you can make your own background, color an other settings if you like.</p>
 <p>What you see below is the first version  for LamPI 1.9 with weather support. It does support weather sensors of UPM that transmit temperature and humidity values back to the LamPI-deamon.php process which are then broadcast to all connected clients. And as you see, the client will display the temperature (top row) for outside, the extension of our home and the living room. On the second row it will display the humidity for these three rooms. The definitions of sensors are found in the  configuration file.</p>
-<p><img src="UserGuide/screenshots/weather_screen_1.JPG" width="966" height="637"></p>
+<p><img src="UserGuide/screenshots/weather_screen_1.JPG" width="966" height="636"></p>
 <p>Apart from the latest sensor info, or even near-real-time information received, I like to add support for historical charts etc. At the moment, all sensor readings are stored in a log file, and also in the MySQL database. </p>
 <p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can take a few days before I answer.</p>
 <h1>LamPI History</h1>
@@ -34,7 +35,7 @@ You can find its GIT repository on <a href="https://github.com/platenspeler">htt
   <li><a href="UserGuide/scenes.html">The Scenes Screen</a></li>
   <li><a href="UserGuide/timers.html">The Timers Screen</a></li>
   <li><a href="UserGuide/handsets.html">The Handsets Screen</a></li>
-  <li><a href="UserGuide/weather.html">The Weather screen (optional)</a></li>
+  <li><a href="UserGuide/weather.html">The Weather screen (optional, depends whether you have weather sensors)</a></li>
   <li><a href="UserGuide/config.html">The Config Screen</a></li>
 </ul>
 <p>&nbsp;</p>
@@ -106,17 +107,18 @@ You can find its GIT repository on <a href="https://github.com/platenspeler">htt
 <ul>
   <li>Add support for Android phones. This is in beta at the moment and I use PhoneGap technology of Adobe to make such version. All Javascript/jQueryMobile code is already in the LamPI-x.y.js file, the index.html file will determine what libraries to load. I will probably publish a separate branch for Android with the same version number as its web equivalent.</li>
   <li>Adding new handsets at this moment still requires manual editing of the database.cfg file. I like to add more options to the OPTIONS screen for setup of new switch types and handset types, so that adding such switches and handsets at runtime is a lot easier.</li>
-  <li>Add support for Z-Wave or Zigbee. I have not decided what is next, but as the LamPI-daemon is quite universal in its setup adding transmitter/receivers for these technologies is relatively easy.</li>
+  <li>Add full support for Z-Wave or Zigbee. As the LamPI-daemon is quite universal in its setup adding transmitter/receivers for these technologies is relatively easy. At the moment ZWave support is implemented through a Z-Way gateway running on a dedicated RaspberryPI</li>
   <li>I like (at some time) be integrating my front-end with the new standards for Home Automation as soon as stacks become available for the Raspberry.</li>
-  <li>And I'm always looking for cheap new designed wall switches to add to the set..</li>
+  <li>And I'm always looking for cheap new designed wall switches and sensors to add to the set..</li>
   <li>Internationalization; Probably not worth spending too much time on this, as most people that will use this projects do not mind English versions anyway. So probably just making an alternative startup file for ''database.cfg&quot; would be enough for international customers to get a good feel for the software.</li>
 </ul>
 <h1>Known Issues</h1>
 <p>Both architectual and GUI related</p>
 <ul>
-  <li>The current way of sending scene commands in LamPIxx.js is implmented as an ajax function message_device(&quot;scene&quot;,&quot;commandxxx). For ICS-1000 this is the only possibility, but for Raspberry we could implement this function with webservices instead.</li>
+  <li>The current way of sending scene commands in LamPIxx.js is implemented as an ajax function message_device(&quot;scene&quot;,&quot;commandxxx). For ICS-1000 this is the only possibility, but for Raspberry we have implemented this function with webservices instead. As I ceased to use the ICS-1000 for some time ago, we must cleanup the code.</li>
   <li>As the backend server is running in batch, but not as a backend web server, we cannot ask the webserver to give us details about the IP address and many more $SERVER related parameters. This means tha the client must know upfront to which server IP to connect. We can perhaps implement a UDP server that listens to client broadcasts coming in and responding with the IP address of the server. For GUI/Browser clients this not an issue since we must have an url to connect to anyway and for the moment we could assume that the webserver is running the daemon as well. However for commuication between sensors and the daemon it is necessary</li>
   <li>The configuraton of the backend through the backend.php executable must be protected so that only local clients can change or load the configuration. Leaving this open for remote devices as well could be a security issue.</li>
 </ul>
+<p>August 7, 2014</p>
 </body>
 </html>

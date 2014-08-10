@@ -112,7 +112,25 @@ class Logging {
     }
 }
 
+// ------------------------------------------------------------------------
+// Handle Comments is any
+//
+function json_clean_decode($json, $assoc = false, $depth = 512, $options = 0) {
+    // search and remove comments like /* */ and //
+    $json = preg_replace("#(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|([\s\t]//.*)|(^//.*)#", '', $json);
+   
+    if(version_compare(phpversion(), '5.4.0', '>=')) {
+        $json = json_decode($json, $assoc, $depth, $options);
+    }
+    elseif(version_compare(phpversion(), '5.3.0', '>=')) {
+        $json = json_decode($json, $assoc, $depth);
+    }
+    else {
+        $json = json_decode($json, $assoc);
+    }
 
+    return $json;
+}
 
 
 
@@ -810,37 +828,6 @@ function delete_handset($handset)
 	$appmsg .= "delete_handset successful\n" ;
 	return(16);
 }
-
-
-/*	=======================================================================================	
-	Function load_weatherdb database
-	
-	=======================================================================================	*/
-function load_weatherdb()
-{
-	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $appmsg, $apperr;
-	
-	$weatherdb = array();
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-		return(-1);
-	}
-	
-	$sqlCommand = "SELECT id, timestamp, brand, location, brand, address, channel, temperature, humidity, windspeed, winddirection, rainfall FROM weatherdb";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$weatherdb[] = $row ;
-	}
-	mysqli_free_result($query);	
-	mysqli_close($mysqli);
-	$apperr = "";										// No error
-	return ($weatherdb);
-}
-
 
 
 

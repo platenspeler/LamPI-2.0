@@ -203,7 +203,6 @@ var timers={};			// Timing actions that work on a defined scene
 var brands={};			// All brands of equipment that is recognized by the daemon
 var handsets={};		// Handsets or transmitters of code. Action/Impuls, Klikaanklikuit supported
 var weather={};			// The administration of weather receivers, and their last values
-var weatherdb={};		// An array with ALL historical values for the weather station (Ouch)
 var weatheron={};		// determines which fields of the weather record are used for THIS sensor
 						// It is used to fill and display the dials in the weather screen
 var settings={};		// Set debug level and backup/restore the configuration

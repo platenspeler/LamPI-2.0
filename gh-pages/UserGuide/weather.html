@@ -6,7 +6,7 @@
 
 <body>
 
-<h1>Weather  support</h1>
+<h1>Weather Dials/Meters </h1>
 <p>This part of the documentation describes the weather screen and what you can (and sometimes cannot) do with weather sensors. Since version 1.8 LamPI does support weather station sensors. At first only the UPM WT440H (outdoor) sensor is supported and it works fine. Other sensors can be added to the LamPI-receiver/sniffer program later, but it is good to know that the LamPI-daemon offers support for receiving Json messages from weather sensors.</p>
 <p>If you like to know more about te various sensors, check out their &quot;hardware&quot; pages. </p>
 <ul>
@@ -16,7 +16,9 @@
 <p>Below you see a screenshot of the weather screen...</p>
 <p><img src="screenshots/weather_screen_1.JPG" width="966" height="637" /></p>
 <p>&nbsp;</p>
-<p>&nbsp;</p>
+<h1>Weather Charts</h1>
+<p>When clicking in the weather screen on one of the dials, a separate screen will open that shows historical data for the weather sensors. This function is described separately in the section for rrd graphs.</p>
+<p><img src="screenshots/rrd_screen_01.JPG" width="963" height="636"></p>
 <h1>Json message format for sensors</h1>
 <p>The Json message that is sent to the LamPI-daemon is as follows:</p>
 <p>message = {<br>

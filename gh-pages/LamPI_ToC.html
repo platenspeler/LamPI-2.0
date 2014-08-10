@@ -23,21 +23,25 @@
   <li><a href="Architecture Guide/architecture.html">Architecture Guide for LamPI</a></li>
   <li>LamPI Directory Structure</li>
 </ul>
-<h2>LamPI GUI Functions</h2>
-<p>LamPI contains 6 main screens: Rooms, Scenes, Timers, Handsets, Weather and Config. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. The documentation for the LamPI functions can be found on this site on the following pages.</p>
+<h2>UserGuide; LamPI GUI Functions</h2>
+<p>LamPI contains 6 main screens at the moment: Rooms, Scenes, Timers, Handsets, Weather and Config. A next section on Energy is planned. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. The documentation for the LamPI functions can be found on this site on the following pages.</p>
 <ul>
+  <li><a href="UserGuide/getting_started.html">Getting Started with LamPI</a></li>
   <li><a href="UserGuide/rooms.html">The Rooms Screen</a></li>
   <li><a href="UserGuide/scenes.html">The Scenes Screen</a></li>
   <li><a href="UserGuide/timers.html">The Timers Screen</a></li>
   <li><a href="UserGuide/handsets.html">The Handsets Screen</a></li>
   <li><a href="UserGuide/weather.html">The Weather screen (optional)</a></li>
+  <li>The Energy screen (optional)</li>
   <li><a href="UserGuide/config.html">The Config Screen</a></li>
 </ul>
 <h2>LamPI Backend</h2>
-<p>Apart from the GUI interface, on the backend there are some other programs active that interact with home automation switches in our house.<br>
+<p>Apart from the GUI interface, on the backend there are some other programs active that interact with home automation switches in our house. Backend services are provided by the LamPI-daemon.php process and located in the ~/daemon directory. Some supporting executabes are located in the ~/exe directory, especially as these need root privileges to run, I put them all in a separate location.<br>
 </p>
 <ul>
-  <li><a href="sensors/weather_sensors_msg_format.html"></a>Command-Line Interface (see directory ~/exe)</li>
+  <li><a href="sensors/weather_sensors_msg_format.html"></a>LamPI-daemon.php (see directory ~/daemon)</li>
+  <li>Supporting files for the daemon; backend_lib.php, backend_sql.php, backend_set.php, backend_cfg.php</li>
+  <li>Command-Line Interface (see directory ~/exe)</li>
   <li>LamPI-receiver (see directory ~/exe)<br>
   </li>
 </ul>
@@ -51,7 +55,7 @@
   <li>Energy sensors</li>
   <li>Message format for energy sensors</li>
 </ul>
-<h2>LamPI Graphics</h2>
+<h2>LamPI/TemPI Graphics</h2>
 <p>How to make sensor trend graphics for historical temperature, humidity etc. using rrdtool</p>
 <ul>
   <li><a href="rrdtool graphs/graphs.html">Introduction to rrdtool graphs</a> </li>

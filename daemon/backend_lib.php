@@ -35,6 +35,56 @@ function decho($str,$lev=2)
 }
 
 
+
+/** ---------------------------------------------------------------------------------- 
+ * Check if a client IP is in our Server subnet
+ *
+ * @param string $client_ip
+ * @param string $server_ip
+ * @return boolean
+ *
+ * Original function taken from internet, but modified to read server address from ifconfig
+ * It provides a solution, even for multiple adpters, provided they are all in same subnet.
+ * If we use PHP as a server, then we are NOT sure about the used IP address, 
+ * especially if we rely on /etc/hosts as a guide (127.0.1.1)
+ * as we might manually set the IP address in /etc/network/interfaces
+ * Therefore, best is to use ifconfig output and scan for that interface that has a Bcast
+ * next to the inet address.
+ */
+function clientInSameSubnet($client_ip=false,$server_ip=false) {
+	global $log;
+    if (!$client_ip)
+        $client_ip = $_SERVER['REMOTE_ADDR'];
+    //if (!$server_ip) {
+    //    $server_ip = $_SERVER['SERVER_ADDR'];	// For a daemon, this does NOT work
+	//}
+    // Extract broadcast and netmask from ifconfig
+    if (!($p = popen("/sbin/ifconfig","r"))) return false;
+    $out = "";
+    while(!feof($p))
+        $out .= fread($p,1024);
+    
+    $match  = "/^.*inet addr:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Bcast:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})";
+    $match .= ".*Mask:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/im";
+	
+    if (!preg_match($match,$out,$regs)) {
+		$log->lwrite("clientInSameSubnet preg_match failed");
+        return false;
+	}
+	$log->lwrite("clientInSameSubnet:: Inet: ".$regs[1].", Bcast: ".$regs[2].", Mask: ".$regs[3],3);
+	$server_ip = $regs[1];
+    $bcast = ip2long($regs[2]);
+    $smask = ip2long($regs[3]);
+    $ipadr = ip2long($client_ip);
+	if ($client_ip == '127.0.0.1') return(1);				// localhost is local subnet too.
+    $nmask = $bcast & $smask;
+    return (($ipadr & $smask) == ($nmask & $smask));
+}
+
+
+
+
 // --------------------------------------------------------------------------------------
 // Logging class:
 // - contains lfile, lwrite and lclose public methods
@@ -128,7 +178,7 @@ function parse_controller_cmd($cmd_str)
 	list( $room, $dev, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );
 	$dev = "D".$dev;												// All devices recorded have D1--D16 as id
 	for ($i=0; $i<count($devices); $i++) {
-		//$log->lwrite("parse_controller_cmd:: room: ".$devices[$i]['room'].", dev: ".$devices[$i]['id'].", brand: ".$devices[$i]['brand']);
+		$log->lwrite("parse_controller_cmd:: room: ".$devices[$i]['room'].", dev: ".$devices[$i]['id'].", brand: ".$devices[$i]['brand'],3);
 		if ( ($devices[$i]['room']==$room) && ($devices[$i]['id']==$dev)) {
 			$bno = $devices[$i]['brand'];
 			$brand=$brands[$bno]['fname'];				// XXX NOTE: The index in brand array IS the id no!!!
@@ -139,10 +189,28 @@ function parse_controller_cmd($cmd_str)
 	return($brand);
 }
 
+// *********************************** JSON AND CODING FUNCTIONS *********************************************
 
 
+function json_clean_decode($json, $assoc = false, $depth = 512, $options = 0) {
+    // search and remove comments like /* */ and //
+    $json = preg_replace("#(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|([\s\t]//.*)|(^//.*)#", '', $json);
+   
+    if(version_compare(phpversion(), '5.4.0', '>=')) {
+        $json = json_decode($json, $assoc, $depth, $options);
+    }
+    elseif(version_compare(phpversion(), '5.3.0', '>=')) {
+        $json = json_decode($json, $assoc, $depth);
+    }
+    else {
+        $json = json_decode($json, $assoc);
+    }
 
-// **************** SOCKET AND DAEMON FUNCTIONS *********************
+    return $json;
+}
+
+
+// *********************************** SOCKET AND DAEMON FUNCTIONS *********************************************
 
 
 //	--------------------------------------------------------------------------------------------------	
@@ -280,7 +348,7 @@ function send_2_daemon($cmd)
 
 
 
-// ******************** DEVICE HANDLING FUNCTIONS ********************************
+// ********************************** DEVICE HANDLING FUNCTIONS *******************************************
 //
 // XXX NOTE: Device functions are handled by LamPI-receiver program from now ...
 // Functions below become obsolete
@@ -320,24 +388,11 @@ function kaku_cmd($cmd_str)
 	
 	// Make a translation table
 	$ttable = array(
-		'1'  => '100', 
-		'2'  => '101',
-		'3'  => '102',
-		'4'  => '103',
-		'5'  => '104',
-		'6'  => '105',
-		'7'  => '106',
-		'8'  => '107',
-		'9'  => '108',
-		'10' => '109',
-		'11' => '110',
-		'12' => '111',
-		'13' => '112',
-		'14' => '113',
-		'15' => '114',
-		'16' => '115'		
+		'1'  => '100', 		'2'  => '101',		'3'  => '102',		'4'  => '103',
+		'5'  => '104',		'6'  => '105',		'7'  => '106',		'8'  => '107',
+		'9'  => '108',		'10' => '109',		'11' => '110',		'12' => '111',
+		'13' => '112',		'14' => '113',		'15' => '114',		'16' => '115'		
 		);
-	
 	// Decode the room, the device and the value from the string
 	list( $room, $device, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );
 	$result  = " -p ".$wiringPi_snd;
@@ -400,24 +455,11 @@ function old_kaku_cmd($cmd_str)
 	
 	// Make a translation table
 	$ttable = array(
-		'1'  => 'A', 
-		'2'  => 'B',
-		'3'  => 'C',
-		'4'  => 'D',
-		'5'  => 'E',
-		'6'  => 'F',
-		'7'  => 'G',
-		'8'  => 'H',
-		'9'  => 'I',
-		'10' => 'J',
-		'11' => 'K',
-		'12' => 'L',
-		'13' => 'M',
-		'14' => 'N',
-		'15' => 'O',
-		'16' => 'P'		
+		'1'  => 'A', 		'2'  => 'B',		'3'  => 'C',		'4'  => 'D',
+		'5'  => 'E',		'6'  => 'F',		'7'  => 'G',		'8'  => 'H',
+		'9'  => 'I',		'10' => 'J',		'11' => 'K',		'12' => 'L',
+		'13' => 'M',		'14' => 'N',		'15' => 'O',		'16' => 'P'		
 		) ;
-	
 	list( $room, $device, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );
 	$result = $ttable[$room] . " " . $device . " " ;
 	
@@ -469,22 +511,10 @@ function action_cmd($cmd_str)
 
 	// Make a translation table
 	$ttable = array(
-		'1'  => 'A', 
-		'2'  => 'B',
-		'3'  => 'C',
-		'4'  => 'D',
-		'5'  => 'E',
-		'6'  => 'F',
-		'7'  => 'G',
-		'8'  => 'H',
-		'9'  => 'I',
-		'10' => 'J',
-		'11' => 'K',
-		'12' => 'L',
-		'13' => 'M',
-		'14' => 'N',
-		'15' => 'O',
-		'16' => 'P'		
+		'1'  => 'A', 		'2'  => 'B',		'3'  => 'C',		'4'  => 'D',
+		'5'  => 'E',		'6'  => 'F',		'7'  => 'G',		'8'  => 'H',
+		'9'  => 'I',		'10' => 'J',		'11' => 'K',		'12' => 'L',
+		'13' => 'M',		'14' => 'N',		'15' => 'O',		'16' => 'P'		
 		) ;
 	
 	list( $room, $device, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );
@@ -541,22 +571,10 @@ function elro_cmd($cmd_str)
 
 	// Make a translation table
 	$ttable = array(
-		'1'  => 'A', 
-		'2'  => 'B',
-		'3'  => 'C',
-		'4'  => 'D',
-		'5'  => 'E',
-		'6'  => 'F',
-		'7'  => 'G',
-		'8'  => 'H',
-		'9'  => 'I',
-		'10' => 'J',
-		'11' => 'K',
-		'12' => 'L',
-		'13' => 'M',
-		'14' => 'N',
-		'15' => 'O',
-		'16' => 'P'		
+		'1'  => 'A', 		'2'  => 'B',		'3'  => 'C',		'4'  => 'D',
+		'5'  => 'E',		'6'  => 'F',		'7'  => 'G',		'8'  => 'H',
+		'9'  => 'I',		'10' => 'J',		'11' => 'K',		'12' => 'L',
+		'13' => 'M',		'14' => 'N',		'15' => 'O',		'16' => 'P'		
 		) ;
 	
 	list( $room, $device, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );
@@ -610,22 +628,10 @@ function blokker_cmd($cmd_str)
 
 	// Make a translation table
 	$ttable = array(
-		'1'  => 'A', 
-		'2'  => 'B',
-		'3'  => 'C',
-		'4'  => 'D',
-		'5'  => 'E',
-		'6'  => 'F',
-		'7'  => 'G',
-		'8'  => 'H',
-		'9'  => 'I',
-		'10' => 'J',
-		'11' => 'K',
-		'12' => 'L',
-		'13' => 'M',
-		'14' => 'N',
-		'15' => 'O',
-		'16' => 'P'		
+		'1'  => 'A', 		'2'  => 'B',		'3'  => 'C',		'4'  => 'D',
+		'5'  => 'E',		'6'  => 'F',		'7'  => 'G',		'8'  => 'H',
+		'9'  => 'I',		'10' => 'J',		'11' => 'K',		'12' => 'L',
+		'13' => 'M',		'14' => 'N',		'15' => 'O',		'16' => 'P'		
 		) ;
 	
 	list( $room, $device, $value ) = sscanf ($cmd_str, "!R%dD%dF%s" );

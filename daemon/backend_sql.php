@@ -15,6 +15,7 @@ require_once( '../daemon/backend_cfg.php' );
 	Version 1.8 : Jan 18, 2014
 	Version 1.9 : Mar 10, 2014
 	Version 2.0 : Jun 15, 2014
+	Version 2.1	: Jul 31, 2014
 	
 	-------------------------------------------------------------------------------	*/
 
@@ -141,69 +142,6 @@ function load_database()
 
 // ----------------------------------------------------------------------------------
 //
-// Store a device object as received from the ajax call and update mySQL
-//
-function store_device($device)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
-	
-	// We need to connect to the database for start
-	$apperr .= "store_device:: device id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-		return (-1);
-	}
-	
-	// Update the database
-	if (!mysqli_query($mysqli,"UPDATE devices SET gaddr='{$device[gaddr]}', val='{$device[val]}', lastval='{$device[lastval]}', name='{$device[name]}', brand='{$device[brand]}' WHERE room='$device[room]' AND id='$device[id]'" ))
-	{
-		$apperr .= "mysqli_query error" ;
-//		$apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
-		return (-1);
-	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
-	return(3);
-}
-
-/*	-----------------------------------------------------------------------------------
-	Delete a device record from the database. This is one of the element functions
-	needed to synchronize the database with the memory storage in the client, and
-	prevents information loss between reloads of the screen.
-	
-	-----------------------------------------------------------------------------------	*/
-function delete_device($device)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
-	
-	// We need to connect to the database for start
-	$apperr = "delete_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-	}
-	
-	$msg = "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'";
-	$apperr .= $msg;
-	if (!mysqli_query($mysqli, "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'" ))
-	{
-		$apperr .= "mysqli_query error" ;
-
-	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
-	return(4);
-}
-
-// ----------------------------------------------------------------------------------
-//
 // Add a device object as received from the ajax call and update mySQL
 //
 // ----------------------------------------------------------------------------------- */
@@ -242,6 +180,72 @@ function add_device($device)
 	mysqli_close($mysqli);
 	return(6);
 }
+
+
+/*	-----------------------------------------------------------------------------------
+	Delete a device record from the database. This is one of the element functions
+	needed to synchronize the database with the memory storage in the client, and
+	prevents information loss between reloads of the screen.
+	
+	-----------------------------------------------------------------------------------	*/
+function delete_device($device)
+{
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr;
+	
+	// We need to connect to the database for start
+	$apperr = "delete_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
+	
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+	}
+	
+	$msg = "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'";
+	$apperr .= $msg;
+	if (!mysqli_query($mysqli, "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'" ))
+	{
+		$apperr .= "mysqli_query error" ;
+
+	}
+//	mysqli_free_result($result);
+	mysqli_close($mysqli);
+	return(4);
+}
+
+
+// ----------------------------------------------------------------------------------
+//
+// Store a device object as received from the ajax call and update mySQL
+//
+function store_device($device)
+{
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr;
+	
+	// We need to connect to the database for start
+	$apperr .= "store_device:: device id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
+	
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
+		return (-1);
+	}
+	
+	// Update the database
+	if (!mysqli_query($mysqli,"UPDATE devices SET gaddr='{$device[gaddr]}', val='{$device[val]}', lastval='{$device[lastval]}', name='{$device[name]}', brand='{$device[brand]}' WHERE room='$device[room]' AND id='$device[id]'" ))
+	{
+		$apperr .= "mysqli_query error" ;
+//		$apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
+		mysqli_close($mysqli);
+		return (-1);
+	}
+	
+//	mysqli_free_result($result);
+	mysqli_close($mysqli);
+	return(3);
+}
+
 
 
 // ----------------------------------------------------------------------------------
@@ -351,6 +355,68 @@ function read_scene($name)
 }
 
 
+/* -----------------------------------------------------------------------------------
+  Load all scene(s_ with 'name' from the SQL database
+  
+  We start readingthe scene as soon as we determine that it is time to start a
+  command based o timer settings. If so, we lookup the scene and its seq(uence)
+  element. The scene['seq'] contains the string of commands to be sent to the 
+  devices......
+  
+  We read the database scenes and determine if action need to be taken.
+  NOTE: Scene names and timer names need to be unique.
+ -------------------------------------------------------------------------------------*/
+function load_scenes()
+{
+	global $log, $debug;
+	global $apperr;
+	global $dbname, $dbuser, $dbpass, $dbhost;
+	
+	$config = array();
+	$scenes = array();
+
+	// We need to connect to the database for start
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
+		return(-1);
+	}
+	
+	$sqlCommand = "SELECT * FROM scenes";
+	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	while ($row = mysqli_fetch_assoc($query)) { 
+
+		$scenes[] = $row ;
+	}
+	// There will be an array returned, even if we only have ONE result
+	mysqli_free_result($query);
+	mysqli_close($mysqli);
+	
+	if (count($scenes) == 0) {	
+		return(-1);
+	}
+	return($scenes);								// Return all scenes
+}
+
+
+
+// ------------------------------------------------------------------------------------
+// Find a single name in the scene database array opject.
+function load_scene($name)
+{
+	global $log, $debug;
+	$scenes = load_scenes();
+	if (count($scenes) == 0) return(-1);
+
+	for ($i=0; $i<count($scenes); $i++) {
+		
+		if ($scenes[$i]['name'] == $name) return($scenes[$i]);
+	}
+	// If there is more than 1 result (impossible), we return the first result
+	return(-1);
+}
+
+
 
 
 // ----------------------------------------------------------------------------------
@@ -391,40 +457,6 @@ function add_scene($scene)
 }
 
 
-//	-----------------------------------------------------------------------------------
-//	Store the scene record in the MySQL database
-//	
-//	-----------------------------------------------------------------------------------
-function store_scene($scene)
-{	
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
-	
-	// We need to connect to the database for start
-	$apperr .= "Scene id: ".$scene[id]." name: ".$scene[name]." val: ".$scene[val].", seq".$scene[seq]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") ".$mysqli->connect_error , 1);
-		return (-1);
-	}
-//
-	$test = "UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE id='$scene[id]' ";
-	$apperr .= $test;
-	if (!mysqli_query($mysqli,"UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE  id='$scene[id]' " ))
-	{
-		$apperr .= "Error: Store scene, ";
-		$apperr .= "mysqli_query error" ;
-	//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
-		return (-1);
-	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
-	return(8);
-}
-
 
 //	-----------------------------------------------------------------------------------
 //	Delete a scene record from the database. This is one of the element functions
@@ -455,6 +487,82 @@ function delete_scene($scene)
 //	mysqli_free_result($result);
 	mysqli_close($mysqli);
 	return(11);
+}
+
+
+
+//	-----------------------------------------------------------------------------------
+//	Store the scene record in the MySQL database
+//	
+//	-----------------------------------------------------------------------------------
+function store_scene($scene)
+{	
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr, $log;
+	
+	// We need to connect to the database for start
+	$apperr .= "Scene id: ".$scene[id]." name: ".$scene[name]." val: ".$scene[val].", seq".$scene[seq]."\n";
+	
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") ".$mysqli->connect_error , 1);
+		return (-1);
+	}
+//
+	$test = "UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE id='$scene[id]' ";
+	$apperr .= $test;
+	if (!mysqli_query($mysqli,"UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE  id='$scene[id]' " ))
+	{
+		$apperr .= "Error: Store scene, ";
+		$apperr .= "mysqli_query error" ;
+	//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
+		mysqli_close($mysqli);
+		return (-1);
+	}
+	
+//	mysqli_free_result($result);
+	mysqli_close($mysqli);
+	return(8);
+}
+
+
+
+/* -----------------------------------------------------------------------------------
+  Load the array of timers from the SQL database into a local array object
+  
+  Communication between the running program and this backend daemon is done solely
+  based on MySQL database content. In a later version, we might work with sockets 
+  also.
+  
+  We read the database timers and determine if action need to be taken.
+ -------------------------------------------------------------------------------------*/
+function load_timers()
+{
+	$config = array();
+	$timers = array();
+	
+ 	// We assume that a database has been created by the user
+	global $dbname;
+	global $dbuser;
+	global $dbpass;
+	global $dbhost;
+	
+	// We need to connect to the database for start
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
+		return(-1);
+	}
+	
+	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
+	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	while ($row = mysqli_fetch_assoc($query)) { 
+		$timers[] = $row ;
+	}
+	
+	mysqli_free_result($query);
+	mysqli_close($mysqli);
+	return($timers);
 }
 
 // ----------------------------------------------------------------------------------
@@ -497,6 +605,36 @@ function add_timer($timer)
 	return(12);
 }
 
+
+//-----------------------------------------------------------------------------------
+//	Delete a timer record from the database. This is one of the element functions
+//	needed to synchronize the database with the memory storage in the client, and
+//	prevents information loss between reloads of the screen.
+//	XXX Maybe we shoudl work with addr+unit+val instead of id+unit+val
+//	-----------------------------------------------------------------------------------
+function delete_timer($timer)
+{
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr;
+	
+	// We need to connect to the database for start
+	$apperr .= "timer id: ".$timer['id']." name: ".$timer['name']."\n";
+	
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+	}
+	if (!mysqli_query($mysqli, "DELETE FROM timers WHERE id='$timer[id]' " ))
+	{
+		$apperr .= "delete_timer:: mysqli_query error for timer: ".$timer['name'] ;
+		return(-1);
+	}
+//	mysqli_free_result($result);
+	mysqli_close($mysqli);
+	return(11);
+}
+
+
 //	-----------------------------------------------------------------------------------
 //	Store the scene object in the database
 //	
@@ -530,68 +668,48 @@ function store_timer($timer)
 	return(13);
 }
 
-//-----------------------------------------------------------------------------------
-//	Delete a timer record from the database. This is one of the element functions
-//	needed to synchronize the database with the memory storage in the client, and
-//	prevents information loss between reloads of the screen.
-//	XXX Maybe we shoudl work with addr+unit+val instead of id+unit+val
-//	-----------------------------------------------------------------------------------
-function delete_timer($timer)
+
+
+/* -----------------------------------------------------------------------------------
+  Load the array of handsets from the SQL database into a local array object
+  
+  Communication between the running program and this backend daemon is done solely
+  based on MySQL database content. In a later version, we might work with sockets 
+  also.
+  
+  We read the database handses and determine if action need to be taken.
+ -------------------------------------------------------------------------------------*/
+function load_handsets()
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $debug;
+	global $log;
+ 	// We assume that a database has been created by the user
+	global $dbname;
+	global $dbuser;
+	global $dbpass;
+	global $dbhost;
+	
+	$config = array();
+	$handsets = array();
 	
 	// We need to connect to the database for start
-	$apperr .= "timer id: ".$timer['id']." name: ".$timer['name']."\n";
-	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-	}
-	if (!mysqli_query($mysqli, "DELETE FROM timers WHERE id='$timer[id]' " ))
-	{
-		$apperr .= "delete_timer:: mysqli_query error for timer: ".$timer['name'] ;
+		$log->lwrite("load_handsets:: Failed to connect to MySQL: (".$mysqli->connect_errno . ") ".$mysqli->connect_error);
 		return(-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
-	return(11);
-}
-
-
-
-// -----------------------------------------------------------------------------------
-//	Store the setting object in the database
-//	
-//	-----------------------------------------------------------------------------------	
-function store_setting($setting)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
-	global $log;
 	
-	// We need to connect to the database for start
-	$log->lwrite("store_setting id: ".$setting[id]." name: ".$setting[name]." val: ".$setting[val]."\n",2);
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		return (-1);
+	$sqlCommand = "SELECT * FROM handsets";
+	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	while ($row = mysqli_fetch_assoc($query)) { 
+		$handsets[] = $row ;
 	}
+	if ($debug>1) $log->lwrite("load_handsets:: loaded MySQL handsets object");
 	
-	$test = "UPDATE settings SET val='{$setting[val]}' WHERE id='$setting[id]' ";
-	$apperr .= $test;
-	if (!mysqli_query($mysqli,"UPDATE settings SET val='{$setting[val]}' WHERE  id='$setting[id]' " ))
-	{
-		$apperr .= "mysqli_query error" ;
-//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
-		return (-1);
-	}
-	
-//	mysqli_free_result($result);
+	mysqli_free_result($query);
 	mysqli_close($mysqli);
-	return(5);
+	return($handsets);
 }
 
 
@@ -637,33 +755,6 @@ function add_handset($handset)
 }
 
 
-// -----------------------------------------------------------------------------------
-//	Store the handset record in the MySQL database
-//	
-//	-----------------------------------------------------------------------------------
-function store_handset($handset)
-{	
-	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $log;
-	
-	$log->lwrite("store_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		mysqli_close($mysqli);
-		return (-1);
-	}
-
-	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
-	{
-		mysqli_close($mysqli);
-		return (-1);
-	}
-	mysqli_close($mysqli);
-	return(15);
-}
-
 
 /*	-----------------------------------------------------------------------------------
 	Delete a handset record from the database. This is one of the element functions
@@ -697,11 +788,80 @@ function delete_handset($handset)
 }
 
 
+
+// -----------------------------------------------------------------------------------
+//	Store the handset record in the MySQL database
+//	
+//	-----------------------------------------------------------------------------------
+function store_handset($handset)
+{	
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $log;
+	
+	$log->lwrite("store_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
+	// We need to connect to the database for start
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		mysqli_close($mysqli);
+		return (-1);
+	}
+
+	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
+	{
+		mysqli_close($mysqli);
+		return (-1);
+	}
+	mysqli_close($mysqli);
+	return(15);
+}
+
+
+
+
+// -----------------------------------------------------------------------------------
+//	Store the setting object in the database
+//	
+//	-----------------------------------------------------------------------------------	
+function store_setting($setting)
+{
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr;
+	global $log;
+	
+	// We need to connect to the database for start
+	$log->lwrite("store_setting id: ".$setting[id]." name: ".$setting[name]." val: ".$setting[val]."\n",2);
+	
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		return (-1);
+	}
+	
+	$test = "UPDATE settings SET val='{$setting[val]}' WHERE id='$setting[id]' ";
+	$apperr .= $test;
+	if (!mysqli_query($mysqli,"UPDATE settings SET val='{$setting[val]}' WHERE  id='$setting[id]' " ))
+	{
+		$apperr .= "mysqli_query error" ;
+//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
+		mysqli_close($mysqli);
+		return (-1);
+	}
+	
+//	mysqli_free_result($result);
+	mysqli_close($mysqli);
+	return(5);
+}
+
+
+
 // -------------------------------------------------------------------------------
 // DBASE_PARSE(
 //
 function dbase_parse($cmd,$message)
 {
+	global $log;
+	$log->lwrite("dbase_parse:: received cmd: ".$cmd.", message: ".$message);
 	switch($cmd)
 	{
 		case "add_device":
@@ -716,6 +876,12 @@ function dbase_parse($cmd,$message)
 		case "delete_room":
 			$ret= delete_room($message);
 		break;
+		case "read_scene":
+			$ret= read_scene($message);
+		break;
+		case "read_scenes":
+			$ret= read_scenes();
+		break;
 		case "add_scene":
 			$ret= add_scene($message);
 		break;
@@ -724,6 +890,9 @@ function dbase_parse($cmd,$message)
 		break;
 		case "upd_scene":
 			$ret= upd_scene($message);
+		break;
+		case "store_scene":
+			$ret= store_scene($message);
 		break;
 		case "add_timer":
 			$ret= add_timer($message);
