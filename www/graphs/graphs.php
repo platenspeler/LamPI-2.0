@@ -13,6 +13,7 @@ require_once(__ROOT__.'/frontend_lib.php' );
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
+// Version 2.1, Jul 31, 2014, Weather support
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -78,7 +79,9 @@ function make_graph ($type, $period, $sensors)
 			8 => "ffff00"
 			);				
 	// Check which type of sensor we want to display and set the commands accordingly
+	//
 	switch($type) {
+		// Weather
 		case 'T':
 			$sensorType='temperature';
 			$graphName='temp';
@@ -91,6 +94,22 @@ function make_graph ($type, $period, $sensors)
 			$sensorType="airpressure";
 			$graphName="press";
 		break;
+		
+		// energy
+		case 'KW_ACT':
+			$sensorType="kilowatt";
+			$graphName="kwhr";
+		break;
+		
+		// Raspi
+		case 'C':
+			$sensorType="cpu_usage";
+			$graphName="cpu";
+		break;
+		case 'D':
+			$sensorType="disk_usage";
+			$graphName="disk";
+		break;
 		default:
 			$log->lwrite("make_graph:: Unknown graph type");
 	}
@@ -98,14 +117,16 @@ function make_graph ($type, $period, $sensors)
 
 	// Check on permissions for "graphs" directory. owner=pi, group=www-data, mode: 664
 	// Start with teh setting of the right group for the directory
+	//
 	$grp = posix_getgrgid(filegroup($output));
-	if ($grp['name'] != "www-data") {
-		$log->lwrite("graphs.php:: make_graph ERROR, dir ".$output." not owned by group www-data but by ".$grp['name'].", gid: ".filegroup($output));
-		$apperr="graphs.php:: make_graph ERROR, directory ".$output." not owned by group www-data";
-		$log->lwrite("make_graphs: Trying to set group right for dir ".$output." only when pi is owner of the dir");
+	if ($grp['name'] != "www-data") 
+	{
+		$log->lwrite("graphs.php:: make_graph ERROR, group of dir ".$output." not www-data but ".$grp['name'].", gid: ".filegroup($output));
+		$apperr="graphs.php:: make_graph ERROR, group of ".$output." not www-data";
+		$log->lwrite("make_graphs: Trying to set group rights for dir ".$output." only when pi is owner of the dir");
 		// Try to set the gid to the gid of the calling process (www-data);
 		$ownr = posix_getpwuid(fileowner($output));
-		$i = 'make_graphs: Unsuccessful in setting group of '.$output.' to www-data. Please do "sudo chgrp www-data '.$output.'" from the commandline';
+		$i = 'make_graphs: Cannot set group of '.$output.' to www-data. Please do "sudo chgrp www-data '.$output.'" from the commandline';
 		if ($ownr['name']=="pi") {
 			$log->lwrite("make_graphs: Try setting the group of ".$output." to ".posix_getgid() );
 			if (!chgrp ($output, posix_getgid() )) {
@@ -124,12 +145,13 @@ function make_graph ($type, $period, $sensors)
 	}
 	// Are the right permissions set? Remember thsi is ONLY of immediate importance if there is not
 	// yet a writable output file present. If there is, we can use that file.
+	//
 	$perms = fileperms($output);
 	if (!($perms & 0x0010)) {
 		$log->lwrite("graphs.php:: make_graph ERROR, directory ".$output." not writable for group www-data");
 		$apperr="graphs.php:: make_graph ERROR, directory ".$output." not writable for group www-data, trying to fix";
 		// If owner is pi, then we can try to set the permissions. But we probably are not pi!!!
-		$i = 'Not successful in setting the permissions of the directory, please do a "sudo chmod 775 '.$output.'" from the commandline';
+		$i = 'Cannot set the permissions of directory, please do a "sudo chmod 775 '.$output.'" from the commandline';
 		$ownr = posix_getpwuid(fileowner($output));
 		if ($ownr['name']=="pi") {
 			$log->lwrite("make_graphs: Try setting the mode of ".$output." to 775" );
@@ -160,15 +182,16 @@ function make_graph ($type, $period, $sensors)
 		} else {
 			$eol="";
 		}
-		
-		$DEFpart .= 'DEF:t' . ($i+1) . '=' . $rrd_dir . $sensors[$i] . '.rrd:'.$sensorType.':AVERAGE ';
+		// Define which sensors to graph
+		$DEFpart .= 'DEF:t'.($i+1).'='.$rrd_dir.$sensors[$i].'.rrd:'.$sensorType.':AVERAGE ';
 		// Update graph color based on colors in $graphColor array ($i modulus sizeof array)
 		$LINEpart .= 'LINE2:t'. ($i+1) .'#'.$graphColor[$i % count($graphColor)].':"'. $sensors[$i].$eol.'" ';
 		// this line is sensitive to correct syntax, especially the last part
 		$GPRINTpart .= 'GPRINT:t'.($i+1).':LAST:"'.$sensors[$i].'\: %1.0lf C'.$eol.'" ';
 	}
 	
-	// Build the exec string
+	// Build the exec string, this where the actual command is built
+	//
 	$exec_str = '/usr/bin/rrdtool graph '.$output.'all_'.$graphName.'_'.$period.'.png' ;
 	$exec_str .= ' -s N-'.$period.' -a PNG -E --title="'.$sensorType.' readings" ';
 	$exec_str .= '--vertical-label "'.$sensorType.'" --width '.$width.' --height '.$height.' ';
@@ -246,13 +269,14 @@ $ret = post_parse();
 // Do Processing
 switch($graphAction)
 {
-	// We generate a "STANDARD" temperature graph
+	// We generate a "STANDARD" temperature graph. Obsolete for most applications. 
+	// XXX Can be called as a standalone program by external script.
 	case "graph":
 		$log->lwrite("graphs.php:: standard graph action chosen");
 		$exec_str = 'cd /home/pi/rrd/scripts; /bin/sh ./generate_graphs.sh '.$graphPeriod.' ' ;
 		$appmsg .= "graph.php:: execute ".$graphAction.", exec: <".$exec_str.">\n";
-		if (shell_exec($exec_str . " 2>&1 && echo ' '")  === NULL ) {
-		//if (shell_exec($exec_str . " >> /tmp/effe && echo ' '")  === NULL ) {
+		if (shell_exec($exec_str . " 2>&1 && echo ' '")  === NULL ) 
+		{
 			$apperr .= "\nERROR: generate_graphs ".$graphsPeriod."\n ";
 			$ret = -1;
 		}
@@ -263,8 +287,33 @@ switch($graphAction)
 	break;
 	
 	// In case the user defines his own graph
-	case "user":
-		$log->lwrite("Starting User specific graphs, type: ".$graphType.", period: ".$graphPeriod);
+	case "sensor":
+	case "weather":
+		$log->lwrite("Starting weather specific graphs, type: ".$graphType.", period: ".$graphPeriod);
+		if (! make_graph ($graphType,$graphPeriod,$graphSensors) ) {
+			$appmsg .="user error. ";
+		}
+		else {
+			$appmsg .="Success generate_graphs\n";
+			$ret = 1;
+		}
+	break;
+	
+	// In case the user defines his own Raspberry data graph
+	case "raspi":
+		$log->lwrite("Starting raspi specific graphs, type: ".$graphType.", period: ".$graphPeriod);
+		if (! make_graph ($graphType,$graphPeriod,$graphSensors) ) {
+			$appmsg .="user error. ";
+		}
+		else {
+			$appmsg .="Success generate_graphs\n";
+			$ret = 1;
+		}
+	break;
+	
+	// In case the user defines his own energy graph
+	case "energy":
+		$log->lwrite("Starting energy specific graphs, type: ".$graphType.", period: ".$graphPeriod);
 		if (! make_graph ($graphType,$graphPeriod,$graphSensors) ) {
 			$appmsg .="user error. ";
 		}
@@ -280,6 +329,8 @@ switch($graphAction)
 		$ret = -1; 
 }
 
+// Test the return values for the several commands
+//
 if ($ret >= 0) 
 {
 	$send = array(

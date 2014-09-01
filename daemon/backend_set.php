@@ -76,7 +76,6 @@ function read_database($fname)
 	else {
 		$log->lwrite("read_database:: Success read_database");
 	}
-	// $cfg = json_decode($ret, true);
 	$cfg = json_clean_decode($ret, true);
 	return ($cfg);
 }

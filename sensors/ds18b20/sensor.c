@@ -290,6 +290,7 @@ int main(int argc, char **argv)
 		}
 	}
 	delay(1000);
+	
 	// Close the socket to the daemon
 	if (close(sockfd) == -1) {
 		perror("Error closing socket to daemon");

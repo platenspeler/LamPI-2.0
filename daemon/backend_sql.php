@@ -54,73 +54,50 @@ function load_database()
 		return(-1);
 	}
 	$log->lwrite("load_database:: Connected to MySQL database",3);
-	//mysqli_free_result($query);
 	
-	$log->lwrite("load_database:: Reading devices table from MySQL database",3);
-	$sqlCommand = "SELECT id, gaddr, room, name, type, val, lastval, brand FROM devices";
+	$sqlCommand = "SELECT * FROM devices";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$devices[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $devices[] = $row ; }
 	mysqli_free_result($query);
 	
-	$log->lwrite("load_database:: Reading rooms table from MySQL database",3);
-	$sqlCommand = "SELECT id, name FROM rooms";
+	$sqlCommand = "SELECT * FROM rooms";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$rooms[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $rooms[] = $row ; }
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, val, name, seq FROM scenes";
+	$sqlCommand = "SELECT * FROM scenes";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$scenes[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $scenes[] = $row ; }
 	mysqli_free_result($query);
 
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
+	$sqlCommand = "SELECT * FROM timers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$timers[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $timers[] = $row ; }
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, val, name FROM settings";
+	$sqlCommand = "SELECT * FROM settings";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$settings[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $settings[] = $row ; }
 	mysqli_free_result($query);	
 	
-	$log->lwrite("load_database:: Reading handsets table from MySQL database",3);
-	$sqlCommand = "SELECT id, name, brand, addr, unit, val, type, scene FROM handsets";
+	$sqlCommand = "SELECT * FROM handsets";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$handsets[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $handsets[] = $row ; }
 	mysqli_free_result($query);
 
-	$sqlCommand = "SELECT id, name, fname FROM controllers";
+	$sqlCommand = "SELECT * FROM controllers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$controllers[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $controllers[] = $row ; }
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, name, fname FROM brands";
+	$sqlCommand = "SELECT * FROM brands";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$brands[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $brands[] = $row ; }
 	mysqli_free_result($query);
 	
-	$log->lwrite("load_database:: Reading weather table from MySQL database",3);
-	$sqlCommand = "SELECT id, name, location, brand, address, channel, temperature, humidity, airpressure, windspeed, winddirection, rainfall FROM weather";
+	$sqlCommand = "SELECT * FROM weather";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
-	while ($row = mysqli_fetch_assoc($query)) { 
-		$weather[] = $row ;
-	}
+	while ($row = mysqli_fetch_assoc($query)) { $weather[] = $row ; }
 	mysqli_free_result($query);
 	$log->lwrite("load_database:: Done reading tables from MySQL database",3);
 	
@@ -515,7 +492,6 @@ function store_scene($scene)
 	{
 		$apperr .= "Error: Store scene, ";
 		$apperr .= "mysqli_query error" ;
-	//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
 		mysqli_close($mysqli);
 		return (-1);
 	}
@@ -554,7 +530,7 @@ function load_timers()
 		return(-1);
 	}
 	
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
+	$sqlCommand = "SELECT * FROM timers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$timers[] = $row ;
@@ -651,9 +627,6 @@ function store_timer($timer)
 		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return (-1);
 	}
-//
-	$test = "UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE id='$timer[id]' ";
-	$apperr .= $test;
 	if (!mysqli_query($mysqli,"UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE  id='$timer[id]' " ))
 	{
 		$apperr .= "Error: Store timer, ";
@@ -856,7 +829,7 @@ function store_setting($setting)
 
 
 // -------------------------------------------------------------------------------
-// DBASE_PARSE(
+// DBASE_PARSE()
 //
 function dbase_parse($cmd,$message)
 {
@@ -864,18 +837,24 @@ function dbase_parse($cmd,$message)
 	$log->lwrite("dbase_parse:: received cmd: ".$cmd.", message: ".$message);
 	switch($cmd)
 	{
+		// Device
 		case "add_device":
 			$ret= add_device($message);
 		break;
 		case "delete_device":
 			$ret= delete_device($message);
 		break;
+		case "store_device":
+			$ret= store_device($message);
+		break;
+		// Room
 		case "add_room":
 			$ret= add_room($message);
 		break;
 		case "delete_room":
 			$ret= delete_room($message);
 		break;
+		// Scene
 		case "read_scene":
 			$ret= read_scene($message);
 		break;
@@ -894,6 +873,7 @@ function dbase_parse($cmd,$message)
 		case "store_scene":
 			$ret= store_scene($message);
 		break;
+		// Timer
 		case "add_timer":
 			$ret= add_timer($message);
 		break;
@@ -903,6 +883,7 @@ function dbase_parse($cmd,$message)
 		case "store_timer":
 			$ret= store_timer($message);
 		break;
+		// Handset
 		case "add_handset":
 			$ret= add_handset($message);
 		break;
@@ -912,12 +893,14 @@ function dbase_parse($cmd,$message)
 		case "store_handset":
 			$ret= store_handset($message);
 		break;
+		// Weather
 		case "add_weather":
 			$ret= add_weather($message);
 		break;
 		case "delete_weather":
 			$ret= delete_weather($message);
 		break;
+		// Setting
 		case "store_setting":
 			$ret= store_setting($message);
 		break;

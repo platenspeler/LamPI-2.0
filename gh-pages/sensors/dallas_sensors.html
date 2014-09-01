@@ -63,9 +63,11 @@ src="1-Wire/DS18B20/18b20_1.jpg" alt="" width=338 height=327 hspace="20" vspace=
 <p>There are several examples on the net how to read the device files, most however are written in script language. As I wanted to post successful temperature readings to the LamPI-daemon for further processing, I made a little program in C that opens a socket and reads all sensors and sends the output to the LamPI-daemon. The source code can be found on ~/sensors/ds18b20, and after a successful 'sudo make install' the executable is put in the ~/exe directory</p>
 <h3>2.4 Conclusion</h3>
 <p>The dallas 1-wire bus works VERY well, and the devices/bus is well supported by the RPI. Only drawback is that there are only a small amount of sensors available for Dallas. But the ds18b20 temperature sensors is a very good example of sensors that work very well and that are worth every penny and second of your time if temperature sensors is your main interest.</p>
+<p>Sheepwalkelectronics sells modules that will enable you to connect other sensors to the 1-wire bus as well such as humudity sensors or a relay.</p>
 <h3>2.5 Links</h3>
 <ul>
   <li><a href="http://kopfkino.irosaurus.com">http://kopfkino.irosaurus.com</a> (German site)</li>
+  <li><a href="http://www.sheepwalkelectronics.co.uk/">http://www.sheepwalkelectronics.co.uk</a> an UK shop around 1-wire sensors</li>
   <li>http://www.sbprojects.com/projects/raspberrypi/temperature.php</li>
   <li><a
 href="http://www.1wire.org/Files/Articles/1-Wire-Design%20Guide%20v1.0.pdf">http://www.1wire.org/Files/Articles/1-Wire-Design%20Guide%20v1.0.pdf</a></li>

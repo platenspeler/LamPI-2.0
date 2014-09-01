@@ -290,7 +290,8 @@ int read_socket_and_transmit(int sockfd)
 			}
 			
 			buf[rc]=0;									// Terminate a string
-			printf("\n------------------------------------------------\nBuf read:: <%s>\n",buf);
+			// printf("\n------------------------------------------------\n");
+			// printf("Buf read:: <%s>\n",buf);
 			
 			ptr1 = buf;	
 			cJSON *root;
@@ -329,7 +330,12 @@ int read_socket_and_transmit(int sockfd)
 				
 				// We receive a message for the transmitter
 				if  ((strcmp(action,"gui") == 0) || (strcmp(action,"upd") == 0)) 
-				{ 
+				{
+					if (verbose) { 
+						printf("\n------------------------------------------------\n");
+						printf("Buf read:: <%s>\n",buf);
+					}
+					// Parse for brand and other parameters of the transmitter
 					jbrand = parse_cjson(root, "brand");		// My add-on parsing function 
 					if (jbrand == NULL) { printf("parse_cjson jbrand returned NULL \n"); goto next; }
 				
@@ -345,7 +351,7 @@ int read_socket_and_transmit(int sockfd)
 					printf("Json:: gaddr: %s, uaddr: %s, val: %s\n",jgaddr, juaddr, jval);
 		
 					// Now transmit the command to a device using function transmit
-					//
+					// 
 					if (dtransmit(jbrand, jgaddr, juaddr, jval) == -1)
 					{
 						printf("transmit: returned error \n");
@@ -356,13 +362,13 @@ int read_socket_and_transmit(int sockfd)
 				
 				// If we receive a weather notification (a broadcast), ignore
 				if  (strcmp(action,"weather") == 0) { 
-					printf("parse_cjson:: weather message received. SKIPPING\n");
+					// printf("parse_cjson:: weather message received. DISCARD\n");
 					goto next; 
 				}
 				
 				// If we receive a energy notification (a broadcast), ignore
 				if  (strcmp(action,"energy") == 0) { 
-					printf("parse_cjson:: energy message received. SKIPPING\n");
+					printf("parse_cjson:: energy message received. DISCARD\n");
 					goto next; 
 				}
 				
@@ -374,7 +380,7 @@ next:
 				// and loop again.
 			
 				if ((ptr2 - buf) < rc) {
-					// printf("read_socket_and_transmit:: Unparsed data in buf: %d chars, first char: %c\n",(buf+rc-ptr2), *ptr2);
+					if (verbose) printf("read_socket_and_transmit:: Unparsed data in buf: %d chars, first char: %c\n",(buf+rc-ptr2), *ptr2);
 					ptr1 = ptr2;
 					ptr2 = NULL;
 				}

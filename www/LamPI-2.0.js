@@ -90,6 +90,8 @@ var debug = "1";										// debug level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
 var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
+var use_weather = "0";
+var use_energy = "0";									// Initial value is 0
 
 // ----------------------------------------------------------------------------
 // s_STATE variables. They keep track of current room, scene and setting
@@ -105,6 +107,7 @@ var s_scene_id =1;
 var s_timer_id = 1;
 var s_handset_id = 1;
 var s_weather_id = '';									// Init empty
+var s_energy_id = 0;									// Init empty
 var s_setting_id = 0;
 var s_recorder = '';									// recording of all user actions in a scene. 
 var s_recording = 0;									// Set to 1 to record lamp commands
@@ -1188,7 +1191,7 @@ function start_LAMP(){
 			
 			// Based on the row that is clicked, we should be able to determine the
 			// right type of 
-			var win=window.open('graphs/temperature.html', '_blank');
+			var win=window.open('graphs/weather.html', '_parent');
 			
 			$( this ).removeClass( 'hover' );
 	}); // weather
@@ -1443,6 +1446,38 @@ function start_LAMP(){
 	
 	}); // Handler for weathers
 
+
+// ------------------------------------------------------------------------------
+// Energy
+// Handle the Weather (=remote) selection in the Content area
+// This function deals with the Command WEnergy (ce) buttons diaplayed in the content section.
+// If the user selects one of these buttons, the corresponding energy action is activated.
+//
+	$("#gui_content").on("click", ".ce_button", function(e){
+			e.preventDefault();
+//			e.stopPropagation();
+			selected = $(this);
+						
+			value=$(this).val();							// Value of the button
+			id = $(e.target).attr('id');					// should be id of the button (array index substract 1)
+			$( '.ce_button' ).removeClass( 'hover' );
+			$( this ).addClass ( 'hover' );
+			//activate_energy(id);
+			//alert("Clicked Energy Button, id: "+id+", value: "+value);
+			
+			// Based on the row that is clicked, we should be able to determine the
+			// right type of 
+			var win=window.open('graphs/energy.html', '_parent');
+			//$.getScript("graphs/enerpi.js", function(){
+			//		start_ENERPI();
+			//		alert("start_ENERPI finished");
+			//	});
+			$( this ).removeClass( 'hover' );
+	}); // energy
+
+
+
+
 // ----------------------------------------------------------------------------
 // CONFIG
 // ** HANDLER FOR HEADER CONFIG BUTTONS
@@ -1658,8 +1693,7 @@ function start_LAMP(){
 				// The weather stations that we allow for receiving are specified in the 
 				// database.cfg file (and in the database).
 				
-				case 'weather':
-					
+				case 'weather':	
 					var j;
 					// Compare address and channel to identify a weather sensor
 					// Decided not to use the name for this :-)
@@ -1711,8 +1745,17 @@ function start_LAMP(){
 				// Support for energy systems is tbd
 				//
 				case 'energy':
-					console.log("Lampi.js:: received energy message");
-					
+					console.log("Lampi.js:: received energy message, kw_act_use: "+rcv.kw_act_use);
+					energy['kw_hi_use']	=rcv.kw_hi_use;
+					energy['kw_lo_use']	=rcv.kw_lo_use;
+					energy['kw_hi_ret']	=rcv.kw_hi_ret;
+					energy['kw_lo_ret']	=rcv.kw_lo_ret;
+					energy['gas_use']	=rcv.gas_use;
+					energy['kw_act_use']=rcv.kw_act_use;
+					energy['kw_act_ret']=rcv.kw_act_ret;
+					energy['kw_ph1_use']=rcv.kw_ph1_use;
+					energy['kw_ph2_use']=rcv.kw_ph2_use;
+					energy['kw_ph3_use']=rcv.kw_ph3_use;
 				break;
 				
 				//
@@ -2069,8 +2112,21 @@ function init() {
 		skin = settings[4]['val'];
 		$("link[href^='styles']").attr("href", skin);
 	}
+	use_weather = settings[8]['val'];							// Will we display weather info and buttons
+	use_energy = settings[8]['val'];							// Will we use energy display, only when P1-sensor is working
+	energy['kw_hi_use'] = 0;
+	energy['kw_lo_use'] = 0;
+	energy['kw_hi_ret'] = 0;
+	energy['kw_lo_ret'] = 0;
+	energy['gas_use'] = 0;
+	energy['kw_act_use'] = 0;
+	energy['kw_act_ret'] = 0;
+	energy['kw_ph1_use'] = 0;
+	energy['kw_ph2_use'] = 0;
+	energy['kw_ph3_use'] = 0;
+	
 	init_rooms(s_room_id);										// Initial startup config
-	init_menu(s_setting_id);		
+	init_menu(s_setting_id);
 }		
 
 // ************************ SUPPORTING FUNCTIONS *********************************
@@ -2668,6 +2724,63 @@ function init_weather(cmd)
 }
 
 // ------------------------------------------------------------------------------------------
+// Setup the weather event handling
+// Display only weather buttons for unique locations. SO in the header section
+// there will be one button for a loction. Weather dials will be sorted to locations as well
+function init_energy(cmd) 
+{
+		$("#gui_header").empty();
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
+		var msg = 'Init energy, config read: ';
+		
+		// XXX class rroom?
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
+		
+		//if (s_weather_id == "") { 
+		//	s_weather_id = weather[0]['location']; 
+		//	//alert("init_weather:: loc id: "+s_weather_id);
+		//}
+		
+		//var weather_list=[];
+		//for (var j = 0; j<weather.length; j++ ){
+		//	// Create only unique buttons
+  		//	if ( $.inArray(weather[j]['location'],weather_list) == -1) {
+		//		//alert("adding id: "+j);
+		//		var weather_id = weather[j]['id'];
+		//		var location = weather[j]['location'];
+		//		var temperature = weather[j]['temperature'];
+		//		
+		//		msg += j + ', ';
+		//		if ( location == s_weather_id ) {
+		//			//but +=  weather_button(weather_id, location, "hover");
+		//			but +=  weather_button(location, location, "hover");
+		//		}
+		//		else
+		//		{
+		//			//but +=  weather_button(weather_id, location);
+		//			but +=  weather_button(location, location);
+		//		}
+		//		weather_list[weather_list.length]= weather[j]['location'];
+		//	}
+		//}
+		if (debug>1) message(msg);
+		
+		but += '</td>';	
+		but +=  '<td>';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
+		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
+		but += '</td>';
+		$(table).append(but);	
+
+		
+		s_screen = 'energy';
+		activate_energy(s_energy_id);	
+}
+
+// ------------------------------------------------------------------------------------------
 // Setup the settings event handling
 //
 function init_settings(cmd) 
@@ -2724,7 +2837,11 @@ function init_menu(cmd)
 		+ '<input type="submit" id="M2" value= "Scenes" class="hm_button">'
 		+ '<input type="submit" id="M3" value= "Timers" class="hm_button">'
 		+ '<input type="submit" id="M4" value= "Handsets" class="hm_button">'
+		if (weather.length > 0) {
+			+ '<input type="submit" id="M6" value= "Weather" class="hm_button">'
+		}
 		+ '<input type="submit" id="M5" value= "Config" class="hm_button">'
+
 		+ '</td></tr>'
 		;
 		$(table).append(but);
@@ -2741,10 +2858,10 @@ function init_menu(cmd)
 			but += '<tr class="switch"><td><input type="submit" id="M6" value= "Weather" class="hm_button"></td>'
 		}
 		// Do we have energy definitions in database.cfg file?
-		if (energy.length > 0) {
+		if (use_energy > 0) {
 			but += '<tr class="switch"><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
 		}
-		// Do we have energy records in database.cfg?
+
 		but += '<tr><td></td>'
 		+ '<tr><td></td>'
 		+ '<tr class="switch"><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
@@ -2788,6 +2905,10 @@ function init_menu(cmd)
 			case "M6":
 				init_weather();
 			break;
+			
+			case "M7":
+				init_energy();
+			break;
 				
 			default:
 				message('init_menu:: id: ' + id + ' not a valid menu option');
@@ -2819,7 +2940,7 @@ function activate_room(new_room_id, selectable)
 	// 	Clean the DOM area where we want to output devices
 	// Empty the parent works best in changing rooms
 	$("#gui_content").empty();
-
+	$( "#gui_content" ).css( "overflow-y", "auto" );
 	// XXX We might have to destroy the old sliders, depending
 	// whether the memory s reused for the sliders or we keep on allocating new memory with every room change
 	html_msg = '<div id="gui_devices"></div>';
@@ -3395,7 +3516,7 @@ function activate_room(new_room_id, selectable)
 function activate_scene(scn)
 {
 	$( "#gui_content" ).empty();
-	
+	$( "#gui_content" ).css( "overflow-y", "auto" );	
 	html_msg = '<div id="gui_scenes"></div>';
 	$( "#gui_content" ).append (html_msg);
 	
@@ -4306,7 +4427,8 @@ function activate_timer(tim)
 function activate_handset(hset)
 {
 	$( "#gui_content" ).empty();
-	
+	$( "#gui_content" ).css( "overflow-y", "auto" );
+	//html_msg = '<div id="gui_handsets" style="overflow-y:scroll;"></div>';
 	html_msg = '<div id="gui_handsets"></div>';
 	$( "#gui_content" ).append (html_msg);
 	
@@ -4795,6 +4917,8 @@ function activate_weather(location)
 	// Cleanup work area
 	$( "#gui_messages" ).empty();
 	$( "#gui_content" ).empty();					// Empty our drawing area
+	$( "#gui_content" ).css( "overflow-x", "auto" );
+	// html_msg = '<div id="gui_weather" style="overflow-y:hidden; overflow-x:scroll;"></div>';
 	html_msg = '<div id="gui_weather"></div>';
 	$( "#gui_content" ).append (html_msg);	
 	html_msg = '<table border="0">';
@@ -4860,9 +4984,14 @@ function activate_weather(location)
 		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
                     	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
                     	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
-
+		
+			baro_sections = [steelseries.Section( 950, 990, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(990, 1030, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(1030, 1050, 'rgba(220, 220, 0, 0.3)') ],
+			
             // Define one area
             areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+			baro_areas = [steelseries.Section(1050, 1100, 'rgba(220, 0, 0, 0.3)')],
 
             // Define value gradient for bargraph temperature
             tempGrad = new steelseries.gradientWrapper(  -20,
@@ -4872,7 +5001,7 @@ function activate_weather(location)
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
 			
 			valGrad = new steelseries.gradientWrapper(  0,
                                                         100,
@@ -4881,9 +5010,9 @@ function activate_weather(location)
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-			pressGrad = new steelseries.gradientWrapper( 700,
-                                                        1200,
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
+			pressGrad = new steelseries.gradientWrapper( 950,
+                                                        1100,
                                                         [ 0, 0.33, 0.66, 0.85, 1],
                                                         [ new steelseries.rgbaColor(0, 0, 200, 1),
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
@@ -4901,7 +5030,9 @@ function activate_weather(location)
 				// XXX We assume that we ALWAYS have a temperature as part of the sensor
 				// reading. This may NOT be true in which case the radial below needs to be
 				// conditional as with the humidity
-				radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
+				if (('temperature' in weather[j]) && (typeof weather[j]['temperature'] !== 'undefined') && (weather[j]['temperature'] !== ""))
+				{
+					radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
                             	gaugeType: steelseries.GaugeType.TYPE4,
                             	size: 201,
 								minValue: -20,							// Set the min value on the scale
@@ -4913,13 +5044,17 @@ function activate_weather(location)
 								threshold: 30,
                             	lcdVisible: true
                         });
-				radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-				radial[i].setValueAnimated(weather[j]['temperature']);
-				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-			
+					radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+					radial[i].setValueAnimated(weather[j]['temperature']);
+					radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+				}
+				else {
+					console.log("weather temperature "+i+" is not defined");
+				}
+				
 				// humidity radial gauges
 				
-				if (('humidity' in weather[j]) && (weather[j]['humidity'] != ""))
+				if (('humidity' in weather[j]) && (typeof weather[j]['humidity'] !== 'undefined') && (weather[j]['humidity'] !== ""))
 				{
 					//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
@@ -4942,16 +5077,19 @@ function activate_weather(location)
 				
 				// Airpressure radial gauges. 
 				
-				if (('airpressure' in weather[j]) && (weather[j]['airpressure'] != ""))
+				if ( ('airpressure' in weather[j]) && (typeof weather[j]['airpressure'] !== 'undefined') && (weather[j]['airpressure'] !== '') )
 				{
 					console.log("iradial "+ (i+wl) +",j: "+j+" set airpressure: "+weather[j]['airpressure']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
                             	gaugeType: steelseries.GaugeType.TYPE3,
                             	size: 201,
-								minValue: 900,							// Set the min value on the scale
+								minValue: 950,							// Set the min value on the scale
 								maxValue: 1100,
-                            	valueGradient: pressGrad,
-                            	useValueGradient: true,
+ 								area: baro_areas,
+								section: baro_sections,
+								useSectionColors: true,
+                            	//valueGradient: pressGrad,
+                            	//useValueGradient: true,
                             	titleString: weather[j]['location'],
                             	unitString: 'Pressure Pa',
 								threshold: 80,
@@ -5061,6 +5199,267 @@ function activate_weather(location)
 		
 	});
 }
+
+
+// --------------------------------- ACTIVATE ENERGY -------------------------------------
+//
+// It is quite good possible to config the sceen so that for 2 or 4 or 6 sensors
+// With 3 we will have a good layout on the screen, otherwise we'll scroll.
+//
+// THere are only a few sensors in the SMART meter that are interesting to me
+// Actual Power usage (and return)
+// Gas Usage
+//
+function activate_energy(location)
+{
+	// Cleanup work area
+	$( "#gui_messages" ).empty();
+	$( "#gui_content" ).empty();					// Empty our drawing area
+	$( "#gui_content" ).css( "overflow-x", "auto" );
+	html_msg = '<div id="gui_energy"></div>';
+	$( "#gui_content" ).append (html_msg);	
+	html_msg = '<table border="0">';
+	$( "#gui_energy" ).append( html_msg );
+	
+	var table = $( "#gui_energy" ).children();		// to add to the table tree in DOM
+	var offbut, onbut;
+	
+	// We take rows of 3 positions and vertical as many as needed
+	var wl = 4; 		
+	var wi = 100/wl;
+	
+	// Do two rows with each 4 dials/gauges
+	// First row; Create the canvasses and make room for the temprature dials..	
+	var buf = '<tbody><tr>';
+	for (var i=0; i< wl; i++) {
+		buf += '<td width="'+wi+'%" class="ce_button">';
+        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	
+	// This is the second row, with the dials for humidity
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		var canv = 'canvasRadial'+(wl+i+1)+'';
+		buf += '<td width="'+wi+'%" class="ce_button">';
+        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	buf += '</tbody></table>';
+	
+	$(table).append(buf);							// Display the table with canvas
+	
+	// XXX When working OK, switch to min version of steel asap
+	// We load the .js file for steel animation. This is done in jQuery so that once
+	// loaded all functions are available, but the functions are no integral/permanent part
+	// of the code
+	$.getScript("steel/steelseries-min.js", function(){
+	//$.getScript("steel/steelseries.js", function(){
+		
+
+		// sections are used for:
+		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
+
+			pwr_sections = [steelseries.Section( 950, 990, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(990, 1030, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(1030, 1050, 'rgba(220, 220, 0, 0.3)') ],
+			
+            // Define one area
+            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+			pwr_areas = [steelseries.Section(1050, 1100, 'rgba(220, 0, 0, 0.3)')],
+
+            // Define value gradient for bargraph temperature
+            pwrGrad = new steelseries.gradientWrapper(  0,
+                                                        5000,
+                                                        [ 0, 0.20, 0.40, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
+			
+			valGrad = new steelseries.gradientWrapper(  0,
+                                                        100,
+                                                        [ 0, 0.33, 0.66, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),			// Blauw
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),			// Groen
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),		// Geel
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),			// Rood
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);		// rood
+		
+		var radial={};
+		var i=0;
+		// dial 1 (Power actual use
+		radial[0] = new steelseries.RadialBargraph('canvasRadial'+(0+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Actual',
+                            	unitString: 'kW',
+								threshold: 30,
+                            	lcdVisible: true
+                        });
+		radial[0].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[0].setValueAnimated(energy['kw_act_use']);
+		radial[0].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+
+		// PHA 1 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[1] = new steelseries.RadialBargraph('canvasRadial'+(1+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 1',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[1].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[1].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[1].setValueAnimated(energy['kw_ph1_use']);
+
+		// PHA 2 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[2] = new steelseries.RadialBargraph('canvasRadial'+(2+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 2',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[2].setValueAnimated(energy['kw_ph2_use']);
+
+		// PHA 3 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[3] = new steelseries.RadialBargraph('canvasRadial'+(3+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 3',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[3].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[3].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[3].setValueAnimated(energy['kw_ph3_use']);
+
+
+		// HI USE  radial gauges
+		//
+		radial[0+wl] = new steelseries.RadialBargraph('canvasRadial'+(0+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Hi Use',
+                            unitString: 'kWhr',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[0+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[0+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[0+wl].setValueAnimated(energy['kw_hi_use']);
+
+		// Lo Use
+		radial[1+wl] = new steelseries.RadialBargraph('canvasRadial'+(1+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Lo Use',
+                            unitString: 'kWhr',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[1+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[1+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[1+wl].setValueAnimated(energy['kw_lo_use']);
+		
+		// Gas Use
+		radial[3+wl] = new steelseries.RadialBargraph('canvasRadial'+(3+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Gas Use',
+                            unitString: 'm3',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[3+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[3+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[3+wl].setValueAnimated(energy['gas_use']);	
+		
+		// Once every 2 seconds we update the gauge meters based on the current
+		// value of the weather array (which might change due to incoming messages
+		// over websockets.
+		var id;
+		id = setInterval(function()
+		{
+			// Do work if we are in the weather screen
+			if (s_screen == "energy" )
+			{
+				radial[0].setValueAnimated(energy['kw_act_use']);
+				radial[1].setValueAnimated(energy['kw_ph1_use']);
+				radial[2].setValueAnimated(energy['kw_ph2_use']);
+				radial[3].setValueAnimated(energy['kw_ph3_use']);
+				radial[0+wl].setValueAnimated(energy['kw_hi_use']);
+				radial[1+wl].setValueAnimated(energy['kw_lo_use']);
+				//radial[2+wl].setValueAnimated(energy['kw_ph2_use']);
+				radial[3+wl].setValueAnimated(energy['gas_use']);
+
+				// Make a new connection and start registering the various actions,
+				// State 0: Not ready (yet), connection to e established
+				// State 1: Ready
+				// State 2: Close in progress
+				// State 3: Closed
+				var state = w_sock.readyState;
+				if (state != 1) 
+				{
+					console.log("Websocket:: error. State is: "+state);
+					message("Websocket:: error. State is: "+state);
+					//w_sock = new WebSocket(w_uri);
+				}
+			}
+			else
+			{
+				// Kill this timer temporarily
+				clearInterval(id);
+				message("Suspend Dials");
+				console.log("activate_energy:: s_screen is: "+s_screen)
+			}
+		}, 2000);		// 2 seconds (in millisecs)
+		
+	});
+}
+
 
 // -------------------------------------------------------------------------------
 // Activate the Settings screen for a certain setting
@@ -5606,6 +6005,15 @@ function activate_setting(sid)
 			
 		break; //6
 		
+		// weather
+		case '7':
+			console.log("init_settings:: weather selected");
+		break;
+		
+		// Energy
+		case '8':
+			console.log("init_settings:: energy selected");
+		break;
 		
 		default:
 			myAlert("Config encountered internal error: unknown button "+sid);

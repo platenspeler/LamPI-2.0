@@ -372,7 +372,7 @@ int wt440h(int p_length)
 	
 	// 2 periods start pulse each 1000 + 1000 uSec ( so 4 * 1000 uSec pulse )
 	// As the bits are FM modulated, the number of interrupts may be between 36 (all 0) and 72 (all 1)
-	// I make the assumpition that checking 6 pulses is not heavier on the system than
+	// I make the assumption that checking 6 pulses is not heavier on the system than
 	// checking 2 or 4 pulses first, as the compiler will probably break as soon
 	// as one of the conditions is false (and not evaluate all conditions)
 	if (p_length > 72)
@@ -414,10 +414,10 @@ int wt440h(int p_length)
 					&& (pulse_array[ j % MAXDATASIZE] < WT440H_MAX_LONG) 
 					)
 				{
+					// We read a 0 bit
 					binary[binary_count++]=0;
 					pcnt+=1;
 					j+=1;
-					//printf("0 ");
 				}
 				else
 				if (   (pulse_array[ j    % MAXDATASIZE] > WT440H_MIN_SHORT) 
@@ -426,12 +426,13 @@ int wt440h(int p_length)
 					&& (pulse_array[(j+1) % MAXDATASIZE] < WT440H_MAX_SHORT)
 					)
 				{
+					// We read a 1 bit
 					binary[binary_count++]=1;
 					pcnt+=2;
 					j+=2;
-					//printf("1 ");
 				}
 				else {
+					// Any other timing combination is an error
 					statistics[I_WT440H][I_MSGS_DISCARD]++;
 					if (debug) {
 						printf("WT440H:: Failed: index %d, last 2 pulses read: %4d %4d \n", binary_count,
@@ -449,14 +450,12 @@ int wt440h(int p_length)
 			
 			if (binary_count > 0)
 			{
-
-				
-				int leader = 0; for (i=0; i<4; i++) leader = leader*2 + binary[i];
-				int address = 0; for (i=4; i<8; i++) address = address*2 + binary[i];
-				int channel = 0; for (i=8; i<10; i++) channel = channel*2 + binary[i];
-				int constant = 0; for (i=10; i<13; i++) constant = constant*2 + binary[i];
-				int humidity = 0; for (i=13; i<20; i++) humidity = humidity*2 + binary[i];
-				int temperature = 0; for (i=20; i<35; i++) temperature = temperature*2 + binary[i];
+				int leader = 0;			for (i=0; i<4; i++)	leader = leader*2 + binary[i];
+				int address = 0;		for (i=4; i<8; i++) address = address*2 + binary[i];
+				int channel = 0;		for (i=8; i<10; i++) channel = channel*2 + binary[i];
+				int constant = 0;		for (i=10; i<13; i++) constant = constant*2 + binary[i];
+				int humidity = 0;		for (i=13; i<20; i++) humidity = humidity*2 + binary[i];
+				int temperature = 0;	for (i=20; i<35; i++) temperature = temperature*2 + binary[i];
 				int parity = binary[i++];
 				
 				// decode temperature (step 1)

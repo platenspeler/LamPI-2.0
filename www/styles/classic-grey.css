@@ -79,13 +79,13 @@
 			height: 415px;
 			margin-left: 1px;
 			left: 10px;
-;			margin: auto;
+			margin: auto;
 			padding: 10px;
 			margin-top: 10px;
 			border: 1px solid black;
 			text-align: center;
 			background-color:#BBB;
-			overflow:scroll;
+			overflow:hidden;
 		}
 				
 		#gui_menu {

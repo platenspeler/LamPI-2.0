@@ -192,10 +192,12 @@ setup_cron()
 		echo "-- Crontab adding LamPI commands"
 		crontab -u pi -l > /tmp/effe
 
-		echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-rcv" >> /tmp/effe
-		echo "0 2 * * * cd $HOMEDIR/scripts && sh ./PI-log" >> /tmp/effe
-		echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w"  >> /tmp/effe
-		echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03" >> /tmp/effe
+		echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv"    >> /tmp/effe
+		echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log"    >> /tmp/effe
+		echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w"     >> /tmp/effe
+		echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03"  >> /tmp/effe
+        echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c"    >> /tmp/effe
+        echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy" >> /tmp/effe
         if [ "$1" == "-m" ]; then
 			echo "Setting up contab with PI-run for manager"
 			echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-run" >> /tmp/effe

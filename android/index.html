@@ -13,6 +13,7 @@
 // Version 1.7, Dec 10, 2013. Working on the mobile app and jQuery Mobile
 // Version 1.8, Jan 20, 2014. Version with Weather station support
 // Version 1.9, Mar 10, 2014. Start spport for wired sensors and logging
+// Version 2.1, Jul 31, 2014. Support for new devices and weather sensors
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 // #gui_header: Here are the buttons for selecting the active rooms 
@@ -70,7 +71,7 @@
     <script src="http://mobipick.sustainablepace.net/js/mobipick.js"></script>
     
     <script src="phonegap.js"></script>
-    <script src="LamPI-1.9.js"></script> 
+    <script src="LamPI-2.0.js"></script> 
 
 	<meta name="viewport" content="width=device-width, initial-scale=0.8, minimum-scale=0.7, maximum-scale=1.5" />
     
@@ -95,7 +96,7 @@ fake=0;										// We do not fake communication
 debug=1;									// Init debug 
 dynamicIP=0;
 
-murl='http://192.168.2.51/'; 				// XXX Normally we could assume this to be the webaddress, but not for phonegap
+murl='http://192.168.2.53/'; 				// XXX Normally we could assume this to be the webaddress, but not for phonegap
 s_controller = murl + 'backend_rasp.php';
 
 

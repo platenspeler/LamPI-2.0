@@ -15,7 +15,7 @@
   <li><a href="#daemon">Use LamPI-receiver as a daemon process</a></li>
   <li><a href="#sniffer">Use LamPI-receiver as a sniffer or stand-alone</a></li>
   <li><a href="../transmitters">Using the transmitter programs (for Kaku, Livolo, Action etc.)</a></li>
-  <li><a href="#messageformat">Message Formats (raw and jSon messages)</a></li>
+  <li><a href="../Architecture Guide/message_format.html">Message Formats (raw and jSon messages)</a></li>
 </ul>
 <p>If you like to know more about the design/architecture considerations for this interface, please go to the <a href="../Architecture Guide/architecture.html">architecture documentation</a>.</p>
 <h1><a name="compile"></a>Compiling and Building</h1>
@@ -75,59 +75,5 @@
   <li></li>
 </ul>
 <p>&nbsp;</p>
-<h1><a name="messageformat"></a>Message Formats</h1>
-<p>This section describes the message formats exchanged between </p>
-<ol>
-  <li>the LamPI-daemon communicating commands to connected receiver devices and </li>
-  <li>sensors receivers that communicate with the LamPI-daemon over a socket connection.</li>
-</ol>
-<h2>Device messages sent by LamPI-daemon</h2>
-<p>Messages received from the LamPI-daemon that are sent to the transmitter are at the moment coded in raw ICS-1000 format. That means that most messages are of the form &quot;RxxDyyFz or RxxDyyFdPqq&quot; where xx is the room address in max 2 digits, yy the device cumber in max 2 digits and for swithches z is either '0' (OFF) or '1' (ON). In case of a dimmer command, qq is the dimlevel with value 1-32.</p>
-<p>&nbsp;</p>
-<h2>Messages sent to LamPI-Daemon</h2>
-<p>This section describes the message format of messages which are received from sensors or 433MHz receiverd and forwarded to the LamPI-daemon. Basically we have 2 choices: Send the message in some raw and proprietary format, for example the ICS-1000 format. This format works excellent to remote controls that are used for switching devices and lamps. However, sensors (temperature, humidity) and energy (usage in kW) is another matter.</p>
-<h3>Raw</h3>
-<p>For raw messages, the format is as follows: tbd</p>
-<h3>Json</h3>
-<p>For jSon messages, the format is based on the type of signal that we like to send to the daemon. We have a number of different messages: switches, weather, sensors and energy. The first part of every message is the same, and the content part is specific...</p>
-<p>struct jSon {</p>
-<blockquote>
-  <p>    type: raw | json,<br>
-    tcnt: &lt;%d&gt;,<br>
-    action: gui | handset | weather | sensor | energy,<br>
-    brand: livolo | kaku | action | kopou | wt400h ,<br>
-    message: (if applicable type==raw, ICS-coded message,<br>
-    TYPE SPECIFIC ...</p>
-</blockquote>
-<p>}</p>
-<p>if type == device</p>
-<blockquote>
-  <p>address:<br>
-    unit:<br>
-    value:
-  </p>
-</blockquote>
-<p>if type == weather</p>
-<blockquote>
-  <p>address<br>
-    unit<br>
-    channel<br>
-    temperature<br>
-    humidity<br>
-    windspeed<br>
-    winddirection</p>
-</blockquote>
-<p>if type== sensor</p>
-<blockquote>
-  <p>tbd</p>
-</blockquote>
-<p>if type==energy</p>
-<blockquote>
-  <p>tbd<br>
-  </p>
-</blockquote>
-<h2>&nbsp;</h2>
-<p><br>
-</p>
 </body>
 </html>

@@ -72,7 +72,6 @@ $weather= array();
 class Sensor {
 	
 	// private $rrd_log=$rrd_dir."log/";
-	
 	// Lookup the name of the weather entry based on value of address+channel
 	//
 	private function lookup($data) {
@@ -97,29 +96,67 @@ class Sensor {
 	public function rrdcreate($db, $sensor) {
 		global $log;
 		
+		if ($debug>=1) {
+			foreach ( $sensor as $ind => $val ) {
+				$log->lwrite("rrdcreate:: sensor[".$ind."] => ".$val);
+			}
+		}
 		// We take care not to define fields that we do not need!!
 		// Not that we need the storage, but it will enhance performance
-		$exec_str  = "rrdtool create " . $db . " ";
-		$exec_str .= "--step 180 ";
-		if (array_key_exists('temperature', $sensor))		$exec_str .= "DS:temperature:GAUGE:600:-20:95 ";
-		if (array_key_exists('humidity', $sensor))			$exec_str .= "DS:humidity:GAUGE:600:0:100 ";
-		if (array_key_exists('airpressure', $sensor))		$exec_str .= "DS:airpressure:GAUGE:600:900:1100 ";
-		if (array_key_exists('altitude', $sensor))			$exec_str .= "DS:altitude:GAUGE:600:-100:1200 ";
-		if (array_key_exists('windspeed', $sensor))			$exec_str .= "DS:windspeed:GAUGE:600:0:200 ";
-		if (array_key_exists('winddirection', $sensor))		$exec_str .= "DS:winddirection:GAUGE:600:0:359 ";
-		if (array_key_exists('rainfall', $sensor))			$exec_str .= "DS:rainfall:GAUGE:600:0:25 ";
+
+		switch ($sensor['action'] )
+		{
+		case 'weather':
+			// Weather Sensors
+			$exec_str  = "rrdtool create " . $db . " ";
+			$exec_str .= "--step 180 ";
+			if (array_key_exists('temperature', $sensor))		$exec_str .= "DS:temperature:GAUGE:600:-20:95 ";
+			if (array_key_exists('humidity', $sensor))			$exec_str .= "DS:humidity:GAUGE:600:0:100 ";
+			if (array_key_exists('airpressure', $sensor))		$exec_str .= "DS:airpressure:GAUGE:600:900:1100 ";
+			if (array_key_exists('altitude', $sensor))			$exec_str .= "DS:altitude:GAUGE:600:-100:1200 ";
+			if (array_key_exists('windspeed', $sensor))			$exec_str .= "DS:windspeed:GAUGE:600:0:200 ";
+			if (array_key_exists('winddirection', $sensor))		$exec_str .= "DS:winddirection:GAUGE:600:0:359 ";
+			if (array_key_exists('rainfall', $sensor))			$exec_str .= "DS:rainfall:GAUGE:600:0:25 ";
+			$exec_str .= "RRA:AVERAGE:0.5:1:480 ";			// Day: every 3 min sample counts, 20 per hour, 20*24=480 a day
+			$exec_str .= "RRA:AVERAGE:0.5:5:672 ";			// Week: 3 min sample, consolidate 5 (=15 min); thus 4 per hour * 24 hrs * 7 day
+			$exec_str .= "RRA:AVERAGE:0.5:20:744 ";			// Month: Every 3 minutes -> 20 samples per hour, * 24 hrs * 31 days
+			$exec_str .= "RRA:AVERAGE:0.5:480:365 ";		// Year: 3 min sample * 20 (=hour) * 24 = consolidate per day. Do 365 days a year
+			$exec_str .= "RRA:MIN:0.5:20:720 ";
+			$exec_str .= "RRA:MAX:0.5:20:720 ";
+			$exec_str .= "RRA:AVERAGE:0.5:20:720 ";
+		break;
+			
+		case 'energy':
+		// Energy Sensors
+			$exec_str  = "rrdtool create " . $db . " ";
+			$exec_str .= "--step 20 ";
+			if (array_key_exists('kw_hi_use', $sensor))			$exec_str .= "DS:kw_hi_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_lo_use', $sensor))			$exec_str .= "DS:kw_lo_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_hi_ret', $sensor))			$exec_str .= "DS:kw_hi_ret:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_lo_ret', $sensor))			$exec_str .= "DS:kw_lo_ret:COUNTER:600:0:999999999 ";
+			if (array_key_exists('gas_use',   $sensor))			$exec_str .= "DS:gas_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_act_use', $sensor))		$exec_str .= "DS:kw_act_use:GAUGE:600:0:999999 ";
+			if (array_key_exists('kw_act_ret', $sensor))		$exec_str .= "DS:kw_act_ret:GAUGE:600:0:999999 ";
+			if (array_key_exists('kw_ph1_use', $sensor))		$exec_str .= "DS:kw_ph1_use:GAUGE:600:0:999999 ";
+			if (array_key_exists('kw_ph2_use', $sensor))		$exec_str .= "DS:kw_ph2_use:GAUGE:600:0:999999 ";
+			if (array_key_exists('kw_ph3_use', $sensor))		$exec_str .= "DS:kw_ph3_use:GAUGE:600:0:999999 ";
+			$exec_str .= "RRA:AVERAGE:0.5:1:360 ";			// Hour: every 10 secs sample, consolidate 1 -> 360 per hour
+			$exec_str .= "RRA:AVERAGE:0.5:90:96 ";			// Day: every 10 secs sample, consolidate 90 (15min) -> 4 per hour, 4*24= 96 a day
+			$exec_str .= "RRA:AVERAGE:0.5:360:168 ";		// Week: 10 sec sample, consolidate 360 (= 1hr);  24 hrs * 7 day
+			$exec_str .= "RRA:AVERAGE:0.5:1080:248 ";		// Month: 10 sec sample consolidate 1080 samples (3 hr) -> 8 pday * 31 days
+			$exec_str .= "RRA:AVERAGE:0.5:8640:365 ";		// Year: 10 sec sample * 360 (=hour) * 24 = consolidate per day. Do 365 days a year
+			$exec_str .= "RRA:MIN:0.5:360:720 ";			// MIN: 360 samples per hour, consolidate per hour, 24 hrs * 30 days = 720
+			$exec_str .= "RRA:MAX:0.5:360:720 ";			// MAX
+			// $exec_str .= "RRA:AVERAGE:0.5:360:720 ";		// AVG
+		break;
 		
-		$exec_str .= "RRA:AVERAGE:0.5:1:480 ";			// Day: every 3 min sample counts, 20 per minute, 200*24=480 a day
-		$exec_str .= "RRA:AVERAGE:0.5:5:672 ";			// Week: 3 min sample, consolidate 5 (=15 min); thus 4 per hour * 24 hrs * 7 day
-		$exec_str .= "RRA:AVERAGE:0.5:20:744 ";			// Monnth: 20 samples of the hour, * 24 hrs * 31 days
-		$exec_str .= "RRA:AVERAGE:0.5:480:365 ";		// Year: 3 min sample * 20 (=hour) * 24 = consolidate per day. Do 365 days a year
-		$exec_str .= "RRA:MIN:0.5:20:720 ";
-		$exec_str .= "RRA:MAX:0.5:20:720 ";
-		$exec_str .= "RRA:AVERAGE:0.5:20:720 ";
-		
-		$log->lwrite("rrd create:: command: ".$exec_str,2);
+		default:
+			$log->lwrite("rrd create:: ERROR Unknown action found: ".$sensor['action']);
+			return(-1);
+		}
+		$log->lwrite("rrd create:: command: ".$exec_str,1);
 		if (shell_exec( $exec_str . " 2>&1 && echo ' '")  === NULL ) {
-			$log->lwrite("rrd create:: error: " . "Exec failed. " . "\n ");
+			$log->lwrite("rrdcreate:: ERROR: " . "Exec failed. " . "\n ");
 			return (-1);
 		}
 		$log->lwrite("rrd create of db: ".$db." successful",1);
@@ -135,7 +172,8 @@ class Sensor {
 		global $rrd_dir;
 		$rrd_db = $rrd_dir."db/";
 		
-		# Lookup the name of the sensor
+		// Lookup the name of the sensor
+		// XXX Take care! Make sure that at least address and channel are found in databaae.cfg
 		if (! ($name = $this->lookup($sensor))) {
 			$log->lwrite("rrdupdate:: ERROR Sensor not found: ".$sensor['address'].":".$sensor['channel']);
 			return(0);
@@ -159,14 +197,31 @@ class Sensor {
 		if (array_key_exists('altitude',$sensor))		$values .= ":".$sensor['altitude'];
 		if (array_key_exists('windspeed',$sensor))		$values .= ":".$sensor['windspeed'];
 		if (array_key_exists('winddirection',$sensor))	$values .= ":".$sensor['winddirection'];
-		if (array_key_exists('rainfall',$sensor))		$values .= ":".$sensor['rainfall']; 
+		if (array_key_exists('rainfall',$sensor))		$values .= ":".$sensor['rainfall'];
+		//
+		// Make sure values are integer for counter type values
+		//
+		if (array_key_exists('kw_hi_use',$sensor))		$values .= ":".intval($sensor['kw_hi_use']*1000,10);
+		if (array_key_exists('kw_lo_use', $sensor))		$values .= ":".intval($sensor['kw_lo_use']*1000,10);
+		if (array_key_exists('kw_hi_ret', $sensor))		$values .= ":".intval($sensor['kw_hi_ret']*1000,10);
+		if (array_key_exists('kw_lo_ret', $sensor))		$values .= ":".intval($sensor['kw_lo_ret']*1000,10);
+		if (array_key_exists('gas_use', $sensor))		$values .= ":".intval($sensor['gas_use']*1000,10);
+		if (array_key_exists('kw_act_use', $sensor))	$values .= ":".$sensor['kw_act_use']*1000;
+		if (array_key_exists('kw_act_ret', $sensor))	$values .= ":".$sensor['kw_act_ret']*1000;
+		if (array_key_exists('kw_ph1_use', $sensor))	$values .= ":".$sensor['kw_ph1_use']*1000;
+		if (array_key_exists('kw_ph2_use', $sensor))	$values .= ":".$sensor['kw_ph2_use']*1000;
+		if (array_key_exists('kw_ph3_use', $sensor))	$values .= ":".$sensor['kw_ph3_use']*1000;
+
 		$exec_str = "rrdtool update ".$db." N".$values;
 		
-		$log->lwrite("rrdupdate:: cmd: ".$exec_str,1);
+		$log->lwrite("rrdupdate:: cmd: ".$exec_str,2);
 		
-		if (shell_exec($exec_str . " 2>&1 && echo ' '")  === NULL ) {
-			$log->lwrite("rrdupdate ERROR: " . "Exec failed. " . "\n ");
+		if (($ret = shell_exec($exec_str . " 2>&1 && echo ' '"))  === NULL ) {
+			$log->lwrite("rrdupdate:: ERROR: exec failed. ".": ".$exec_str);
 			return (-1);
+		}
+		else if ($ret == -1) {
+			$log->lwrite("rrdupdate:: ERROR: rrdtool returned error -1. ".": ".$exec_str);
 		}
 	}
 }
@@ -203,18 +258,11 @@ class User {
  
 class Zwave {
 	
+	public function scan($msg) {
+	}
 	
-}
-
-
-
-// ---------------------------------------------------------------------------------- 
-// Retrieve the current value of a switch. We need to see how we can periodically pull
-// values of all connected Z-Wave devices in our network
-//
-//
-function zwave_scan($msg) {
-	
+	public function send($msg) {
+	}
 }
 
 
@@ -1231,6 +1279,16 @@ class Weather {
 		if (!is_resource($this->mysqli)) {
             $this->sql_open();
         }
+		// Remove unassigned value and replace with empty element
+		foreach ($w as $value) { if ($value === 'undefined') $value=""; }
+		// Assign every key a value (code works without but this is neater
+   		if (! array_key_exists ( 'temperature' , $w ))		$w['temperature'] = "";
+		if (! array_key_exists ( 'humidity' , $w ))			$w['humidity'] = "";
+		if (! array_key_exists ( 'airpressure' , $w ))		$w['airpressure'] = "";
+		if (! array_key_exists ( 'windspeed' , $w ))		$w['windspeed'] = "";
+		if (! array_key_exists ( 'winddirection' , $w ))	$w['winddirection'] = "";
+		if (! array_key_exists ( 'rainfall' , $w ))			$w['rainfall'] = "";
+		
 		// Write to log
 		$log->lwrite("Weather upd:: address: ".$w['address'].", channel: ".$w['channel']
 												.", temperature: ".$w['temperature']
@@ -1239,6 +1297,7 @@ class Weather {
 												,2);
 
 		// Write to SQL. For the moment we write ALL fields in the table, even if not used
+		// XXX Check for existence of these indexes
 		$query = "UPDATE weather SET 
 									temperature='".$w['temperature']."',
 									humidity='".$w['humidity']."',
@@ -1799,6 +1858,7 @@ while (true):
 	// Lets look to the socket layer and see whether there are messages for use
 	// and handle these messages. We will put actions in a QUEUE based on timestamp.
 	// As long as there is data, continue reading
+	
 	while ( ($buf = $sock->s_recv() ) != -1 )
 	{
 		// The data structure read is decoded into a human readible string. jSon or raw
@@ -1980,35 +2040,24 @@ while (true):
 				
 				case "weather":
 					// Weather station/sensor message recognized.
-					
 					// Send something to the client GUI, and updated the database
 					$item = array (
 						'secs'  => time(),					// Set execution time to now or asap
 						'tcnt' => $tcnt."",					// Transaction count
-						'type' => 'json',					// We want a json message & json encoded values.
 						'action' => 'weather',
 						'brand' => $data['brand'],
+						'type' => 'json',					// We want a json message & json encoded values.
 						'address' => $data['address'],
-						'channel' => $data['channel'],
-						// The lines below make sure the indexes exist even if there are no values!
-						'temperature' => "",
-						'humidity' => "",
-						'windspeed' => "",
-						'airpressure' => "",
-						'winddirection' => "",
-						'rainfall' => ""
+						'channel' => $data['channel']
+						// These are the standard and required fields, we will add more fields to array
+						// when there are more values read
 					);
-					if (array_key_exists('temperature',$data)) $item['temperature']=$data['temperature'];
-					if (array_key_exists('humidity',$data)) $item['humidity']=$data['humidity'];
-					if (array_key_exists('windspeed',$data)) $item['windspeed']=$data['windspeed'];
+					if (array_key_exists('temperature',$data))	$item['temperature']=$data['temperature'];
+					if (array_key_exists('humidity',$data))		$item['humidity']=$data['humidity'];
+					if (array_key_exists('airpressure',$data))	$item['airpressure']=$data['airpressure'];
+					if (array_key_exists('windspeed',$data))	$item['windspeed']=$data['windspeed'];
 					if (array_key_exists('winddirection',$data)) $item['winddirection']=$data['winddirection'];
-					if (array_key_exists('rainfall',$data)) $item['rainfall']=$data['rainfall'];
-					if (array_key_exists('airpressure',$data)) $item['airpressure']=$data['airpressure'];
-					
-					// Update the weather structure in the MySQL database
-					$wthr->upd($item);
-					// Write the received values to the rrd database file, and update all fields.
-					$sensor->rrdupdate($data);
+					if (array_key_exists('rainfall',$data))		$item['rainfall']=$data['rainfall'];
 					
 					// If we push this message on the Queue with time==0, it will
 					// be executed in phase 2
@@ -2017,15 +2066,55 @@ while (true):
 				break;
 
 				case "energy":
-					// Energy cation message received. Must be message from P1 connector
-					// XXX tbd
-					$log->lwrite("main:: action: ".$item['action'],1);
-				break;
-
 				case "sensor":
 					// Received a message from a sensor
-					// XXX tbd
-					$log->lwrite("main:: action: ".$item['action'],1);
+					// Send something to the client GUI, and updated the database
+					$item = array (
+						'secs'    => time(),					// Set execution time to now or asap
+						'tcnt'    => $tcnt."",					// Transaction count
+						'type'    => 'json',					// We want a json message & json encoded values.
+						'action'  => 'energy',
+						'brand'   => $data['brand'],
+						'address' => $data['address'],
+						'channel' => $data['channel'],
+						// The lines below make sure the indexes exist even if there are no values!
+						// This is because energy records are always same size
+						'kw_hi_use'  => "",
+						'kw_lo_use'  => "",
+						'kw_hi_ret'  => "",
+						'kw_lo_ret'  => "",
+						'gas_use'    => "",
+						'kw_act_use' => "",
+						'kw_act_ret' => "",
+						'kw_ph1_use' => "",
+						'kw_ph2_use' => "",
+						'kw_ph3_use' => "",
+						'kw_ph1_ret' => "",
+						'kw_ph2_ret' => "",
+						'kw_ph3_ret' => ""
+					);
+					if (array_key_exists('kw_hi_use',$data)) $item['kw_hi_use']=$data['kw_hi_use'];
+					if (array_key_exists('kw_lo_use',$data)) $item['kw_lo_use']=$data['kw_lo_use'];
+					if (array_key_exists('kw_hi_ret',$data)) $item['kw_hi_ret']=$data['kw_hi_ret'];
+					if (array_key_exists('kw_lo_ret',$data)) $item['kw_lo_ret']=$data['kw_lo_ret'];
+					
+					if (array_key_exists('kw_act_use',$data)) $item['kw_act_use']=$data['kw_act_use'];
+					if (array_key_exists('kw_act_ret',$data)) $item['kw_act_ret']=$data['kw_act_ret'];
+					
+					if (array_key_exists('kw_ph1_use',$data)) $item['kw_ph1_use']=$data['kw_ph1_use'];
+					if (array_key_exists('kw_ph2_use',$data)) $item['kw_ph2_use']=$data['kw_ph2_use'];
+					if (array_key_exists('kw_ph3_use',$data)) $item['kw_ph3_use']=$data['kw_ph3_use'];
+					if (array_key_exists('kw_ph1_ret',$data)) $item['kw_ph1_ret']=$data['kw_ph1_ret'];
+					if (array_key_exists('kw_ph2_ret',$data)) $item['kw_ph2_ret']=$data['kw_ph2_ret'];
+					if (array_key_exists('kw_ph3_ret',$data)) $item['kw_ph3_ret']=$data['kw_ph3_ret'];
+					
+					if (array_key_exists('gas_use',$data)) $item['gas_use']=$data['gas_use'];
+					
+					// If we push this message on the Queue with time==0, it will
+					// be executed in phase 2
+					$log->lwrite("main:: q_insert action: ".$item['action'].", kw_act_use: ".$item['kw_act_use'],2);
+					$queue->q_insert($item);
+					$log->lwrite("main:: action: ".$item['action'],2);
 				break;
 
 				case "load_database":
@@ -2043,10 +2132,10 @@ while (true):
 						$log->lwrite("main:: Loaded the database, err: ".$apperr,1);
 						
 					$response = array (
-							'tcnt' => $tcnt."",
-							'type' => 'raw',
-							'action' => 'load_database',
-							'request' => $data['request'],
+							'tcnt'     => $tcnt."",
+							'type'     => 'raw',
+							'action'   => 'load_database',
+							'request'  => $data['request'],
 							'response' => $config
 					);
 					if ( false === ($message = json_encode($response)) ) {
@@ -2212,6 +2301,11 @@ while (true):
 			{
 				case "weather":
 					$log->lwrite("main:: Recognized WEATHER Message",3);
+					// Write the received values to the rrd database file, and update all fields.
+					$sensor->rrdupdate($items[$i]);
+					// Update the weather structure in the MySQL database
+					$wthr->upd($items[$i]);
+					// make broadcst
 					$bcst = array (	
 						// First part of the record specifies this message type and characteristics
 						'tcnt' => "0",
@@ -2220,17 +2314,60 @@ while (true):
 						// Remainder of record specifies device parameters
 						'brand'			=> $items[$i]['brand'],
 						'address'		=> $items[$i]['address'],
-						'channel'		=> $items[$i]['channel'],
-						'temperature'	=> $items[$i]['temperature'],
-						'humidity'		=> $items[$i]['humidity'],
-						'airpressure'	=> $items[$i]['airpressure'],
-						'windspeed'		=> $items[$i]['windspeed'],
-						'winddirection'	=> $items[$i]['winddirection']
+						'channel'		=> $items[$i]['channel']
 					);
+					if (array_key_exists('temperature',$items[$i]))		$bcst['temperature']=$items[$i]['temperature'];
+					if (array_key_exists('humidity',$items[$i]))		$bcst['humidity']=$items[$i]['humidity'];
+					if (array_key_exists('airpressure',$items[$i]))		$bcst['airpressure']=$items[$i]['airpressure'];
+					if (array_key_exists('windspeed',$items[$i]))		$bcst['windspeed']=$items[$i]['windspeed'];
+					if (array_key_exists('winddirection',$items[$i]))	$bcst['winddirection']=$items[$i]['winddirection'];
+					if (array_key_exists('rainfall',$items[$i]))		$bcst['rainfall']=$items[$i]['rainfall'];
+					
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("main:: error weather broadcast encode: <".$bcst['tcnt']
 									.",".$bcst['action'].">");
 					}
+					$sock->s_bcast($answer);
+					//continue;
+				break;
+				
+				case "energy":
+					$log->lwrite("main:: Recognized ENERGY Message",3);
+					// Update the energy structure in the rrd database
+					// $wthr->upd($item);
+					// Write the received values to the rrd database file, and update all fields.
+					$sensor->rrdupdate($items[$i]);
+					// We can  forward to the GUI for example
+					// XXX At the moment we do NOT have a meaningful use for forwarding
+					// XXX Later we can use GUI action for updating the dials
+					$bcst = array (	
+						// First part of the record specifies this message type and characteristics
+						'tcnt' 			=> "0",
+						'action' 		=> "energy",				// code for energy
+						'type'   		=> "json",					// type either raw or json, we code content here too. 
+						'address' 		=> $items[$i]['address'],
+						'channel' 		=> $items[$i]['channel'],
+						'brand'			=> $items[$i]['brand'],
+						// Remainder of record specifies device parameters
+						'kw_hi_use'		=> $items[$i]['kw_hi_use'],
+						'kw_lo_use'		=> $items[$i]['kw_lo_use'],
+						'kw_hi_ret'		=> $items[$i]['kw_hi_ret'],
+						'kw_lo_ret'		=> $items[$i]['kw_lo_ret'],
+						'kw_act_use'	=> $items[$i]['kw_act_use'],
+						'kw_act_ret'	=> $items[$i]['kw_act_ret'],
+						'kw_ph1_use'	=> $items[$i]['kw_ph1_use'],
+						'kw_ph2_use'	=> $items[$i]['kw_ph2_use'],
+						'kw_ph3_use'	=> $items[$i]['kw_ph3_use'],
+						'kw_ph1_ret'	=> $items[$i]['kw_ph1_ret'],
+						'kw_ph2_ret'	=> $items[$i]['kw_ph2_ret'],
+						'kw_ph3_ret'	=> $items[$i]['kw_ph3_ret'],
+						'gas_use'		=> $items[$i]['gas_use']
+					);
+					if ( false === ($answer = json_encode($bcst)) ) {
+						$log->lwrite("main:: error energy broadcast encode: <".$bcst['tcnt']
+									.",".$bcst['action'].">");
+					}
+					$log->lwrite("main:: broadcasting energy message: ".$answer,2);
 					$sock->s_bcast($answer);
 					//continue;
 				break;
@@ -2344,6 +2481,7 @@ while (true):
 					// broadcasting to the LamPI-receiver process where we can read the command
 					// and call the correct handler directly.
 				break;
+				
 				// QQQ
 				default:
 					$log->lwrite("main:: NO DEFINED ACTION: ".$items[$i]['action']);
