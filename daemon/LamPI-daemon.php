@@ -275,18 +275,20 @@ function zwave_send($msg) {
 	global $log;
 	global $razberry;
 	
-	//				$bcst = array (							// build broadcast message
-	//					// Remainder of record specifies device parameters
+	//	$zwcmd = array (				
+	//					'action' => "set",					// code for remote command. upd tells we update a value
+	//					'type'   => $device['type'],		// type either switch or dimemer.
+	//					'confirm' => "1",					// for Z-Wave may be 1
 	//					'gaddr'  => $device['gaddr'],
 	//					'uaddr'  => $dev."",				// From the sscanf command above, cast to string
 	//					'brand'  => $brand,					// NOTE brand is a string, not an id here
-	//					'val'    => $sndval,				// Value is "on", "off", or a number (dimvalue) 1-32
-	//					'message' => $items[$i]['cmd']		// The GUI message, ICS encoded 
-	//				);
-	$log->lwrite("zwave_send started\n",2);
+	//					'val'    => $sndval				// Value is "on", "off", or a number (dimvalue) 1-32
+	//					);
 	
-	// Device address is 1 less than the address in the user interface
-	// $addr = $msg['uaddr'] - 1;
+	$log->lwrite("zwave_send:: started\n",2);
+	
+	// Normally device address is 1 less than the address in the user interface
+	// so $addr = $msg['uaddr'] - 1; but NOT for zwave!!!
 	$addr = $msg['uaddr'];
 	
 	$ch = curl_init();
@@ -296,26 +298,58 @@ function zwave_send($msg) {
 	}
 	
 	$p = '';
-	switch ($msg['val']) {
-		case 'on':
-			$p = 99;
+	
+	// Switch base on the message value and the type of the device
+	switch ($msg['type']) {
+		case 'dimmer':
+			switch ($msg['val']) {
+				case 'on':
+					$p = 99;
+				break;
+				case 'off':
+					$p = 0;
+				break;
+				default:
+					$p = $msg['val']/32*99;
+			}
+			$log->lwrite("zwave_send:: razberry is: ".$razberry.", uaddr: ".$addr.", val: ".$p,1);
+			if ($msg['type'] == 'dimmer' ) {
+				curl_setopt_array (
+					$ch, array (
+					CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchMultilevelSet/'.$addr.'/0/'.$p ,
+					CURLOPT_RETURNTRANSFER => true
+				));
+			}
 		break;
-		case 'off':
-			$p = 0;
-		break;
-		// This is probably a dim value. Value is between 0 and 32, so for 
-		// this means for Fibaro with a value betwen 0 and 100% (actually 99%) that we need to normalize.
-		default: 
-			$p = $msg['val']/32*99;
-		break;
-	}
-	$log->lwrite("zwave_send:: razberry is: ".$razberry.", uaddr: ".$addr.", val: ".$p);
-	curl_setopt_array (
-		$ch, array (
-			CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchMultilevelSet/'.$addr.'/0/'.$p ,
-			CURLOPT_RETURNTRANSFER => true
-		));
 
+		case 'switch':
+			switch ($msg['val']) {
+				case "on":
+				case "1":
+					$log->lwrite("zwave_send:: Switching switch on, addr: ",$addr);
+					curl_setopt_array (
+						$ch, array (
+						CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchBinaryOn/'.$addr.'/0',
+						CURLOPT_RETURNTRANSFER => true
+					));
+				break;
+				case "off":
+				case "0":
+					$log->lwrite("zwave_send:: Switching switch on, addr: ",$addr);
+					curl_setopt_array (
+						$ch, array (
+						CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchBinaryOff/'.$addr.'/0',
+						CURLOPT_RETURNTRANSFER => true
+					));
+				break;
+				default:
+					$log->lwrite("zwave_send:: Unknown message value for switch: "+$msg['val']);
+			}
+		break;
+			$log->lwrite("zwave_send:: Unknown device type: "+$msg['type']);
+		default:
+	}
+	
 	$output = curl_exec($ch);
 	
 	if ($output == false) {
@@ -327,7 +361,7 @@ function zwave_send($msg) {
 		$log->lwrite("zwave_send:: curl_exec set correctly",2);
 	}
 	else {
-		$log->lwrite("zwave_send ERROR:: curl_exec returned ".$p." but set incorrect",1);
+		$log->lwrite("zwave_send:: ERROR:: curl_exec returned ".$p." but set incorrect",1);
 		curl_close($ch);
 		return(-1);
 	}
@@ -1202,7 +1236,7 @@ class Device {
 		return(0);
 	}
 	
-	// Delete a device XXX not yet implemented
+	// XXX Delete a device not yet implemented
 	//
 	public function del($device) {
 		global $log;
@@ -2121,6 +2155,9 @@ while (true):
 					// Load the MySQL Database.
 					//
 					$log->lwrite("main:: action: ".$item['action'],1);
+					
+					// XXX Should we have to do this, or just assume that $config is already up to date
+					// In which case we should always work with $config and nog with derivates such as $weather
 					$config = load_database();					// load the complete configuration object
 					if ($config == -1) 
 					{
@@ -2174,8 +2211,7 @@ while (true):
 							'response' => $list
 					);
 					if ( false === ($message = json_encode($response)) ) {
-						$log->lwrite("ERROR main:: json_encode failed: <"
-									 .$response['tcnt'].", ".$response['action'].">");
+						$log->lwrite("ERROR main:: json_encode failed: <".$response['tcnt'].", ".$response['action'].">");
 					}
 					$log->lwrite("Json encoded console: ".$response['response'],2);
 					
@@ -2437,8 +2473,43 @@ while (true):
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
 					$dlist->upd($device);							// Write new value to database
 			
+
+					
+					// XXX It is difficult to determine whether we should keep this here or put it in a
+					// separate function and call the bcast function from there.....
+					// Initially I did not have many zwave devices, but as their number increases we
+					// might want the LamPI-receiver process to take care of communications, asynchronously from the daemon.
+					
+					if ($brand == "zwave") {
+						
+						$zwcmd = array (				
+						'action' => "set",					// code for remote command. upd tells we update a value
+						'type'   => $device['type'],		// type either switch or dimemer.
+						'confirm' => "1",					// for Z-Wave may be 1
+						'gaddr'  => $device['gaddr'],
+						'uaddr'  => $dev."",				// From the sscanf command above, cast to string
+						'brand'  => $brand,					// NOTE brand is a string, not an id here
+						'val'    => $sndval				// Value is "on", "off", or a number (dimvalue) 1-32
+						);
+						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
+						// will then have all Raspberries react. We only need the dedicated Razberry device 
+						// with Razberry to act on this command. (As defined in backend_cfg.php)
+						// We use $bcast array as it is available already (and not the coded Json $answer)
+						if (zwave_send($zwcmd) < 0) {	
+							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
+							// Send something to the connected GUI clients
+						}
+						else {
+							$log->lwrite("main:: zwave_send command success: ".$items[$i]['action'],2);
+							$bcst['confirm'] = "1";
+						}
+					}
+					
+					
+					// Start building the broadcast message to be sent to the other connected GUI's and the LampI-transmitter
+					//
 					$bcst = array (							// build broadcast message
-						// First part of the record specifies this message type and characteristics
+					// First part of the record specifies this message type and characteristics
 						'tcnt' => "0",
 						'action' => "upd",					// code for remote command. upd tells we update a value
 						'type'   => "raw",					// type either raw or json.
@@ -2450,24 +2521,6 @@ while (true):
 						'val'    => $sndval,				// Value is "on", "off", or a number (dimvalue) 1-32
 						'message' => $items[$i]['cmd']		// The GUI message, ICS encoded
 					);
-					
-					
-					// XXX It is difficult to determine whether we should keep this here or put it in a
-					// separate function and call the bcast function from there.....
-					if ($brand == "zwave") {
-						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
-						// will then  have several Raspberries react. We only need the dedicated Razberry device 
-						// with Razberry to act on this command.
-						// We use $bcast array as it is available already (and not the coded Json $answer)
-						if (zwave_send($bcst) < 0) {	
-							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
-							// Send something to the connected GUI clients
-						}
-						else {
-							$log->lwrite("main:: zwave_send command success: ".$items[$i]['action'],2);
-							$bcst['confirm'] = "1";
-						}
-					}
 					
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("ERROR main:: broadcast encode: <".$bcst['tcnt']

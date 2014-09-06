@@ -50,7 +50,7 @@ function load_database()
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("load_database:: Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return(-1);
 	}
 	$log->lwrite("load_database:: Connected to MySQL database",3);
@@ -126,13 +126,14 @@ function add_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr = "add_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		$log->lwrite("add_device:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		return (-1);
 	}
 	
@@ -169,13 +170,14 @@ function delete_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr = "delete_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("delete_device:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 	}
 	
 	$msg = "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'";
@@ -198,14 +200,15 @@ function delete_device($device)
 function store_device($device)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
-	global $apperr;
+	global $apperr, $appmsg;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "store_device:: device id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
+		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
 		return (-1);
 	}
 	
@@ -234,13 +237,14 @@ function add_room($room)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr = "add_room:: id: ".$room[id]." name: ".$room[name]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("add_room:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return (-1);
 	}
 	
@@ -270,13 +274,14 @@ function delete_room($room)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "room id: ".$room[id]." name: ".$room[name]."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("delete_room:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 	}
 	
 	$msg = "DELETE FROM rooms WHERE id='$room[id]' ";
@@ -300,13 +305,14 @@ function read_scene($name)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	$res = array();
 	// We need to connect to the database for start
 
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("read_scene:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 	}
 	
 	$sqlCommand = "SELECT id, val, name, seq FROM scenes WHERE name='$name' ";
@@ -355,7 +361,7 @@ function load_scenes()
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
+		$log->lwrite("load_scenes:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
 		return(-1);
 	}
 	
@@ -405,13 +411,14 @@ function add_scene($scene)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name] . "\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("add_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
 		return (-1);
 	}
 	
@@ -445,13 +452,14 @@ function delete_scene($scene)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name]  . "\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("delete_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
 	}
 	
 	$msg = "DELETE FROM scenes WHERE id='$scene[id]' ";
@@ -482,7 +490,7 @@ function store_scene($scene)
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") ".$mysqli->connect_error , 1);
+		$log->lwrite("store_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
 		return (-1);
 	}
 //
@@ -514,19 +522,20 @@ function store_scene($scene)
  -------------------------------------------------------------------------------------*/
 function load_timers()
 {
-	$config = array();
-	$timers = array();
-	
- 	// We assume that a database has been created by the user
+	 // We assume that a database has been created by the user
 	global $dbname;
 	global $dbuser;
 	global $dbpass;
 	global $dbhost;
+	global $log;
+	
+	$config = array();
+	$timers = array();
 	
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
+		$log->lwrite("load_timers:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
 		return(-1);
 	}
 	
@@ -550,13 +559,14 @@ function add_timer($timer)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "timer id: " . $timer[id] . " name: " . $timer[name] . "\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("add_timeer:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
 		return (-1);
 	}
 	if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months, skip) VALUES ('" 
@@ -592,13 +602,14 @@ function delete_timer($timer)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	$apperr .= "timer id: ".$timer['id']." name: ".$timer['name']."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		$log->lwrite("delete_timer:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 	}
 	if (!mysqli_query($mysqli, "DELETE FROM timers WHERE id='$timer[id]' " ))
 	{
@@ -619,12 +630,13 @@ function store_timer($timer)
 {	
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
+	global $log;
 	
 	// We need to connect to the database for start
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		decho("Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
+		$log->lwrite("store_timer:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return (-1);
 	}
 	if (!mysqli_query($mysqli,"UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE  id='$timer[id]' " ))
@@ -745,7 +757,7 @@ function delete_handset($handset)
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		$log->lwrite("delete_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		mysqli_close($mysqli);
 		return (-1);
 	}
@@ -775,7 +787,7 @@ function store_handset($handset)
 	// We need to connect to the database for start
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		$log->lwrite("store_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		mysqli_close($mysqli);
 		return (-1);
 	}
@@ -803,11 +815,11 @@ function store_setting($setting)
 	global $log;
 	
 	// We need to connect to the database for start
-	$log->lwrite("store_setting id: ".$setting[id]." name: ".$setting[name]." val: ".$setting[val]."\n",2);
+	$log->lwrite("store_setting id: ".$setting['id']." name: ".$setting['name']." val: ".$setting['val']."\n",2);
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
+		$log->lwrite("store_settings:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
 		return (-1);
 	}
 	
@@ -834,6 +846,7 @@ function store_setting($setting)
 function dbase_parse($cmd,$message)
 {
 	global $log;
+	global $apperr, $appmsg;
 	$log->lwrite("dbase_parse:: received cmd: ".$cmd.", message: ".$message);
 	switch($cmd)
 	{

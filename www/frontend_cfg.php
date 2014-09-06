@@ -15,7 +15,7 @@
 // Val 1: Verbose mode
 // Val 2: Normal Debug level
 // Val 3: Detail debugging info. Will fill up the logfile Quickly
-	$debug = 2;
+	$debug = 1;
 
 // MySQL DATABASE SETTINGS
 // Default server is localhost for most situations. However, should you want to run the
@@ -24,7 +24,7 @@
 	$dbname = "dorm";						// This one is not easy to guess
 	$dbuser = "coco";
 	$dbpass = "coco";
-	$dbhost = "192.168.2.55";				// standard this should be "localhost"
+	$dbhost = "192.168.2.11";				// standard this should be "localhost"
 	
 // Are we still debugging or testing or operational? 
 // $_GET is not allowed in operational!!

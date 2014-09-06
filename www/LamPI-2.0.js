@@ -1576,8 +1576,8 @@ function start_LAMP(){
 		};
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed "+w_uri);
-			alert("Connection closed by server, click OK to re-establish the connection");
-			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+			///alert("Connection closed by server, click OK to re-establish the connection");
+			setTimeout( function() { message('<p style="textdecoration: blink; background-color:yellow; color:black;">Restarting the Websocket</p>'); }, 1500);
 			//
 			w_sock.close();
 			setTimeout( function() { init_websockets(); }, 1500);
@@ -6581,6 +6581,21 @@ function load_database(dbase_cmd)
 	if (debug>=2) alert("load_database:: sqlServer:: " + sqlServer);
 	else console.log("load_database:: sqlServer: "+ sqlServer);
 	
+	if ( phonegap != 1 ) 
+	{
+		if (debug>=2) console.log("load_database:: XXX Should be Calling send2daemon with load_database, xxx, xxxx");
+		console.log("load_database:: XXX Should be Calling send2daemon with load_database, xxx, xxxx");
+		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
+		// and be same as ICS-1000, and will not be full-blown json.
+		//while (w_sock.readyState != 1) { };
+		//send2daemon("load_database",dbase_cmd,dbase_cmd);
+		//return(1);
+	}
+	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
+	{
+		console.log("load_database:: Using good old ajax style");
+	}
+	
 	$.ajax({
         url: sqlServer,	
 		async: false,					// Synchronous operation 
@@ -6641,7 +6656,7 @@ function load_database(dbase_cmd)
 					+ "\nError: " + jqXHR.status
 					+ "\nTextStatus: "+ textStatus
 					+ "\nerrorThrown: "+ errorThrown
-					+ "\n\nFunction will finish now!" );
+					+ "\n\nFunction load_database will finish now!" );
 			}
 			else
 				alert("Timeout connecting to database on "+sqlServer);
@@ -6676,6 +6691,7 @@ function message_device(action, controller_cmd)
 	// if not using phonegap, and controller == raspberry, use websockets 
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
+		if (debug>=2) console.log("message_device:: Calling send2daemon with gui, set, "+controller_cmd);
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("gui","set",controller_cmd);
@@ -6795,7 +6811,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 			+ "\nError: " + jqXHR.responseText
 			+ "\nTextStatus: "+ textStatus
 			+ "\nerrorThrown: "+ errorThrown
-			+ "\n\nFunction will finish now!" );
+			+ "\n\nFunction send_2_dbase will finish now!" );
 			return(-1);
 		}
 		});
@@ -6853,7 +6869,7 @@ function send_2_set(command, parameter)
 				+ "\nError:" + jqXHR
 				+ "\nTextStatus: "+ textStatus
 				+ "\nerrorThrown: "+ errorThrown
-				+ "\n\nFunction will finish now!" );
+				+ "\n\nFunction send_2_set will finish now!" );
 			return(-1);
 		}
 	});

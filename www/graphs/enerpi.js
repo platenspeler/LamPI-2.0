@@ -212,7 +212,8 @@ function start_ENERPI()
 			case "E_BAK":
 				// Go Back to LamPI
 				window.history.back();
-				//close();
+				close();
+				return(0);
 			break;
 			case "E_SET":
 				init_settings();
@@ -600,7 +601,7 @@ function make_graphs(gcmd,gtype,gperiod,gsensors)
 					+ "\nError: " + jqXHR.status
 					+ "\nTextStatus: "+ textStatus
 					+ "\nerrorThrown: "+ errorThrown
-					+ "\n\nFunction will finish now!" );
+					+ "\n\nFunction make_graphs will finish now!" );
 			}
 			else
 				alert("Timeout connecting to graph server on "+graphServer);

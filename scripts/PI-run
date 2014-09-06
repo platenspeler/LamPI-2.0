@@ -32,7 +32,7 @@ if [ "$1" = "-i" ]; then
 fi
 #
 PID=`ps -eaf | grep "$PROGRAM" | grep -v grep | awk '{print $2}'`
-if [ -z $PID ]
+if [ -z "$PID" ]
 then
 	cd $DAEMONDIR
 	echo "`/bin/date`:: daemon does not run, Starting $PROGRAM" >> $LOGFILE
