@@ -117,6 +117,83 @@ function load_database()
 }
 
 
+//	--------------------------------------------------------------------------------
+//	Function read device from MySQL
+//	Lookup the device with the corresponding name
+//	-----------------------------------------------------------------------------------
+function read_device($name)
+{
+	global $dbname, $dbuser, $dbpass, $dbhost;	
+	global $apperr;
+	global $log;
+	
+	$res = array();
+	// We need to connect to the database for start
+
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("read_device:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
+	}
+	
+	$sqlCommand = "SELECT * FROM devices WHERE name='$name' ";
+
+	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	while ($row = mysqli_fetch_assoc($query)) { 
+		$res[] = $row ;
+	}
+
+	mysqli_free_result($query);
+	mysqli_close($mysqli);
+	
+	// NOTE: Assuming every device name is unique, we return ONLY the first device
+	//	remember for seq only to use result['seq'] for sequence only
+	if (count($res) == 0) {
+		$apperr .= "ERROR read_device: device $name not found\n";
+		return(-1);
+	}
+	else {
+		// Only return ONE device (there should only be one btw)
+		return ($res[0]);
+	}
+}
+
+
+/* -----------------------------------------------------------------------------------
+  Load all devices from the SQL database
+  
+ -------------------------------------------------------------------------------------*/
+function load_devices()
+{
+	global $log, $debug;
+	global $apperr;
+	global $dbname, $dbuser, $dbpass, $dbhost;
+	
+	$devices = array();
+
+	// We need to connect to the database for start
+	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	if ($mysqli->connect_errno) {
+		$log->lwrite("load_devices:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
+		return(-1);
+	}
+	
+	$sqlCommand = "SELECT * FROM devices";
+	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	while ($row = mysqli_fetch_assoc($query)) { 
+
+		$devices[] = $row ;
+	}
+	// There will be an array returned, even if we only have ONE result
+	mysqli_free_result($query);
+	mysqli_close($mysqli);
+	
+	if (count($devices) == 0) {	
+		return(-1);
+	}
+	return($devices);								// Return all devices
+}
+
+
 // ----------------------------------------------------------------------------------
 //
 // Add a device object as received from the ajax call and update mySQL
@@ -851,6 +928,9 @@ function dbase_parse($cmd,$message)
 	switch($cmd)
 	{
 		// Device
+		case "load_devices":
+			$ret= load_devices();
+		break;
 		case "add_device":
 			$ret= add_device($message);
 		break;
@@ -869,10 +949,10 @@ function dbase_parse($cmd,$message)
 		break;
 		// Scene
 		case "read_scene":
-			$ret= read_scene($message);
+			$ret= load_scene($message);
 		break;
-		case "read_scenes":
-			$ret= read_scenes();
+		case "load_scenes":
+			$ret= load_scenes();
 		break;
 		case "add_scene":
 			$ret= add_scene($message);

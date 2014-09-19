@@ -227,12 +227,14 @@ function json_clean_decode($json, $assoc = false, $depth = 512, $options = 0) {
 // that will be parsed and then the individual commands in the scene will be inserted in the run 
 // queue.
 //
+// $myIP is optional parameter specifying the IP address that the command should be sent to.
+//
 // XXX timer commands will be handled by the daemon itself as it parses the timer database
 // about every minute for changed or new scene items.
 // So the Queue is used for scenes (run now, or a time from now and for timers (run on some
 // (or several) moment (agenda) in the future
 // -----------------------------------------------------------------------------------------------------
-function send_2_daemon($cmd)
+function send_2_daemon($cmd,$myIP=false)
 {
 // Initializations
 	global $apperr;
@@ -240,6 +242,7 @@ function send_2_daemon($cmd)
 	global $rcv_daemon_port;
 	global $snd_daemon_port;
 	global $log;
+	global $debug;
 	
     $rport = $rcv_daemon_port;								// Remote Port for the client side, to recv port server side
 	
@@ -277,7 +280,11 @@ function send_2_daemon($cmd)
 	// Get IP for this host ... As this is the webserver, we can find out which address to use
 	//$ip = $_SERVER['SERVER_ADDR'];
 	//$ip = '192.168.2.51';
-	$ip = '127.0.0.1';
+	//$ip = '127.0.0.1';					// Works for webservices but not for remote work
+	
+	$ip = '0.0.0.0';
+	// overrule in case we did specify an IP address as optional argument to the function
+	if ($myIP) $ip = $myIP;
 	if (socket_connect($rsock, $ip, $rport) === false)			
     {
        socket_close($rsock);
@@ -293,7 +300,7 @@ function send_2_daemon($cmd)
       socket_close($rsock);
       return(-1);
     }
-    // $apperr = "socket_send address - success<br>";
+    $apperr = "socket_send address - success<br>, buffer sent: ".$cmd_pkg;
 
 	if(!socket_set_block($rsock))
     {
@@ -302,7 +309,8 @@ function send_2_daemon($cmd)
 	  return(-1);
     }							
 	
-	$timeo = array('sec' => 3, 'usec' => 0);
+	// Set timeout for command
+	$timeo = array('sec' => 2, 'usec' => 0);
 	if ( ! socket_set_option($rsock,SOL_SOCKET,SO_RCVTIMEO, $timeo)) {
 		$apperr .= "Cannot set socket option TIMEO on receive socket<br>";
 		return(-1);
@@ -319,7 +327,7 @@ function send_2_daemon($cmd)
 	  return(-1);
     };
 	$apperr .= "bytes read: ".$len;
-	//$apperr .= ", buf: <".$buf.">";
+	$apperr .= ", buf: <".$buf.">";
 
 // Need to check if the confirmation from the server matches the transaction id
 

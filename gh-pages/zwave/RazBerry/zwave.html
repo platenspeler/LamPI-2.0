@@ -36,12 +36,12 @@
 <p>Start the basic User interface in the browser. http://192.168.1.xx:8083 where 192.168.1.xx is the (=your) IP address of the raspberry on your network. If you do not know the IP address of your Razberry, run the following command from a command terminal:</p>
 <p><code>&gt; sudo ifconfig</code></p>
 <p> and look for the IP address under the eth0 or wlan0 section of the output. When the User interface is started, select the good old expert GUI and select then the &quot;network&quot; tab. Now start the interview for the newly connected Z-Wave device. As soon as the new device is recognized and initialized, remember the device number as we will need it in LamPI to identify the device by its number ID.</p>
-<h2>Use the URL Interface for LamPI</h2>
-<p>The Zwave webinterface shield a lot of details from the user. However, this interface is still rather complex and therefore the solution would be to shield all the command-line -like details from the user. As of release 1.5 the Razberry software contains support for OpenRemote through a URL (JSon) interface.</p>
+<h2>Use the OpenRemote URL Interface for LamPI</h2>
+<p>The Zwave webinterface shields a lot of details from the user. However, this interface is still rather complex and therefore the solution would be to shield all the command-line -like details from the user. As of release 1.5 the Razberry software contains support for OpenRemote through a URL (JSon) interface.</p>
 <p>As you can see, there are in the interface description below no general management commands available for discovery of the network architecture, interviewing new devices etc. Only commands to get a certain value from a device and to set a certain values.</p>
 <p><code>http://192.168.2.102:8083/ZAutomation/OpenRemote/SwitchMultilevelSet/2/0/30</code></p>
 <p>The webserver will return &quot;30&quot; (including the quotes!). This will set my Fibaro dimmer with device number 2 (and service index 0)  to 30% luminance. As you can see this is hardly an interface for novice or even somewhat advanced users.</p>
-<p>On the z-wave.me website the following commands are specified (copy). OpenRemote API was introduced in version Z-Way 1.5.0 controller. To control devices there are several HTTP commands:<br>
+<p>On the z-wave.me website the following commands are specified (copy). OpenRemote API was introduced in version Z-Way 1.5.0 controller. The current version is version 1.7.2 and you are recommended to use that version. To control devices there are several HTTP commands:<br>
   <br>
   <a href="http://IP:8083/ZAutomation/OpenRemote/Command/N/I/param">http://IP:8083/ZAutomation/OpenRemote/Command/N/I/param</a><br>
   IP - Address of the controller RaZberry<br>
@@ -58,7 +58,8 @@
   5) SwitchMultilevelLevel/N/I - Show the percentage of open blinds or  light<br>
   6) SwitchMultilevelStatus/N/I - Show dimmer on/off, blinds open/closed<br>
   7) AlarmStatus/N - Show whether the alarm ,"on" alarm means<br>
-  8)  SensorBinaryStatus/N/I/Type - Show for determining whether a binary  sensor (opening movement, leakage), "on" means work. Type - the Type of  sensor is usually equal to 1<br>
+  8)  SensorBinaryStatus/N/I/Type - Show for determining whether a binary  sensor (opening movement, leakage), "on" means work. <br>
+  Type - the Type of  sensor is usually equal to 1<br>
   9) ThermostatLevel/N - Show temperature which must support thermostat<br>
   10) ThermostatSet/N/param - Set temperature, which must support a thermostat, param - temperature<br>
   11)  ThermostatSetMode/N/Mode - Set the thermostat mode Off, Heat, Cool,  Auto, Auxiliary, Resume, Fan Only, Furnace, Dry Air, Moist Air, Auto  Change Over, Heat Energy Save, Save Energy Save Cool, Heat Away, Away,  Cool, Full Power, Manufacturer Specific, Low Auto, On Low, Auto, High,  On High, Auto Medium, On Medium<br>
@@ -71,6 +72,9 @@
   18) SensorMultilevel/N/I/S Is indication of the sensor S - conditional number of the sensor in the Z-Way<br>
   19) DoorLock/N - Close castle<br>
 20) DoorUnlock/N - Open the lock</p>
+<p>This interface lacks proper documentation and examples...</p>
+<h2>The default Json Interface</h2>
+<p>The predecessor of the OpenRemote interface was this interface. Although the interface looks a lot like the OpenRemote interface it is less elegant ans uses a mix of URL-type words separated by &quot;/&quot; and other fiels separators (like { ). However, not all functions have been made available in the OpenRemote interface yet so unless we make our own commands we probably have t use parts of the Json interface for the moment.</p>
 <p>&nbsp;</p>
 <h2>Notifications/Callbacks</h2>
 <p>The UI web interface described above comes in very handy if we want to get or set the status of a particular device. However, it does not allow us to receive a status update of one of the connected devices. For example, if the user would use a wall switch to switch a lamp, the LamPI software would not know this. Of course we can check the status of a LamPI every now and then but this requires more compute power as we normally want.</p>
@@ -84,7 +88,6 @@
   <li><a href="zwayUse.pdf">Razberry User Manual</a></li>
   <li><a href="zwayDev.pdf">Razberry Developer Manual</a></li>
 </ul>
-<p>&nbsp;</p>
 <p>&nbsp;</p>
 </body>
 </html>

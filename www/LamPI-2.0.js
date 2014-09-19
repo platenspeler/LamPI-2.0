@@ -9,6 +9,7 @@
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
+// Version 2.1, Jul 31, 2014, Support for Energy sensor (Smart Meter).
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -2831,17 +2832,17 @@ function init_menu(cmd)
 		
 	// For all menu buttons, write all to a string and print string in 1 time
 	if (jqmobile == 1) {
-			var but =  ''
+		var but =  ''
 		+ '<tr><td>'
 		+ '<input type="submit" id="M1" value= "Rooms" class="hm_button hover">' 
 		+ '<input type="submit" id="M2" value= "Scenes" class="hm_button">'
 		+ '<input type="submit" id="M3" value= "Timers" class="hm_button">'
 		+ '<input type="submit" id="M4" value= "Handsets" class="hm_button">'
+		;
 		if (weather.length > 0) {
-			+ '<input type="submit" id="M6" value= "Weather" class="hm_button">'
+			but += '<input type="submit" id="M6" value= "Weather" class="hm_button">';
 		}
-		+ '<input type="submit" id="M5" value= "Config" class="hm_button">'
-
+		but += '<input type="submit" id="M5" value= "Config" class="hm_button">'
 		+ '</td></tr>'
 		;
 		$(table).append(but);

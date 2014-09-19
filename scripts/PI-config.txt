@@ -1,2 +1,2 @@
-#SERVER=192.168.2.55
+#SERVER=192.168.2.53
 # Remove the # in line above to read the Server setting

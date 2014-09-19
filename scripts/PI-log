@@ -11,7 +11,7 @@ SCRIPTDIR="/home/pi/scripts"; export SCRIPTDIR
 LOGDIR="/home/pi/log"; export LOGDIR
 #
 cd $LOGDIR
-for i in LamPI-daemon PI-rcv PI-run PI-1w PI-rht03 PI-i2c TemPI EnerPI 
+for i in LamPI-daemon LamPI-gate PI-rcv PI-run PI-1w PI-rht03 PI-i2c PI-gate TemPI EnerPI 
 do
 	mv $LOGDIR/$i.3.log $LOGDIR/$i.4.log
 	mv $LOGDIR/$i.2.log $LOGDIR/$i.3.log
@@ -26,6 +26,11 @@ done
 #
 chgrp www-data $LOGDIR/*.log
 chmod 664 $LOGDIR/*.log
+
+# Kill PHP based daemons. crontab will restart them or we do manually below.
+pkill php
+#
+
 #
 # Restart the daemons
 #

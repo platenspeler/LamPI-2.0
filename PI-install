@@ -40,7 +40,7 @@ install_linux()
 	sudo apt-get -qy install php5-pear
 	sudo apt-get -qy install php5-curl
 	sudo apt-get -qy install apache2
-	sudo apt=get -y install rrdtool				# We might want the latest version, this is not
+	sudo apt-get -y install rrdtool				# We might want the latest version, this is not
 	sudo apt-get -qy install i2c-tools
 	sudo apt-get -qy install libpango1.0-dev libxml2-dev
 	# sudo apt-get -y install wpasupplicant wireless-tools # Included in latest releases of Raspi
@@ -58,7 +58,7 @@ install_linux()
 install_zway()
 {
 	echo "Starting installation of Z-Way Razberry"
-	wget -q -O - http://razberry.zwave.me/install/v1.7.1 | sudo bash 
+	wget -q -O - http://razberry.zwave.me/install/v1.7.2 | sudo bash 
 	# Edit the /opt/Z-Way/config.xml
 	# reboot
 	
@@ -192,22 +192,29 @@ setup_cron()
 		echo "-- Crontab adding LamPI commands"
 		crontab -u pi -l > /tmp/effe
 
-		echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv"    >> /tmp/effe
-		echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log"    >> /tmp/effe
-		echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w"     >> /tmp/effe
-		echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03"  >> /tmp/effe
-        echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c"    >> /tmp/effe
-        echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy" >> /tmp/effe
+
         if [ "$1" == "-m" ]; then
 			echo "Setting up contab with PI-run for manager"
-			echo "* * * * * cd $HOMEDIR/scripts && sh ./PI-run" >> /tmp/effe
+            echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
+			echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w		> /dev/null 2>&1"	>> /tmp/effe
+			echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03	> /dev/null 2>&1"	>> /tmp/effe
+        	echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
+        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-run	> /dev/null 2>&1"	>> /tmp/effe
+        else if [ "$1" == "-z" ]; then
+        	echo "Setting up contab for Zway Gateway"
+            echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
+        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-gate	> /dev/null 2>&1"	>> /tmp/effe
 		else
         	echo "Setting up contab for slave"
+            echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
+			echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w		> /dev/null 2>&1"	>> /tmp/effe
+			echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03	> /dev/null 2>&1"	>> /tmp/effe
+        	echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
+        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
         fi
-        echo "# Setting up rrdtool graphs" >> /tmp/effe
-        echo "#*/3 * * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1d" >> /tmp/effe
-        echo "#0 */2 * * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1w" >> /tmp/effe
-        echo "#0 3 */7 * * cd $HOMEDIR/rrd/scripts && sh ./generate_graphs.sh 1m" >> /tmp/effe
         
 		crontab -u pi /tmp/effe
 	fi

@@ -22,8 +22,8 @@
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
 	$dbname = "dorm";						// This one is not easy to guess
-	$dbuser = "coco";
-	$dbpass = "coco";
+	$dbuser = "xxxx";
+	$dbpass = "yyyy";
 	$dbhost = "192.168.2.11";				// standard this should be "localhost"
 	
 // Are we still debugging or testing or operational? 

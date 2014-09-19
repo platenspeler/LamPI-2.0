@@ -304,13 +304,13 @@ function zwave_send($msg) {
 		case 'dimmer':
 			switch ($msg['val']) {
 				case 'on':
-					$p = 99;
+					$p = 99;					// Maximum value in percentage
 				break;
 				case 'off':
-					$p = 0;
+					$p = 0;						// Minimum percentage
 				break;
 				default:
-					$p = $msg['val']/32*99;
+					$p = $msg['val']/32*99;		// Change from 0-31 to 0-99 base
 			}
 			$log->lwrite("zwave_send:: razberry is: ".$razberry.", uaddr: ".$addr.", val: ".$p,1);
 			if ($msg['type'] == 'dimmer' ) {
@@ -326,7 +326,7 @@ function zwave_send($msg) {
 			switch ($msg['val']) {
 				case "on":
 				case "1":
-					$log->lwrite("zwave_send:: Switching switch on, addr: ",$addr);
+					$log->lwrite("zwave_send:: Switching switch on, addr: ".$addr);
 					curl_setopt_array (
 						$ch, array (
 						CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchBinaryOn/'.$addr.'/0',
@@ -335,7 +335,8 @@ function zwave_send($msg) {
 				break;
 				case "off":
 				case "0":
-					$log->lwrite("zwave_send:: Switching switch on, addr: ",$addr);
+					$log->lwrite("zwave_send:: Switching switch on, addr: ".$addr);
+					// XXX Still have to interpret teh return value
 					curl_setopt_array (
 						$ch, array (
 						CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchBinaryOff/'.$addr.'/0',
@@ -343,10 +344,10 @@ function zwave_send($msg) {
 					));
 				break;
 				default:
-					$log->lwrite("zwave_send:: Unknown message value for switch: "+$msg['val']);
+					$log->lwrite("zwave_send:: Unknown message value for switch: ".$msg['val']);
 			}
 		break;
-			$log->lwrite("zwave_send:: Unknown device type: "+$msg['type']);
+			$log->lwrite("zwave_send:: Unknown device type: ".$msg['type']);
 		default:
 	}
 	
@@ -1772,7 +1773,7 @@ $wthr = new Weather();						// Class for Weather handling in database
 // set path and name of log file (optional)
 $log->lfile($log_dir.'/LamPI-daemon.log');
 $log->lwrite("-------------- STARTING DAEMON ----------------------");
-sleep(5);
+sleep(3);
 
 // Some variables that are probably (re)set by get_parse();
 $doinit=false;

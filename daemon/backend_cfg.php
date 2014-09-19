@@ -24,8 +24,8 @@
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
 	$dbname = "coco";						// This one is not easy to guess
-	$dbuser = "coco";
-	$dbpass = "coco";
+	$dbuser = "xxxx";
+	$dbpass = "yyyy";
 	$dbhost = "localhost";					// standard this should be "localhost"
 
 // USER ADMIN SETTINGS (could be in database too, but this is easy as well)
