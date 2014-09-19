@@ -8,7 +8,7 @@
 
 <h1>LamPI Setup</h1>
 <h5>LamPI is a Home Automation project for switching equipment in the house over 433 MHz senders/transmitters on a RaspberryPI.</h5>
-<p><img src="screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
+<p><img src="../UserGuide/screenshots/room_screen_grey.JPG" width="962" height="632" /></p>
 <p>As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
 <p>In case I missed something, please send me an email or make a note on this page. For the moment I'm the only author of LamPI so it can take a few days before I answer....</p>
 <h1>Prerequisites ... what do you need</h1>
@@ -30,15 +30,32 @@
   <li>Install a jQuery 1.10.3 library in your webroot (~/.www in my case) or use the one that I shipped on github</li>
   <li>Of install jQuery Mobile if you plan to run on an Android or othe rmobile device</li>
 </ul>
+<p>&nbsp;</p>
+<h1>What Platform(s) does LamPI run on?</h1>
+<ul>
+  <li>The web GUI of LamPI runs on every webserver in your network as it is implemented in Javascript/jQuery. That means that if you install it on a webserver in your network you can access the GUI User Interface from every browser in your network (and soon also from the internet). By default, the webserver runs fine on the RaspberryPI (you need the Raspberry anyway).<br>
+    <br>
+    <strong>The current web front-end works VERY well on iPad, and can be installed as an app...</strong><br>
+    <br>
+  </li>
+  <li>If you want, you can setup the MySQL database on another server (that is what I did), but this is optional. Setting of the database server is in backend_config.php<br>
+    <br>
+  </li>
+  <li>The low-level device functions for transmitter and receiver, will at the moment only run on the RaspberryPI, although making an Arduino version is probably not much work. The executables are all found in the ~/exe directory. The source code for these functions can be found in the ~/receivers directory.<br>
+    <br>
+  </li>
+  <li>In order to control Z-Wave devices in the LamPI system, you need a separate Raspberry with Razberry Z-Wave board. Please read the special pages on Z-Wave. For the moment I do not support both Razberry (Z-Wave) and 433MHz transceivers on the same machine.</li>
+</ul>
+<p>&nbsp;</p>
 <h1>LamPI Installation</h1>
 <p>Of course we all like to use our RaspberryPI for multiple tasks. Reality is: If you need to rely on the Raspberry + LamPI combo to switch your lighting and other devices reliably, then you must seriously consider reserving a RaspberryPI device for JUST DOING THAT and nothing else.</p>
-<p>Therefore, I decided to make the configuration and installation locations for LamPI really simple: Put everything in the LamPI homedirectory or one of its subdirectories. Of course it is quite good possible to use other locations, but I must warn you, unless you are an experienced user it will be difficult to get everything up and running so why not use the pi homedirectory and its subdirectories www, scripts, exe and receivers?</p>
+<p>Therefore, I decided to make the configuration and installation locations for LamPI really simple: Put everything in the LamPI homedirectory or one of its subdirectories. Of course it is quite good possible to use other locations, but I must warn you, unless you are an experienced user it will be difficult to get everything up and running so why not use the pi homedirectory and its subdirectories ~/www, ~/scripts, ~/exe and ~/receivers?</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <h1>LamPI Configuration (first time run)</h1>
 <p>xxxxx</p>
 <h1>LamPI Configuration </h1>
-<p>Most of the configuration of LamPI can be done from the user interface application. This includes making/deleting of rooms, scenes and timers. Also, assigning devices to rooms, with the correct type and address is cometihing that can be done from the user interface. Should for whatever reason the LamPI configuration not work as expected or desired than it's good to know that there is a main configuration file for the LamPI operation that is read upon startup and that whould contain the correct information.</p>
+<p>Most of the configuration of LamPI can be done from the user interface application. This includes making/deleting of rooms, scenes and timers. Also, assigning devices to rooms, with the correct type and address is cometihing that can be done from the user interface. Should for whatever reason the LamPI configuration not work as expected or desired than it's good to know that there is a main configuration file for the LamPI operation that is read upon startup and that would contain the correct information.</p>
 <p>database.cfg</p>
 <p>&gt; cd ~/www/config&gt;<br>
   &gt; vi database.cfg
