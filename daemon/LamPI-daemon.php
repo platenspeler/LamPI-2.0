@@ -91,7 +91,7 @@ class Sensor {
 	// If a database does not yest exist, create one
 	// We create all weather related fields of the specific sensor 
 	// At a later stage we might have to check this.
-	// XXX Note: If the first ever message does not contain all fields for that sensor,
+	//   Note: If the first ever message does not contain all fields for that sensor,
 	// we will generate a database without the omitted field!
 	public function rrdcreate($db, $sensor) {
 		global $log;
@@ -173,7 +173,7 @@ class Sensor {
 		$rrd_db = $rrd_dir."db/";
 		
 		// Lookup the name of the sensor
-		// XXX Take care! Make sure that at least address and channel are found in databaae.cfg
+		// NOTE Take care! Make sure that at least address and channel are found in databaae.cfg
 		if (! ($name = $this->lookup($sensor))) {
 			$log->lwrite("rrdupdate:: ERROR Sensor not found: ".$sensor['address'].":".$sensor['channel']);
 			return(0);
@@ -326,6 +326,7 @@ function zwave_send($msg) {
 			switch ($msg['val']) {
 				case "on":
 				case "1":
+					$p = "on";
 					$log->lwrite("zwave_send:: Switching switch on, addr: ".$addr);
 					curl_setopt_array (
 						$ch, array (
@@ -335,8 +336,9 @@ function zwave_send($msg) {
 				break;
 				case "off":
 				case "0":
+					$p = "off";
 					$log->lwrite("zwave_send:: Switching switch on, addr: ".$addr);
-					// XXX Still have to interpret teh return value
+					// Still have to interpret the return value
 					curl_setopt_array (
 						$ch, array (
 						CURLOPT_URL => 'http://'.$razberry.':8083/ZAutomation/OpenRemote/SwitchBinaryOff/'.$addr.'/0',
@@ -353,16 +355,16 @@ function zwave_send($msg) {
 	
 	$output = curl_exec($ch);
 	
-	if ($output == false) {
+	if ($output === false) {
 		$log->lwrite("zwave_send:: curl_exec Razberry execution error",0);
 		curl_close($ch);
 		return(-1);
 	}
 	if ($output == '"'.$p.'"') {
-		$log->lwrite("zwave_send:: curl_exec set correctly",2);
+		$log->lwrite("zwave_send:: curl_exec set correctly to: ".$output,2);
 	}
 	else {
-		$log->lwrite("zwave_send:: ERROR:: curl_exec returned ".$p." but set incorrect",1);
+		$log->lwrite("zwave_send:: ERROR:: curl_exec expected ".$p." but set returned to: ".$output,1);
 		curl_close($ch);
 		return(-1);
 	}
@@ -883,7 +885,7 @@ class Sock {
 	// s_recv. Main receiver code for all messages on all socket connections to clients
 	// $this->read contains the modified read array of socket to read
 	// XXX Actually we read only one successful message and then return back to caller
-	// XXX This si not strict what the manual says: We should read all sockets with data available
+	// XXX This is not strict what the manual says: We should read all sockets with data available
 	// XXX before calling select again.
 	//
 	public function s_recv() {
@@ -1484,7 +1486,7 @@ function message_parse($cmd) {
 	global $debug, $log, $queue;
 	global $devices, $scenes, $handsets;
 
-	$log->lwrite("message_parse:: strting for command ".$cmd,1);
+	$log->lwrite("message_parse:: starting for command ".$cmd,1);
 	// XXX use json to properly receive commands?
 	$tim = time();
 	switch ( substr($cmd,0,2) ) 
@@ -1762,7 +1764,7 @@ $ret = 0;
 set_time_limit();							// NO execution time limit imposed
 ob_implicit_flush();
 
-$log = new Logging();						// Logging class initialization XXX maybe init at declaration
+$log = new Logging();						// Logging class initialization, maybe init at declaration
 $sensor = new Sensor();						// Weather Log
 
 $queue = new Queue();
@@ -1912,7 +1914,7 @@ while (true):
 		// the first (1) or the last (2) position of a } character in the buffer.
 		// 1. { ... { ... } ... } would not work
 		// 2. { ... }{ ......} will not be decoded correctly
-		// The sencond form is not corect json for a string anyway. So the solution might be to substr() for "}{" and make sure we
+		// The second form is not corect json for a string anyway. So the solution might be to substr() for "}{" and make sure we
 		// decode these strings one by one. And expect in between these are valid json constructs.
 		// XXX A situation arises when the json buf is multilevel yet still incomplete. Chances are few
 		while (($pos = strrpos($buf,"}",$i)) !== FALSE )
@@ -2189,6 +2191,7 @@ while (true):
 					$log->lwrite("main:: writing load_database message on socket OK",2);	
 				break;
 				
+				// In case we receive pro-active messages for login
 				case "login":
 					// Received a message for login. As the server will initiate this request
 					// and as we do the client is still untrusted, this will probably never happen.
@@ -2196,7 +2199,10 @@ while (true):
 					// 
 					$log->lwrite("main:: login request: ".$data['login'].", password".$data['password'],1);
 				break;
-
+				
+				// Client can send a number of supported "console" messages. Console messages are recognized
+				// and return values sent back to the calling GUI client.
+				// Supported messages are for logfile inspection, listing connected clients, reset saemon etc etc
 				case "console":
 					// Handling of LamPI operation. Fields:
 					// action=="console", request=="clients","logs",
@@ -2212,12 +2218,12 @@ while (true):
 							'response' => $list
 					);
 					if ( false === ($message = json_encode($response)) ) {
-						$log->lwrite("ERROR main:: json_encode failed: <".$response['tcnt'].", ".$response['action'].">");
+						$log->lwrite("ERROR main:: json_encode failed: <".$response['tcnt'].", ".$response['action'].">",0);
 					}
 					$log->lwrite("Json encoded console: ".$response['response'],2);
 					
 					if ( $sock->s_send($message) == -1) {
-						$log->lwrite("ERROR main:: failed writing login message on socket");
+						$log->lwrite("ERROR main:: failed writing login message on socket",1);
 						continue;
 					}
 					$log->lwrite("main:: writing console message on socket OK",2);
@@ -2225,7 +2231,7 @@ while (true):
 
 				default:
 					$log->lwrite("ERROR main:: json data action: ".$data['action'].", type: <".$data['type']
-									."> not found using raw message");
+									."> not found using raw message",0);
 					$cmd = $data['message'];
 				}
 			}
@@ -2278,7 +2284,7 @@ while (true):
 		
 			// Reply to the client with the transaction number just received
 			if ( $sock->s_send($answer) == -1) {
-				$log->lwrite("ERROR main:: failed writing reply on socket, tcnt: ".$tcnt);
+				$log->lwrite("ERROR main:: failed writing reply on socket, tcnt: ".$tcnt,1);
 			}
 			$log->lwrite("main:: success writing reply on socket. tcnt: ".$tcnt,3);
 		
@@ -2362,7 +2368,7 @@ while (true):
 					
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("main:: error weather broadcast encode: <".$bcst['tcnt']
-									.",".$bcst['action'].">");
+									.",".$bcst['action'].">",1);
 					}
 					$sock->s_bcast($answer);
 					//continue;
@@ -2402,7 +2408,7 @@ while (true):
 					);
 					if ( false === ($answer = json_encode($bcst)) ) {
 						$log->lwrite("main:: error energy broadcast encode: <".$bcst['tcnt']
-									.",".$bcst['action'].">");
+									.",".$bcst['action'].">",1);
 					}
 					$log->lwrite("main:: broadcasting energy message: ".$answer,2);
 					$sock->s_bcast($answer);
@@ -2473,7 +2479,7 @@ while (true):
 	
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
 					$dlist->upd($device);							// Write new value to database
-			
+					// Important: The database is FIRST updated and then we send bcast.
 
 					
 					// XXX It is difficult to determine whether we should keep this here or put it in a
@@ -2490,7 +2496,7 @@ while (true):
 						'gaddr'  => $device['gaddr'],
 						'uaddr'  => $dev."",				// From the sscanf command above, cast to string
 						'brand'  => $brand,					// NOTE brand is a string, not an id here
-						'val'    => $sndval				// Value is "on", "off", or a number (dimvalue) 1-32
+						'val'    => $sndval					// Value is "on", "off", or a number (dimvalue) 1-32
 						);
 						// For zwave we use a different protocol. Sending to transmitter.c does not help, we
 						// will then have all Raspberries react. We only need the dedicated Razberry device 
@@ -2558,15 +2564,18 @@ while (true):
 	// This part only needs to run once every 60 seconds or so, since the timer resolution in in MINUTES!
 	// What influences the timing are sensors of weather stations, but that is compensated for ..
 	
-	$log->lwrite("main:: Entering the SQL Timers section",3);
-	$timers = load_timers();					// This is a call to MSQL	
+	$log->lwrite("",2);
+	$log->lwrite("main:: Entering the SQL Timers section on ".date('l jS \of F Y h:i:s A',time()),2);
+	$timers = load_timers();					// This is a call to MSQL
+	
 	$tim = time();
+	
 	// mktime(hour,minute,second,month,day,year,is_dst) NOTE is_dst daylight saving time
 	// For EVERY object in the timer array, look whether we should take action
 	//
 	for ($i=0; $i < count($timers); $i++)
 	{
-		$log->lwrite("index: $i, id: ".$timers[$i]['id'].", name: ".$timers[$i]['name'],3);
+		$log->lwrite("Timer index: $i, id: ".$timers[$i]['id'].", name: ".$timers[$i]['name'],2);
 		//
 		list ( $start_hour, $start_minute) = sscanf($timers[$i]['tstart'], "%2d:%2d" );
 		list ( $start_day, $start_month, $start_year ) = sscanf($timers[$i]['startd'], "%2d/%2d/%2d" );
@@ -2576,7 +2585,7 @@ while (true):
 		
 		// The timing codes received for dusk/dawn are same as defined for the ICS-1000
 		// Are the start times dawn (=twillight before sunrise) and dusk (=after Sunset)
-		// The minutes are multiplied by 30 minutes
+		// The minutes are multiplied by 30 minutes to compute the actual start/stop time
 		// Apeldoorn 52° 13' 0" N / 5° 58' 0" E
 		
 		if (    $start_hour == "96") 		// 96:: dawn - m * 30
@@ -2587,17 +2596,13 @@ while (true):
 			{ $secs_today = date_sunset(time(), SUNFUNCS_RET_TIMESTAMP, 52.13, 5.58, 90+50/60, 1)-($start_minute*30*60); }
 		else if($start_hour == "99") 		// 99: dusk + m * 30
 			{ $secs_today = date_sunset(time(), SUNFUNCS_RET_TIMESTAMP, 52.13, 5.58, 90+50/60, 1)+($start_minute*30*60); }
-		else
+		else // No special time set, so we calculate a normal time
 			{ $secs_today = mktime($start_hour,$start_minute,$start_second); }
-			
-		// echo ("Start: ".$start_day." ".$start_month." ".$start_year."\n");
-		///echo ("Time: ".$start_hour." ".$start_minute." ".$start_second."\n");
-		///echo ("End  : ".$end_day  ." ".$end_month  ." ".$end_year."\n");
 		
 		// Start action if time interval between now - timer < 0
 		
 		$secs_start = mktime($start_hour,$start_minute,$start_second,$start_month,$start_day,$start_year);
-		$secs_stop  = mktime($start_hour,$start_minute,$start_second,$end_month,$end_day,$end_year);
+		$secs_stop  = mktime($start_hour,$start_minute,$start_second,$end_month,  $end_day,  $end_year);
 		
 		// First check whether time should run this month and on this weekday!
 		// The is a string of 'days' and 'months' that contain either characters of the month or
@@ -2606,8 +2611,8 @@ while (true):
 		$months = $timers[$i]['months'];
 		$days   = $timers[$i]['days'];
 		
-		if ($debug > 2) $log->lwrite ("DEBUG MONTH : ".$i." ".substr($months,@date('n')-1,1) );
-		if ($debug > 2) $log->lwrite ("DEBUG DAY :   ".$i." ".substr($days,  @date('N')-1,1) );
+		$log->lwrite ("DEBUG MONTH : ".$i." ".substr($months,@date('n')-1,1) , 3 );
+		$log->lwrite ("DEBUG DAY :   ".$i." ".substr($days,  @date('N')-1,1) , 3 );
 		
 		// Look of we have to skip this execution because either month, day of week or
 		// cancel once is active. If so, we write to log and do not further execute this timer
@@ -2625,68 +2630,74 @@ while (true):
 		else
 		if ( $tim > $secs_stop ) {
 			if ($time_last_run > $secs_stop) {
-				// $log->lwrite("Timer has possible already stopped, so we should not proceed any further");
+				$log->lwrite("Timer has possibly already stopped, so we should not proceed any further",2);
 			}
 			else {
 				$log->lwrite ("TIMER STOPPED: ".$timers[$i]['name']);	// probably stopped last time
 			}
 		}
 		
-		// If current time passes the start time, know that the command MIGHT be running
+		// If current time passes the start time of today, know that the command MIGHT be running
 		// The timer is still 'LIVE'
 		else 
-		if (($tim > $secs_start) && ($tim > $secs_today)){
+		if (($tim > $secs_start) && ($tim > $secs_today)) {
 				
 			if ($time_last_run > $secs_today ) {
 				// We have already started at least one loop before
-				// $log->lwrite("Timer ". $timers[$i]['name']." has been started already\n");
+				$log->lwrite("Timer ". $timers[$i]['name']."  planned at: ".date('l jS \of F Y h:i:s A',$secs_today)." started already before ".date('l jS \of F Y h:i:s A',$time_last_run)."\n",2);
 			}
 			// Need to make sure ONLY when time > timer sttime
 			// Need to push skip value back to database so next time we tun again !!!
 			else if ( $timers[$i]['skip'] == "1" ) {
-				$log->lwrite ("main:: Cancel Once execution was active",1);
+				$log->lwrite ("main:: Timer Cancel Once execution was active",1);
 				$timers[$i]['skip'] = "0";
 				store_timer($timers[$i]);
 			}
 			else {
 				// make the command and queue it (in step 1)
-				$log->lwrite("STARTING TIMER ".$timers[$i]['name'].", scene: ".$timers[$i]['scene']." at ".date('Y-m-d', $tim));
+				$log->lwrite("STARTING TIMER ".$timers[$i]['name'].", scene: ".$timers[$i]['scene']." at ".date('Y-m-d', $tim),1);
+				$log->lwrite("STARTING TIMER   last_run: ".date('l jS \of F Y h:i:s A',$time_last_run).", tim: ".date('l jS \of F Y h:i:s A',$tim),2);
+				$log->lwrite("STARTING TIMER secs_start: ".date('l jS \of F Y h:i:s A',$secs_start).", tim: ".date('l jS \of F Y h:i:s A',$tim),2);
+				$log->lwrite("STARTING TIMER secs_today: ".date('l jS \of F Y h:i:s A',$secs_today).", tim: ".date('l jS \of F Y h:i:s A',$tim),2);
+				
 				$scene = load_scene($timers[$i]['scene']);
 				if ($scene == -1) { 								// Command not found in database
-					$log->lwrite("main:: Cannot find scene: ".$timers[$i]['scene']." in the database");
+					$log->lwrite("main:: Cannot find scene: ".$timers[$i]['scene']." in the database",1);
 					break; 
 				}
 				$scene_name = $scene['name'];
 				$scene_seq = $scene['seq'];
 				if ($scene_seq == "") {
-					$log->lwrite("-- Scene: ".$scene['name']." found, but sequence empty (must save first)");
+					$log->lwrite("-- Scene: ".$scene['name']." found, but sequence empty (must save first)",1);
 					//break;
 				}
 				$log->lwrite("-- Scene found, reading sequence: ".$scene_seq);
 				$splits = explode(',' , $scene_seq);
-				for ($i=0; $i< count($splits); $i+=2) {
-					if ($debug > 0) $log->lwrite("cmd  : " . $i . "=>" . $splits[$i]);
-					if ($debug > 0) $log->lwrite("timer: " . $i . "=>" . $splits[$i+1]);
+				for ($j=0; $j < count($splits); $j+=2) {
+					if ($debug > 0) $log->lwrite("cmd  : " . $j . "=>" . $splits[$j]);
+					if ($debug > 0) $log->lwrite("timer: " . $j . "=>" . $splits[$j+1]);
 				
-					list ( $hrs, $mins, $secs ) = explode(':' , $splits[$i+1]);
+					list ( $hrs, $mins, $secs ) = explode(':' , $splits[$j+1]);
 					$log->lwrite("Wait for $hrs hours, $mins minutes and $secs seconds");
 				
 					// sleep(($hrs*3600)+($mins*60)+$secs);
 					// We cannot sleep in the background now, it will give a timeout!!
-					// we'll have tom implement something like a timeer through cron or so
+					// we'll have to implement something like a timer through cron or so
 					$item = array(
     					'scene' => $scene_name,
 						'action' => 'gui',
-    					'cmd'   => $splits[$i],
+    					'cmd'   => $splits[$j],
 						'secs'  => ($hrs*3600)+($mins*60)+$secs+ $tim
    				 	);
 					$queue->q_insert($item);
-					if ($debug>1) $queue->q_print();
+					if ($debug>=2) $queue->q_print();
 				}//for
 			}//if
 		}//if
+		// $time_last_run = $tim; // XXX 
 	}//for
-	$time_last_run = $tim;
+	
+	$time_last_run = $tim;									// Last time that we completely finished a timer run 
 	
 endwhile;// ========= END OF LOOP ==========
  

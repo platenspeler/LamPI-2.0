@@ -318,8 +318,8 @@ function send_2_daemon($cmd,$myIP=false)
 	
 	// We may receive an answer immediately (just an ack) or we can timeout in 2 secs or so
     //if (!socket_recvfrom($rsock, $buf, 1024, MSG_WAITALL, $from, $rport))
-	$len = socket_recv($rsock, $buf, 1024, 0);
-	if (false === $len)
+	;
+	if (false === ( $len = socket_recv($rsock, $buf, 1024, 0)))
     {
       $err = socket_last_error($rsock);
       $apperr .= 'socket_recv failed with error '.$err.': '.socket_strerror($err) . "<br>";

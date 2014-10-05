@@ -22,7 +22,7 @@ PID=""; export PID
 #
 if [ "$1" = "-r" ]; then
 	echo "`date`:: Kill previous version of daemons" >> $LOGFILE
-	pkill php
+	pkill -f "php ./$PROGRAM"
 fi
 
 #

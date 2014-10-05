@@ -192,7 +192,6 @@ setup_cron()
 		echo "-- Crontab adding LamPI commands"
 		crontab -u pi -l > /tmp/effe
 
-
         if [ "$1" == "-m" ]; then
 			echo "Setting up contab with PI-run for manager"
             echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
@@ -202,7 +201,7 @@ setup_cron()
         	echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
         	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
 			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-run	> /dev/null 2>&1"	>> /tmp/effe
-        else if [ "$1" == "-z" ]; then
+        elif [ "$1" == "-z" ]; then
         	echo "Setting up contab for Zway Gateway"
             echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
         	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-gate	> /dev/null 2>&1"	>> /tmp/effe
@@ -251,7 +250,7 @@ setup_wlan()
     
 	clear
 	echo "Do not forget to setup Wifi controllers if you have these"
-	echo "You HAVE to edit the wpa_supplicat.conf file and supply your Wifi credentials (SSID and Password)"
+	echo "You HAVE to edit the wpa_supplicant.conf file and supply your Wifi credentials (SSID and Password)"
 	echo "sudo vi /etc/wpa_supplicant/wpa_supplicant.conf, press <ENTER> to continue"
 	read a
 	sudo vi /etc/wpa_supplicant/wpa_supplicant.conf

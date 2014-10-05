@@ -716,7 +716,7 @@ function store_timer($timer)
 		$log->lwrite("store_timer:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
 		return (-1);
 	}
-	if (!mysqli_query($mysqli,"UPDATE timers SET name='{$timer[name]}', scene='{$timer[scene]}', tstart='{$timer[tstart]}', startd='{$timer[startd]}', endd='{$timer[endd]}', days='{$timer[days]}', months='{$timer[months]}', skip='{$timer[skip]}' WHERE  id='$timer[id]' " ))
+	if (!mysqli_query($mysqli,"UPDATE timers SET name={$timer['name']}, scene={$timer['scene']}, tstart={$timer['tstart']}, startd={$timer['startd']}, endd={$timer['endd']}, days={$timer['days']}, months={$timer['months']}, skip={$timer['skip']} WHERE  id='$timer[id]' " ))
 	{
 		$apperr .= "Error: Store timer, ";
 		$apperr .= "mysqli_query error" ;
@@ -924,7 +924,8 @@ function dbase_parse($cmd,$message)
 {
 	global $log;
 	global $apperr, $appmsg;
-	$log->lwrite("dbase_parse:: received cmd: ".$cmd.", message: ".$message);
+	$log->lwrite("dbase_parse:: received cmd: ".$cmd);
+	$log->lwrite("dbase_parse:: message: ".$message);
 	switch($cmd)
 	{
 		// Device

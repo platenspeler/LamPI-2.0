@@ -6,7 +6,7 @@
 
 <body>
 
-<h1>Razberry</h1>
+<h1>Z-WAVE Gateway</h1>
 <p>As described before, the LamPI system was designed for- and initially worked only for 433MHz based devices. Over the last months, devices based on the Z-Wave system working on 868MHz (Europe) have dropped in price and are beginning to become an alternative to these cheaper 433MHz switches and dimmers. As the communication between Z-Wave components is more reliable, all Z-Wave devices have a transmitter on board and can report their current status back to the server, I decided to look for a way to integrate the 868 MHz system into my LamPI environment.</p>
 <p>Also, Z-Wave networks make a mesh network with means that every Z-Wave device acts as a bridge to other Z-Wave devices. This extends the network in a flexible way as devices that are located further away from your controller devices will use intermediate Z-Wave devices to receive and transmit messages through the network to the controller.</p>
 <p>If you start reading up on the Razberry documentation, than there are several terms used that are used in this context:</p>
@@ -72,21 +72,23 @@
   18) SensorMultilevel/N/I/S Is indication of the sensor S - conditional number of the sensor in the Z-Way<br>
   19) DoorLock/N - Close castle<br>
 20) DoorUnlock/N - Open the lock</p>
-<p>This interface lacks proper documentation and examples...</p>
+<p>This interface lacks proper documentation and examples... Therefore we like to explore another option: The standard Z-Way programming interface (JavaScript based).</p>
+<p>&nbsp;</p>
 <h2>The default Json Interface</h2>
-<p>The predecessor of the OpenRemote interface was this interface. Although the interface looks a lot like the OpenRemote interface it is less elegant ans uses a mix of URL-type words separated by &quot;/&quot; and other fiels separators (like { ). However, not all functions have been made available in the OpenRemote interface yet so unless we make our own commands we probably have t use parts of the Json interface for the moment.</p>
+<p>The predecessor of the OpenRemote interface was this interface. Although the interface looks a lot like the OpenRemote interface it is less elegant ans uses a mix of URL-type words separated by &quot;/&quot; and other fiels separators (like { ). However, not all functions have been made available in the OpenRemote interface yet so unless we make our own commands we probably have to use parts of the Json interface for the moment.</p>
 <p>&nbsp;</p>
 <h2>Notifications/Callbacks</h2>
 <p>The UI web interface described above comes in very handy if we want to get or set the status of a particular device. However, it does not allow us to receive a status update of one of the connected devices. For example, if the user would use a wall switch to switch a lamp, the LamPI software would not know this. Of course we can check the status of a LamPI every now and then but this requires more compute power as we normally want.</p>
-<p>There are several interfaces available to manage the Z-Way software on.</p>
-<h2>Links and Documentation</h2>
+<p>There are several interfaces available to manage the Z-Way software, but the Z-Way software itself also uses polling in order to update the internal datastructure of the Z-Way engine with the latest values of the devices. </p>
+<p>&nbsp;</p>
+<h1>Links and Documentation</h1>
 <p>I copied some documents from the Z-Wave.me website for no other reason than mae them easy to find and keep versions used for LamPI available even if on-line documentation would change.</p>
 <ul>
   <li>http://www.openremote.org/display/docs/OpenRemote+2.0+How+To+-+Z-Wave+with+Razberry</li>
-  <li><a href="quick-start-guide-v2.pdf">Razberry quick-start-guide v2</a></li>
-  <li><a href="RaZberryOnePager.pdf">Razberry One pager</a></li>
-  <li><a href="zwayUse.pdf">Razberry User Manual</a></li>
-  <li><a href="zwayDev.pdf">Razberry Developer Manual</a></li>
+  <li><a href="Documentation/quick-start-guide-v2.pdf">Razberry quick-start-guide v2</a></li>
+  <li><a href="Documentation/RaZberryOnePager.pdf">Razberry One pager</a></li>
+  <li><a href="Documentation/zwayUse.pdf">Razberry User Manual</a></li>
+  <li><a href="Documentation/zwayDev.pdf">Razberry Developer Manual</a></li>
 </ul>
 <p>&nbsp;</p>
 </body>
