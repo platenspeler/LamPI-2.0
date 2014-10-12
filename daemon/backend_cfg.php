@@ -1,5 +1,5 @@
 <?php
-
+define('__ROOT__', dirname(__FILE__)); 	// Find www root dir
 /* -------------------------------------------------------------------------------
 	This file contains the settings for the backend_xxxxxx.php files
 	that are used by the LamPI-daemon.php Controller program
@@ -8,9 +8,6 @@
 	mw12554@hotmail.com
 */
 
-// Use rrdtool for making graphs
-	$use_rrd = 1;
-	
 // Use this var as a way to determine what details are logged and what not...  
 // Val 0: No Debug, Only Errors and logging of events in queue
 // Val 1: Verbose mode
@@ -18,6 +15,9 @@
 // Val 3: Detail debugging info. Will fill up the logfile Quickly
 	$debug = 1;
 
+// Use rrdtool for making graphs
+	$use_rrd = 1;
+	
 // Are we still debugging or testing or operational? 
 // $_GET is not allowed in operational!!
 // Set to 0 for operational, and to 1 for testing
@@ -33,9 +33,9 @@
 // database on a separate server, please specify it's host and access details below.
 // Specify the database name, username, password and host
 // Please run ~/scripts/PI-run -i after changing the setting to localhost
-	$dbname = "dorm";						// This one is not easy to guess
-	$dbuser = "XXXX";
-	$dbpass = "YYYY";
+	$dbname = "xxxx";						// This one is not easy to guess
+	$dbuser = "yyyy";
+	$dbpass = "zzzz";
 	$dbhost = "192.168.2.11";				// standard this should be "localhost"
 
 // ----------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@
 						'trusted' => '1'
 					),
 					array (
-						'login' => 'does',
+						'login' => 'teun',
 						'password' => '1234' , 
 						'server' => '' ,
 						'trusted' => '1'
@@ -81,7 +81,7 @@
 	$www_dir	= $home_dir."www/";					// Directory for the apache server
 	
 	$config_dir	= $www_dir."config/";				// Contains the database.cfg file
-	$skin_dir	= $www_dir."styles/";				// Defined to GUI and Daemon together
+	$skin_dir	= "styles/";				// Defined to GUI and Daemon together
 
 
 // ----------------------------------------------------------------------------------------
