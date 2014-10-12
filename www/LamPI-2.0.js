@@ -529,7 +529,7 @@ function start_LAMP(){
 						var newscene = {
 							id: ind,
 							name: ret[0],
-							val: "OFF",
+							val: "0",
 							seq: ""						// we should start with empty Scene
 						}
 						scenes.push(newscene);			// Add record newdev to devices array
@@ -775,7 +775,8 @@ function start_LAMP(){
 							startd: "01/01/13",
 							endd: "",
 							days: "mtwtfss",
-							months: "jfmamjjasond"
+							months: "jfmamjjasond",
+							skip: "0"
 						}
 						timers.push(newtimer);			// Add record newdev to devices array
 
@@ -3619,7 +3620,7 @@ function activate_scene(scn)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("upd_scene", scenes[j]);
+				send_2_dbase("store_scene", scenes[j]);
 				message("Device command added to the scene");
 				
 			} // if recording
@@ -3662,12 +3663,9 @@ function activate_scene(scn)
 					case "Fe":
 						var scene_cmd = '!FeP"' + scene['name'] + '"=' + scene['seq'];
 						
-						// alert("Fe Storing scene:: "+scene_cmd);
+						// alert("Fe Storing scene:: "+scene_cmd+", length: "+scene['seq'].length);
 						// Send to database and update the current scene record
-						send_2_dbase("upd_scene", scene);
-						
-						// Send to controller (necessary for the ICS-1000)
-						message_device("scene", scene_cmd );
+						send_2_dbase("store_scene", scene);
 					break;
 						
 					// DELETE scene action, ONE of the actions in the seq!!!
@@ -4531,7 +4529,7 @@ function activate_handset(hset)
 				// Make sure to sync the new record to the array
 				// Or should we use the global var s_handset_id?
 				if (ind == 1) {
-					// First device in the scene.seq
+					// First device in the handset.seq
 					handsets[j]['scene'] = s_recorder + ",00:00:10";
 				}
 				else {
@@ -4545,12 +4543,12 @@ function activate_handset(hset)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("upd_scene", handsets[j]);
-				message("Device command added to the scene",1);
+				send_2_dbase("store_handset", handsets[j]);
+				message("Device command added to the handsets",1);
 				
 			} // if recording
 
-			// We have to setup an event handler for this screen.
+			// We have to setup an event handler for this handsets.
 			// After all, the user might like to change things and press some buttons
 			
 		}// if a handset is s_handset_id
@@ -6698,6 +6696,7 @@ function message_device(action, controller_cmd)
 		send2daemon("gui","set",controller_cmd);
 	}
 	
+	// AJAX used
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		$.ajax({
@@ -6769,14 +6768,15 @@ function message_device(action, controller_cmd)
 //
 function send_2_dbase(dbase_cmd, dbase_arg) 
 {
+	// WEBSOCKETS
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
-		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd);
+		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd+", dbase_arg: <"+dbase_arg+">");
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("dbase",dbase_cmd,dbase_arg);
 	}
-	
+	// AJAX
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		console.log("send_2_database:: Receiving ajax command "+dbase_cmd);
@@ -6823,7 +6823,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 };
 
 // --------------------------------------------------------------------------------------
-// Send_2_set: Send commands to the backend PHP system. 
+// Send_2_set: Send commands to the backend PHP system, mainly for changing LamPI settings. 
 // These commands are used for retrieving skins, settings and other stuff
 // supporting the GUI program.
 // As we need the results of this call for our program, we need SYNC call, so

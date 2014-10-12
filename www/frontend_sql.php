@@ -1,8 +1,8 @@
 <?php
-define('__ROOT__', dirname(dirname(__FILE__))); 	// Find www root dir
+define('__ROOT__', dirname(__FILE__)); 	// Find www root dir
 
-require_once( '../daemon/backend_cfg.php' );
-require_once( 'frontend_lib.php' );
+require_once( dirname(__FILE__) . '/../daemon/backend_cfg.php' );
+require_once( dirname(__FILE__) . '/frontend_lib.php' );
 
 /*	------------------------------------------------------------------------------	
 	Note: Program to switch klikaanklikuit and coco equipment

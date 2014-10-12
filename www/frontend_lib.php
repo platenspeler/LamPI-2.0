@@ -1,12 +1,11 @@
 <?php 
-require_once( '../daemon/backend_cfg.php' );
+//define('__ROOT__', dirname(__FILE__));
+require_once( dirname(__FILE__) . '/../daemon/backend_cfg.php' );
 
 // This file contains a number of supporting functions for the LamPI-daemon.php process.
 // - Initialization, 
 // - Login and Cookies
 // - Device Commununication functions
-
-
 
 //error_reporting(E_ALL);
 error_reporting(E_ERROR | E_PARSE | E_NOTICE);				// For a daemon, suppress warnings!!

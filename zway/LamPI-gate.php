@@ -26,8 +26,8 @@ if (!isset($_SESSION['tcnt']))	{ $_SESSION['tcnt'] =0; }
 	
 	======================================================================================	*/
 
-$interval =10;								// Configurable time interval between polls
-$debug =2;									// level 1== only errors
+$interval =5;								// Configurable time interval between polls
+$debug =1;									// level 1== only errors
 $daemonIP ="192.168.2.53";					// XXX We should make this dynamic. IP of our LamPI-daemon
 $noError =true;
 
@@ -114,7 +114,7 @@ function zway_dim_val($ch,$dev,$arg='value')
 		$log->lwrite("zway_dim_val:: ERROR: ".curl_error($ch),2);
 		return (false);
 	}
-	else if ($output == null) {
+	else if ($output === null) {
 		$log->lwrite("zway_dim_val:: ERROR: curl_exec(".$arg.") returned null",2);
 		return (false);
 	}
@@ -270,6 +270,8 @@ function zway_move_val($ch,$dev)
 	}
 }
 
+// ========================= MAIN MAIN MAIN MAIN MAIN =====================================
+//
 
 // ----------------------------------------------------------------------------------------
 // SETUP CURL
@@ -280,10 +282,9 @@ if ($ch == false) {
 	$log->lwrite("curl_init error");
 }
 
-// ========================= MAIN MAIN MAIN MAIN MAIN =====================================
+// ----------------------------------------------------------------------------------------
 //
-//
-
+// Setup timer vars
 $time_now = time();	
 //$start_time = @date('[d/M/y, H:i:s]'); echo "Start loop at ".$start_time."\n";
 
@@ -317,7 +318,6 @@ $v = "";
 //
 // Loop forever unless a serious error is found.
 //
-
 while ($noError)
 {
 													
@@ -365,10 +365,11 @@ while ($noError)
 			}
 			
 			
-	  }
-  }
+	  }//if
+  }//for
 
   // Loop based on $devices array of LAMPI
+  //
   $log->lwrite("------------------------ SWITCH/DIM LOOP ----------------------------------",1);
   $log->lwrite("",2);
   $log->lwrite("Count load_devices:: ".count($dev_config),2);
@@ -391,7 +392,7 @@ while ($noError)
 			
 			$zway_config[$i] = array (
 				'id'		=> $dev_config[$i]['id'],
-				'gui_inValid'	=> true,
+				'gui_inValid'	=> 3,
 				'gui_old'	=> $dev_config[$i]['val'],
 				'gui_val'	=> $dev_config[$i]['val'],
 				//'unit'	=> $dev_config[$i]['unit'],
@@ -421,45 +422,84 @@ while ($noError)
 			if (($ret = zway_dim_get($ch,$d)) === false ) { 
 				$log->lwrite("zway_dim_get returned error",1); 
 			}
+			else if ( $ret === 'true' ) {
+				$log->lwrite("zway_dim_get returned true",2);
+			}
 			else { 
-				$log->lwrite("\tzway_dim_get returned: <".$ret.">",2); 
+				$log->lwrite("\tzway_dim_get returned: <".$ret.">",1); 
+				
+				$info = curl_getinfo($ch);
+				if (!empty($info['http_code'])) {
+					if ($info['http_code'] == 500 ) {
+						$log->lwrite("\tzway_dim_get returned http code 500",1);
+					}
+				}
 			}
 			
-			// read Zwave container value and normalize to LamPI values 1-32
-			if (false === ( $vv = ceil(zway_dim_val($ch,$d)/99*32) )) {
-				$log->lwrite("ERROR: zway_dim_val returned false");
+			// read Zwave container value 
+			if (false === ( $vv = zway_dim_val($ch,$d) )) {
+				$log->lwrite("ERROR: zway_dim_val for id ".$d." returned false");
 				$noError=false;
 			}
-			else {
-				$zway_val = $vv;
+			// Could be a 500 error, timeout etc. that is considered a successful result value
+			// Make no change to the value of $zway_val if the result is not numerical
+			else if (!is_numeric($vv)) {
+				$log->lwrite("ERROR: zway_dim_val returned non numeric value: ".$vv);
 			}
-			
-			$log->lwrite("\tupdateTime is ".(time() - zway_dim_val($ch,$d,'updateTime'))." seconds ago",2);
-			$log->lwrite("\tinvalidateTime is ".(time() - zway_dim_val($ch,$d,'invalidateTime'))." seconds ago",2);
-			// $log->lwrite("\tupdated is ".zway_dim_val($ch,$d,'updated')." seconds ago",2);
+			// Default: zway_dim_val returned a non error value
+			else {
+				$info = curl_getinfo($ch);
+				if (!empty($info['http_code'])) {
+					switch ($info['http_code'] ) {
+						// Code OK
+						case 200:
+							$log->lwrite("\tzway_dim_val returned http code 200, <OK>",2);
+							$zway_val = ceil($vv/99*32);
+						break;
+						// Internal Error
+						case 500:
+							// This could be a sign of degrading webserver performance
+							$log->lwrite("\tzway_dim_val returned http code 500, internal error",1);
+						break;
+						default:
+							$log->lwrite("\tzway_dim_val returned http code ".$info['http_code'],1);
+					}
+				}
+				else {
+					$log->lwrite("\tzway_dim_get returned value ".$vv,1);
+					//  normalize to LamPI values 1-32
+					$zway_val = ceil($vv/99*32);
+				}
+			}
 
 			// Timing is an issue here, as the update from GUI can be delayed too. 
 			// But we expect that if both are not equal than this is a manual/user switch action
 			
-			// If the valu did  change in the last interval, we have a changed GUI value
+			// If the value did  change in the last interval, we have a changed GUI value
 			if (( $zway_config[$i]['gui_old'] != $gui_val ) && ( $gui_val != $zway_val )) {
 				$log->lwrite("Set inValid:: gui_old: ".$zway_config[$i]['gui_old'].", gui_val: ".$gui_val.", zway_val: ".$zway_val);
-				$zway_config[$i]['gui_inValid'] = true;
+				$zway_config[$i]['gui_inValid'] = 3;
 			}
 			else
 			//
 			// if (( $zway_config[$i]['gui_old'] == $gui_val ) && ( $gui_val == $zway_val )) {
 			if (( $gui_val == $zway_val )) {
-				$zway_config[$i]['gui_inValid'] = false;	
+				// The values are valid, make value 0 to mark
+				$zway_config[$i]['gui_inValid'] = 0 ;	
 			}
 			//
 			else {
-				$log->lwrite("Undefined inValid:: gui_old: ".$zway_config[$i]['gui_old'].", gui_val: ".$gui_val.", zway_val: ".$zway_val);
+				// Unknown State, decrease counter
+				$log->lwrite("Undefined inValid:: gui_old: ".$zway_config[$i]['gui_old'].", gui_val: ".$gui_val.", zway_val: ".$zway_val,1);
+				// XXX But also, check whether the invalidateTime > 2 * $interval
+				$log->lwrite("\tupdateTime is ".(time() - zway_dim_val($ch,$d,'updateTime'))." seconds ago",1);
+				$log->lwrite("\tinvalidateTime is ".(time() - zway_dim_val($ch,$d,'invalidateTime'))." seconds ago",1);
+				$zway_config[$i]['gui_inValid']--; 
 			}
 			
 			// If the zway value did change but we have a valid guis value, this is a manual user action
 			// on the device. Send an update to the GUI and the database
-			if (( $zway_val != $gui_val) && ($zway_config[$i]['gui_inValid'] == false))
+			if (( $zway_val != $gui_val) && ($zway_config[$i]['gui_inValid'] <= 0))
 			{
 				// A Change made with the device switch
 				$log->lwrite("\tDimmer update with value: ".$zway_val,1);
@@ -486,25 +526,30 @@ while ($noError)
 			// Read the new Zway container value
 			$zway_val = zway_switch_val($ch,$d);
 			$log->lwrite("\tzway_switch_val:: returned: <".$zway_val.">",2);
-			if ($zway_val == "\"off\"") $zway_val = "0"; else $zway_val = "1";
+			
+			
+			if ($zway_val == "\"off\"") $zway_val = "0"; 
+			else if ($zway_val == "\"on\"") $zway_val = "1";
+			else $log->lwrite("\tzway_switch_val:: Value not used",2);
 			
 			// If the GUI value did  change in the last interval, we do not have a true value
 			// So invalidate all readings for the moment
 			if (( $zway_config[$i]['gui_old'] != $gui_val ) && ( $gui_val != $zway_val )) {
-				$zway_config[$i]['gui_inValid'] = true;
+				$zway_config[$i]['gui_inValid'] = 3;
 			}
 			else
 			// All values are stable, validate the value
 			if (( $gui_val == $zway_val )) {
-				$zway_config[$i]['gui_inValid'] = false;	
+				$zway_config[$i]['gui_inValid'] = 0;	
 			}
 			//
 			else {
 				$log->lwrite("Undefined state inValid:: gui_old: ".$zway_config[$i]['gui_old'].", gui_val: ".$gui_val.", zway_val: ".$zway_val);
+				$zway_config[$i]['gui_inValid']-- ;
 			}
 		
 			// If the zway value changes but the gui value is valid::: We have a manual user action on the device
-			if (( $zway_val != $gui_val) && ($zway_config[$i]['gui_inValid'] == false))
+			if (( $zway_val != $gui_val) && ($zway_config[$i]['gui_inValid'] <= 0))
 			{
 				$log->lwrite("\rSwitch update necessary");
 				$msg = "!R".$dev_config[$i]['room']."D".$d."F".$zway_val ;
@@ -518,6 +563,8 @@ while ($noError)
 		break;
 		
 		case "sensor":
+				$log->lwrite("\tZway sensor not yet implemented: ".$d,3);
+		break;
 		
 		default:
 			$log->lwrite("\tZway unknown type: ".$dev_config[$i]['type'],2);

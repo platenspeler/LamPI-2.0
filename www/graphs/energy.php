@@ -1,7 +1,8 @@
 <?php 
-define('__ROOT__', dirname(dirname(__FILE__)));
-require_once(__ROOT__.'/frontend_cfg.php'); 
-require_once(__ROOT__.'/frontend_lib.php' );
+// define('__ROOT__', dirname(dirname(__FILE__)));
+require_once(dirname(__FILE__) .'/../frontend_cfg.php'); 
+require_once(dirname(__FILE__) .'/../frontend_lib.php' );
+
 // LamPI, Javascript/jQuery GUI for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
 // Author: M. Westenberg (mw12554 @ hotmail.com)
 // (c) M. Westenberg, all rights reserved

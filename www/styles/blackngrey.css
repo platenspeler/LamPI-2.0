@@ -62,7 +62,7 @@
 			position: absolute;
 			top: 5px;
 			width: 940px;
-			height: 70px;
+			height: 85px;
 			margin: auto;
 			padding: 5px;
 			margin-top: 0px;
@@ -76,7 +76,7 @@
 		*/
 		#gui_content {
 			position: absolute;
-			top: 90px;
+			top: 105px;
 			width: 815px;
 			height: 430px;
 			margin-left: 1px;
@@ -94,9 +94,9 @@
 		#gui_menu {
 			position: absolute;
 			left: 840px;
-;			top: 95px;
+;			top: 105px;
 			width: 120px;
-			height: 440px;
+			height: 430px;
 			background-color:#333;
 			vertical-align: top;
 		}
@@ -104,9 +104,9 @@
 		/* This is the area on the bottom where the user/program messages are displayed */
 		#gui_messages {
 			position: absolute;
-			top: 535px;
+			top: 550px;
 			width: 930px;
-			height: 40px;
+			height: 25px;
 			margin: auto;
 			padding: 10px;
 			margin-top: 10px;

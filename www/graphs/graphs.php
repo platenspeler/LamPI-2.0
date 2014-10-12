@@ -1,7 +1,7 @@
 <?php 
-define('__ROOT__', dirname(dirname(__FILE__)));
-require_once(__ROOT__.'/frontend_cfg.php'); 
-require_once(__ROOT__.'/frontend_lib.php' );
+
+require_once( dirname(__FILE__) .'/../frontend_cfg.php'); 
+require_once( dirname(__FILE__) .'/../frontend_lib.php' );
 // LamPI, Javascript/jQuery GUI for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
 // Author: M. Westenberg (mw12554 @ hotmail.com)
 // (c) M. Westenberg, all rights reserved
@@ -41,6 +41,7 @@ $log = new Logging();
 $logfile='/home/pi/log/TemPI.log';
 $log->lfile($logfile);
 $log->lwrite("Starting graph.php script. __ROOT__ is ".__ROOT__);
+$log->lwrite("Starting graph.php script. dirname(__FILE__) is ". dirname(__FILE__) );
 
 $apperr = "";				// Global Error. Just append something and it will be sent back
 $appmsg = "";				// Application Message (returned from backend to Client)
@@ -123,10 +124,10 @@ function make_graph ($type, $period, $sensors)
 	{
 		$log->lwrite("graphs.php:: make_graph ERROR, group of dir ".$output." not www-data but ".$grp['name'].", gid: ".filegroup($output));
 		$apperr="graphs.php:: make_graph ERROR, group of ".$output." not www-data";
-		$log->lwrite("make_graphs: Trying to set group rights for dir ".$output." only when pi is owner of the dir");
+		$log->lwrite("make_graph: Trying to set group rights for dir ".$output." only when pi is owner of the dir");
 		// Try to set the gid to the gid of the calling process (www-data);
 		$ownr = posix_getpwuid(fileowner($output));
-		$i = 'make_graphs: Cannot set group of '.$output.' to www-data. Please do "sudo chgrp www-data '.$output.'" from the commandline';
+		$i = 'make_graph: Cannot set group of '.$output.' to www-data. Please do "sudo chgrp www-data '.$output.'" from the commandline';
 		if ($ownr['name']=="pi") {
 			$log->lwrite("make_graphs: Try setting the group of ".$output." to ".posix_getgid() );
 			if (!chgrp ($output, posix_getgid() )) {
@@ -154,7 +155,7 @@ function make_graph ($type, $period, $sensors)
 		$i = 'Cannot set the permissions of directory, please do a "sudo chmod 775 '.$output.'" from the commandline';
 		$ownr = posix_getpwuid(fileowner($output));
 		if ($ownr['name']=="pi") {
-			$log->lwrite("make_graphs: Try setting the mode of ".$output." to 775" );
+			$log->lwrite("make_graph: Try setting the mode of ".$output." to 775" );
 			// We do nto return an unsuccessful value as we do not know
 			if (! chmod ($output, 0775 )) {
 				$log->lwrite($i);

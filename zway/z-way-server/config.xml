@@ -1,0 +1,16 @@
+<config>
+    <device>/dev/ttyAMA0</device>
+    <config-dir></config-dir>
+    <translations-dir></translations-dir>
+    <zddx-dir></zddx-dir>
+    <port>8083</port>
+    <http-root-dir>./htdocs</http-root-dir>
+    <automation-dir>automation</automation-dir>
+	<automation-file>automation/main.js</automation-file>
+    <shell-script-on-save-xml>sync</shell-script-on-save-xml>
+    <shell-script-on-save-http>sync</shell-script-on-save-http>
+    <log-file>/var/log/z-way-server.log</log-file>
+    <log-level>0</log-level>
+    <http-log-file>/var/log/z-way-server.log</http-log-file>
+    <http-log-level>0</http-log-level>
+</config>
