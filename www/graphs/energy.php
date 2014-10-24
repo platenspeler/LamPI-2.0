@@ -168,7 +168,6 @@ function make_energy_graph ($type, $period, $sensors)
 			$graphName="pwr_pha";
 			$valUnit="kWhr";
 		break;
-
 		default:
 			$log->lwrite("make_energy_graph:: Unknown graph type",1);
 	}

@@ -431,7 +431,9 @@ while ($noError)
 				$info = curl_getinfo($ch);
 				if (!empty($info['http_code'])) {
 					if ($info['http_code'] == 500 ) {
-						$log->lwrite("\tzway_dim_get returned http code 500",1);
+						$log->lwrite("\t*** zway_dim_get returned http code 500",1);
+						sleep($interval);
+						continue;
 					}
 				}
 			}
@@ -443,10 +445,10 @@ while ($noError)
 			}
 			// Could be a 500 error, timeout etc. that is considered a successful result value
 			// Make no change to the value of $zway_val if the result is not numerical
-			else if (!is_numeric($vv)) {
-				$log->lwrite("ERROR: zway_dim_val returned non numeric value: ".$vv);
-			}
-			// Default: zway_dim_val returned a non error value
+			//else if (!is_numeric($vv)) {
+			//	$log->lwrite("ERROR: zway_dim_val returned non numeric value: ".$vv);
+			//}
+			// Default: zway_dim_val returned a http value
 			else {
 				$info = curl_getinfo($ch);
 				if (!empty($info['http_code'])) {
@@ -459,10 +461,14 @@ while ($noError)
 						// Internal Error
 						case 500:
 							// This could be a sign of degrading webserver performance
-							$log->lwrite("\tzway_dim_val returned http code 500, internal error",1);
+							$log->lwrite("\t*** zway_dim_val returned http code 500, internal error",1);
+							sleep($interval);
+							continue;
 						break;
 						default:
-							$log->lwrite("\tzway_dim_val returned http code ".$info['http_code'],1);
+							$log->lwrite("\t*** zway_dim_val returned http code ".$info['http_code'],1);
+							sleep($interval);
+							continue;
 					}
 				}
 				else {
@@ -551,7 +557,7 @@ while ($noError)
 			// If the zway value changes but the gui value is valid::: We have a manual user action on the device
 			if (( $zway_val != $gui_val) && ($zway_config[$i]['gui_inValid'] <= 0))
 			{
-				$log->lwrite("\rSwitch update necessary");
+				$log->lwrite("\rSwitch update with value ".$zway_val);
 				$msg = "!R".$dev_config[$i]['room']."D".$d."F".$zway_val ;
 				$log->lwrite ("\tMessage to send: ".$msg,2);
 				send_2_daemon($msg, $daemonIP);									// XXX Does it update lastval as well?
@@ -572,7 +578,7 @@ while ($noError)
 		}// switch
 
 		// Print the status
-		$log->lwrite("device: ".$dev_config[$i]['name'].", id: ".$id.": gui old: ".$zway_config[$i]['gui_old'].", gui val: ".$gui_val.", zway val: ".$zway_val.", inValid: ".$zway_config[$i]['gui_inValid'],1);
+		$log->lwrite("device: ".$dev_config[$i]['name'].", id: ".$id.": gui old: ".$zway_config[$i]['gui_old'].", gui val: ".$gui_val.", zway val: ".$zway_val.", inValid: ".$zway_config[$i]['gui_inValid'],2);
 	}
 	
 	else {

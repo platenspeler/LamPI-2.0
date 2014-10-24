@@ -130,11 +130,11 @@ class Sensor {
 		// Energy Sensors
 			$exec_str  = "rrdtool create " . $db . " ";
 			$exec_str .= "--step 20 ";
-			if (array_key_exists('kw_hi_use', $sensor))			$exec_str .= "DS:kw_hi_use:COUNTER:600:0:999999999 ";
-			if (array_key_exists('kw_lo_use', $sensor))			$exec_str .= "DS:kw_lo_use:COUNTER:600:0:999999999 ";
-			if (array_key_exists('kw_hi_ret', $sensor))			$exec_str .= "DS:kw_hi_ret:COUNTER:600:0:999999999 ";
-			if (array_key_exists('kw_lo_ret', $sensor))			$exec_str .= "DS:kw_lo_ret:COUNTER:600:0:999999999 ";
-			if (array_key_exists('gas_use',   $sensor))			$exec_str .= "DS:gas_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_hi_use',  $sensor))		$exec_str .= "DS:kw_hi_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_lo_use',  $sensor))		$exec_str .= "DS:kw_lo_use:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_hi_ret',  $sensor))		$exec_str .= "DS:kw_hi_ret:COUNTER:600:0:999999999 ";
+			if (array_key_exists('kw_lo_ret',  $sensor))		$exec_str .= "DS:kw_lo_ret:COUNTER:600:0:999999999 ";
+			if (array_key_exists('gas_use',    $sensor))		$exec_str .= "DS:gas_use:COUNTER:600:0:999999999 ";
 			if (array_key_exists('kw_act_use', $sensor))		$exec_str .= "DS:kw_act_use:GAUGE:600:0:999999 ";
 			if (array_key_exists('kw_act_ret', $sensor))		$exec_str .= "DS:kw_act_ret:GAUGE:600:0:999999 ";
 			if (array_key_exists('kw_ph1_use', $sensor))		$exec_str .= "DS:kw_ph1_use:GAUGE:600:0:999999 ";
@@ -262,6 +262,7 @@ class Zwave {
 	}
 	
 	public function send($msg) {
+		
 	}
 }
 
@@ -1456,6 +1457,12 @@ function console_message($request) {
 			$ret .= system('/home/pi/scripts/PI-run -r -c &');
 		break;
 		
+		case 'sunrisesunset':
+			$ret = '<br>';
+			$ret .= "Sunrise on : ".date('H:i:s',date_sunrise(time(), SUNFUNCS_RET_TIMESTAMP, 52.13, 5.58, 90+50/60, 1))."<br>";
+			$ret .= "Sunset on : ".date('H:i:s',date_sunset(time(), SUNFUNCS_RET_TIMESTAMP, 52.13, 5.58, 90+50/60, 1))."<br>";
+		break;
+		
 		default:
 			$ret = "console_message:: Not recognized: <".$request.">";
 		break;
@@ -2491,7 +2498,7 @@ while (true):
 						
 						$zwcmd = array (				
 						'action' => "set",					// code for remote command. upd tells we update a value
-						'type'   => $device['type'],		// type either switch or dimemer.
+						'type'   => $device['type'],		// type either switch or dimmer.
 						'confirm' => "1",					// for Z-Wave may be 1
 						'gaddr'  => $device['gaddr'],
 						'uaddr'  => $dev."",				// From the sscanf command above, cast to string
@@ -2504,7 +2511,20 @@ while (true):
 						// We use $bcast array as it is available already (and not the coded Json $answer)
 						if (zwave_send($zwcmd) < 0) {	
 							$log->lwrite("main:: zwave_send error: ".$items[$i]['action']);
+							
 							// Send something to the connected GUI clients
+							$response = array (
+							'tcnt' => $tcnt."",
+							'type' => 'raw',
+							'action' => 'alert',
+							//'request' => $data['request'],
+							'message' => "Z-Wave message failed for device: ".$zwcmd['uaddr']." set to: ".$zwcmd['val'].""
+							);
+							if ( false === ($answer = json_encode($response)) ) {
+								$log->lwrite("ERROR main:: broadcast encode: <".$response['tcnt']
+									.",".$response['action'].">");
+							}
+							$sock->s_bcast($answer);				// broadcast this command back to connected clients
 						}
 						else {
 							$log->lwrite("main:: zwave_send command success: ".$items[$i]['action'],2);

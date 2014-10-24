@@ -354,7 +354,7 @@ function delete_room($room)
 	global $log;
 	
 	// We need to connect to the database for start
-	$apperr .= "room id: ".$room[id]." name: ".$room[name]."\n";
+	$apperr .= "room id: ".$room['id']." name: ".$room['name']."\n";
 	
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 	if ($mysqli->connect_errno) {

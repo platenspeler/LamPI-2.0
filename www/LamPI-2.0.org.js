@@ -345,7 +345,6 @@ function start_LAMP(){
   					'Confirm Create'
 			); // askForm
 			
-			
 		break;
 			
 		// Need this to delete a room
@@ -441,7 +440,6 @@ function start_LAMP(){
 		break;
 			
 		}
-		$( this ).removeClass ( 'hover' );
 	});
 
 
@@ -683,7 +681,6 @@ function start_LAMP(){
 		  }).disableSelection();
 		}//else
 	
-		$( this ).removeClass ( 'hover' );
 	}); // Handler
 
 
@@ -885,7 +882,7 @@ function start_LAMP(){
 			default:
 					alert("Error:: click id " + id + " not recognized");
 		} // switch
-		$( this ).removeClass ( 'hover' );
+		
 	});	// CT Timer Handler
 
 
@@ -1153,7 +1150,7 @@ function start_LAMP(){
         	}//stop function	 
 		  }).disableSelection();
 		}//else
-		$( this ).removeClass ( 'hover' );
+	
 	}); // Handler for remotes handsets
 
 
@@ -1448,7 +1445,7 @@ function start_LAMP(){
         	}//stop function	 
 		  }).disableSelection();
 		}//else
-		$( this ).removeClass ( 'hover' );
+	
 	}); // Handler for weathers
 
 
@@ -1551,7 +1548,7 @@ function start_LAMP(){
 
 
 	// ----------------------------------------------------------------------------------------
-	//	INIT WEBSOCKETS communication
+	//	Init websockets communication
 	//	Especially the handlers for websockets etc, that need to test the state of the connection
 	//	
 	function init_websockets() {
@@ -1636,7 +1633,7 @@ function start_LAMP(){
 				// The daemon wants to display something on the message area, or if the debug level
 				// is high enough will display through an alert.
 				case "alert":
-					if (debug>=1) alert("Server msg:: "+rcv.message);
+					if (debug>1) alert("Server msg:: "+rcv.message);
 				break;
 				
 				// Update messages can contain updates of devices, scenes, timers or settings.
@@ -2161,7 +2158,7 @@ function read_int(s) {								// Read only first in in string
 
 // ----------------------------------------------------------------------------
 // Alert Box
-// Difference from alert() is that this does not stop program execution of other
+// DIfference from alert() is that this does not stop program execution of other
 // threads. Also, breaks in lines not with \n but with </br>
 //
 function myAlert(msg, title) {
@@ -2506,11 +2503,12 @@ function init_rooms(cmd)
 	// First define the handler, and then activate_room() will make buttons for those devices
 	//<input type="submit" id="' + id + '" value= "'+ val + '" class="buttons">
 	$("#gui_header").empty();
-	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-	$("#gui_header").append(html_msg);
 						 
 	// For all rooms write a button to the document
-	var but = '';
+	$("#gui_header").append('<table border="0">');				// Write table def to DOM
+	var table = $( "#gui_header" ).children();					// to add to the table tree in DOM
+	var but = '<tr class="rroom">' ;
+	but += '<td>';
 	for (var i = 0; i < rooms.length; i++ ) 
 	{
 		room_name = rooms[i]['name'];
@@ -2522,13 +2520,14 @@ function init_rooms(cmd)
 			but += room_button(room_id, room_name);				// Write a room button to the document
 		}
 	}
-	$("#gui_header_content").append(but);
-
-	but  = '<input type="submit" id="Add"  value= "+"  class="cr_button new_button">'  ;
-	but += '<input type="submit" id="Del"  value= "X"  class="cr_button del_button">'  ;
+	but += "</td>";
+	but +=  "<td>" ;
+	but += '<input type="submit" id="Add" value= "+"  class="cr_button new_button">'  ;
+	but += '<input type="submit" id="Del" value= "X"  class="cr_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="cr_button help_button">'  ;
-	$("#gui_header_controls").append(but);
-		
+	but += "</td>";
+	$(table).append(but);	
+	
 	//	Display the devices for the room at the first time run
 	s_screen='room';
 	activate_room(s_room_id);		
@@ -2540,32 +2539,37 @@ function init_rooms(cmd)
 function init_scenes(cmd) 
 {
 	$("#gui_header").empty();
-	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-	$("#gui_header").append(html_msg);
-	
+	$("#gui_header").append('<table border="0">');			// Write table def to DOM
+	var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
 	var msg = 'Init Scenes, scenes read: ';			
-	var but = '';
+	var but = '<tr class="rroom">' ;	
+	but += "<td>";
 	for (var j = 0; j<scenes.length; j++ ){
+  
 		var scene_id = scenes[j]['id'];
 		var scene_name = scenes[j]['name'];
 		var scene_seq = scenes[j]['seq'];
 		msg += j + ', ';
 		if (scene_id == s_scene_id ) {
-			but +=  scene_button(scene_id, scene_name, "hover");
+//			but +=  "<td>" + scene_button(scene_id, scene_name, "hover") + "</td>" ;
+			but +=  scene_button(scene_id, scene_name, "hover") ;
 		}
 		else {
-			but +=  scene_button(scene_id, scene_name);
+//			but +=  "<td>" + scene_button(scene_id, scene_name) + "</td>" ;
+			but +=  scene_button(scene_id, scene_name) ;
 		}		
 	}
+	but += "</td>";
 	if (debug>1) message(msg);
-	$("#gui_header_content").append(but);
-	
 	// Add special buttons for controlling the scenes
-	but  = '<input type="submit" id="Add" value= "+" class="cs_button new_button">'  ;
+	// Add a scene
+	but +=  "<td>" ;
+	but += '<input type="submit" id="Add" value= "+" class="cs_button new_button">'  ;
 	but += '<input type="submit" id="Del" value= "X" class="cs_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="cs_button help_button">'  ;
-
-	$("#gui_header_controls").append(but);
+	but += "</td>";
+	
+	$(table).append(but);
 	s_screen='scene';					// Active sreen is a scene screen now
 	activate_scene(s_scene_id);			// Activate the first scene with the id s_scene_id
 }
@@ -2577,11 +2581,11 @@ function init_scenes(cmd)
 function init_timers(cmd) 
 {
 	$("#gui_header").empty();
-	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-	$("#gui_header").append(html_msg);
-	
+	$("#gui_header").append('<table border="0">');			// Write table def to DOM
+	var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
 	var msg = 'Init Timers, timers read: ';	
-	var but = '' ;
+	var but = '<tr class="rroom">' ;
+	but += '<td>';
 	for (var j = 0; j<timers.length; j++ ){
   
 		var timer_id = timers[j]['id'];
@@ -2596,16 +2600,15 @@ function init_timers(cmd)
 		}			
 	}
 	if (debug>1) message(msg);
-	$("#gui_header_content").append(but);
-	
+	but += '</td>';
 	// Add special buttons for controlling the scenes
 	// Add a scene
-	but  =  '';
+	but +=  '<td>';
 	but += '<input type="submit" id="Add" value= "+" class="ct_button new_button">'  ;
 	but += '<input type="submit" id="Del" value= "X" class="ct_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="ct_button help_button">'  ;
-	
-	$("#gui_header_controls").append(but);
+	but += '</td>';		
+	$(table).append(but);
 	s_screen = 'timer';
 	activate_timer(s_timer_id);
 }
@@ -2617,11 +2620,12 @@ function init_timers(cmd)
 function init_handsets(cmd) 
 {
 		$("#gui_header").empty();
-		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-		$("#gui_header").append(html_msg);
-		
+		$("#gui_header").append('<table border="0">');			// Write table def to DOM
+		var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
 		var msg = 'Init Handsets, handsets read: ';	
-		var but = '' ;
+
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
 		var hset_list=[];										// Array of names that we like to put in the header
 		for (var j = 0; j<handsets.length; j++ )
 		{
@@ -2644,18 +2648,21 @@ function init_handsets(cmd)
 				else {
 					but +=  handset_button(handset_id, handset_name);
 				}
+				
 				hset_list[hset_list.length]= handsets[j]['id'];
+				
 			}
 		}
 		if (debug>1) message(msg);
-		$("#gui_header_content").append(but);
-		
+				
+		but += '</td>';
 		// Add special buttons for controlling the handsets
-		but  =  '';
+		but +=  '<td>';
 		but += '<input type="submit" id="Add" value= "+" class="ch_button new_button">'  ;
 		but += '<input type="submit" id="Del" value= "X" class="ch_button del_button">'  ;
-		but += '<input type="submit" id="Help" value= "?" class="ch_button help_button">'  ;	
-		$("#gui_header_controls").append(but);
+		but += '<input type="submit" id="Help" value= "?" class="ch_button help_button">'  ;
+		but += '</td>';		
+		$(table).append(but);
 		
 		s_screen = 'handset';
 		activate_handset(s_handset_id);
@@ -2668,14 +2675,17 @@ function init_handsets(cmd)
 function init_weather(cmd) 
 {
 		$("#gui_header").empty();
-		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-		$("#gui_header").append(html_msg);
-		
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
 		var msg = 'Init weather, config read: ';
-		var but = '' ;
+		
+		// XXX class rroom?
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
 		
 		if (s_weather_id == "") { 
 			s_weather_id = weather[0]['location']; 
+			//alert("init_weather:: loc id: "+s_weather_id);
 		}
 		
 		var weather_list=[];
@@ -2701,13 +2711,14 @@ function init_weather(cmd)
 			}
 		}
 		if (debug>1) message(msg);
-		$("#gui_header_content").append(but);	
 		
-		but =  '';
-		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">';
-		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">';
+		but += '</td>';	
+		but +=  '<td>';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
 		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
-		$("#gui_header_controls").append(but);
+		but += '</td>';
+		$(table).append(but);	
 
 		
 		s_screen = 'weather';
@@ -2721,12 +2732,13 @@ function init_weather(cmd)
 function init_energy(cmd) 
 {
 		$("#gui_header").empty();
-		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-		$("#gui_header").append(html_msg);
-		
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
 		var msg = 'Init energy, config read: ';
-		var but = '';
-		$("#gui_header_content").append(but);
+		
+		// XXX class rroom?
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
 		
 		//if (s_weather_id == "") { 
 		//	s_weather_id = weather[0]['location']; 
@@ -2756,12 +2768,16 @@ function init_energy(cmd)
 		//	}
 		//}
 		if (debug>1) message(msg);
-		but= '';
-		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">';
-		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">';
+		
+		but += '</td>';	
+		but +=  '<td>';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
 		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
-		$("#gui_header_controls").append(but);	
+		but += '</td>';
+		$(table).append(but);	
 
+		
 		s_screen = 'energy';
 		activate_energy(s_energy_id);	
 }
@@ -2772,12 +2788,12 @@ function init_energy(cmd)
 function init_settings(cmd) 
 {
 		$("#gui_header").empty();
-		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
-		$("#gui_header").append(html_msg);
-		
+		$("#gui_header").append('<table border="0">');	// Write table def to DOM
+		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
 		var msg = 'Init Config, config read: ';	
 		// XXX rroom??
-		var but = '';
+		var but = '<tr class="rroom">' ;
+		but += '<td>';
 		for (var j = 0; j<settings.length; j++ ){
   
 			var setting_id = settings[j]['id'];
@@ -2794,12 +2810,11 @@ function init_settings(cmd)
 			}	
 		}
 		if (debug>1) message(msg);
-		$("#gui_header_content").append(but);
-
-		but = '';
+		but += '</td>';	
+		but +=  '<td>';
 		but += '<input type="submit" id="Help" value= "?" class="cc_button help_button">'  ;
 		but += '</td>';
-		$("#gui_header_controls").append(but);	
+		$(table).append(but);	
 		
 		s_screen = 'config';
 		activate_setting(s_setting_id);	
@@ -2927,7 +2942,7 @@ function activate_room(new_room_id, selectable)
 	// 	Clean the DOM area where we want to output devices
 	// Empty the parent works best in changing rooms
 	$("#gui_content").empty();
-	$("#gui_content").css( "overflow-y", "auto" );
+	$( "#gui_content" ).css( "overflow-y", "auto" );
 	// XXX We might have to destroy the old sliders, depending
 	// whether the memory s reused for the sliders or we keep on allocating new memory with every room change
 	html_msg = '<div id="gui_devices"></div>';
@@ -2942,7 +2957,6 @@ function activate_room(new_room_id, selectable)
 	var but = '<thead><tr class="switch">' ;
 	if (selectable == "Del") { but+= '<td colspan="2">' ; }
 		else {but += '<td>' };
-	// class dbuttons belongs to device screen and defines round corners etc.
 	but += '<input type="submit" id="Rx" value="X" class="dbuttons del_button" >'
 		+ '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
 		+ '</td>'
@@ -5733,7 +5747,7 @@ function activate_setting(sid)
 			var skin_help = "This option allows you to set the skin for your LamPI application. ";
 			skin_help += "It will allow you to make your own selection of skins in a /styles/yourskin.css file, ";
 			skin_help += "and make it the style of choice for your setting.<br><br>";
-			skin_help += "Note: Not supported on mobile devices!<br>";
+			skin_help += "Note: Not supportted on mobile devices!<br>";
 			skin_help += "Note: Better not choose a files for use on mobile devices ...<br><br>";
 			
 			$(table).append('<tr><td colspan="2"><span>' + skin_help + '</span>');		
@@ -5888,7 +5902,24 @@ function activate_setting(sid)
 			html_msg = '<table border="0">';
 			$( "#gui_console" ).append( html_msg );
 			var table = $( "#gui_console" ).children();		// to add to the table tree in DOM
-
+			
+			// Start writing the table code to DOM
+	
+			var but = '<thead><tr class="switch">' ;
+						
+			if (jqmobile == 1) {
+				but += '<td><input type="submit" id="Cc" value="Clients" class="dbuttons" ></td>';
+			}
+			else {
+				but += '<td>';
+				but += '<input type="submit" id="Cc" value="Clients" class="dbuttons" >';
+				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
+				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
+				but += '</td>';
+			}
+			$(table).append(but);
+			$(table).append('</tr>');
+			
 			// Create a few buttons and call frontend_set.php directly!!
 			// Cosmetically not the most beutiful solution but it works great for the moment
 			var but =  ''	
@@ -5898,25 +5929,6 @@ function activate_setting(sid)
 					+ '</td></tr></thead>'
 					;
 			$(table).append(but);
-
-			// Start writing the table code to DOM
-			var but = '<thead><tr class="switch">' ;
-						
-			if (jqmobile == 1) {
-				but += '<td><input type="submit" id="Cc" value="Clients" class="dbuttons" ></td>';
-			}
-			else {
-				but += '<td>';
-				but += '<input type="submit" id="Cc" value="Connected Clients" class="dbuttons" >';
-				but += '<input type="submit" id="Cs" value="Sunrise Sunset" class="dbuttons" >';
-				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
-				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
-				but += '</td>';
-			}
-			$(table).append(but);
-			$(table).append('</tr>');
-			
-
 
 			// Now define the callback function for this config screen
 			//
@@ -5952,20 +5964,7 @@ function activate_setting(sid)
 						message("Console Log request sent to server",1);
 						w_sock.send(JSON.stringify(client_msg));	
 					break;
-						
-					case "Cs":
-						var client_msg = {
-							tcnt: ++w_tcnt%1000,
-							action: 'console',
-							request: 'sunrisesunset'
-						}
-						console.log(client_msg);
-									
-						// Send the password back to the daemon
-						message("Console Sunrise/Sunset request sent to server",1);
-						w_sock.send(JSON.stringify(client_msg));
-					break;
-					
+
 					//
 					// Client button, list all active clients on the daemon
 					//	
@@ -6052,11 +6051,11 @@ function scene_button(id, val, hover)
 //
 function menu_button(id, val, hover) 
 {
-	var but = ''
-	+ '<td>'
-	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hm_button '+hover+'">'
-	+ '</td>'
-	return ( but );	
+			var but = ''
+			+ '<td>'
+			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hm_button ' + hover + '">'
+			+ '</td>'
+			return (  but );	
 }
 //
 // Print a timer button
@@ -6064,9 +6063,9 @@ function menu_button(id, val, hover)
 //
 function timer_button(id, val, hover) 
 {
-	var but = ''
-	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="ht_button '+hover+'">'
-	return ( but );	
+			var but = ''
+			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="ht_button ' + hover + '">'
+			return (  but );	
 }
 //
 // Print a handset button
@@ -6074,9 +6073,9 @@ function timer_button(id, val, hover)
 //
 function handset_button(id, val, hover) 
 {
-	var but = ''
-	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hh_button '+hover+'">'
-	return ( but );	
+			var but = ''
+			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hh_button ' + hover + '">'
+			return (  but );	
 }
 //
 // Print a weather button
@@ -6084,9 +6083,9 @@ function handset_button(id, val, hover)
 //
 function weather_button(id, val, hover) 
 {
-	var but = ''
-	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hw_button '+hover+'">'
-	return ( but );	
+			var but = ''
+			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hw_button ' + hover + '">'
+			return (  but );	
 }
 //
 // Re use of button class
@@ -6094,9 +6093,9 @@ function weather_button(id, val, hover)
 //
 function setting_button(id, val, hover) 
 {
-	var but = ''
-	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hc_button '+hover+'">'
-	return ( but );	
+			var but = ''
+			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hc_button ' + hover + '">'
+			return (  but );	
 }
 
 // ------------------------------------- DEVICES -----------------------------------------
