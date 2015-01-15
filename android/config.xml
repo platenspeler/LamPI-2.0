@@ -7,7 +7,7 @@
         id = "org.westenberg.lampi"
         version = "1.0.0">
 
-    <name>LamPI 1.9</name>
+    <name>LamPI 2.4</name>
 
     <description>
         LamPI Controller for 433MHz equipment
@@ -31,7 +31,7 @@ permission on your app, which PhoneGap requires.
     <preference name="permissions" value="none"/>
 -->
     <!-- Customize your app and platform with the preference element. -->
-    <preference name="phonegap-version" value="3.3.0" /> <!-- all: current version of PhoneGap -->
+    <preference name="phonegap-version" value="3.6.3" /> <!-- all: current version of PhoneGap -->
     <preference name="orientation" value="default" /> <!-- all: default means both landscape and portrait are enabled -->
     <preference name="target-device" value="universal" /> <!-- all: possible values handset, tablet, or universal -->
     <preference name="fullscreen" value="true" /> <!-- all: hides the status bar at the top of the screen -->
@@ -50,7 +50,7 @@ permission on your app, which PhoneGap requires.
     <!-- Plugins can also be added here. -->
 
 	<gap:plugin name="org.apache.cordova.file" />
-
+	<gap:plugin name="com.ququplay.websocket.websocket" version="0.1.0" /> <!-- android: Remove the version if always using the latest version. -->
 
     <!-- Define app icon for each platform. -->
     <icon src="icon.png" />

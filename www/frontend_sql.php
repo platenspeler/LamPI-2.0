@@ -1,7 +1,7 @@
 <?php
 define('__ROOT__', dirname(__FILE__)); 	// Find www root dir
 
-require_once( dirname(__FILE__) . '/../daemon/backend_cfg.php' );
+require_once( dirname(__FILE__) . '/../config/backend_cfg.php' );
 require_once( dirname(__FILE__) . '/frontend_lib.php' );
 
 /*	------------------------------------------------------------------------------	
@@ -16,7 +16,7 @@ require_once( dirname(__FILE__) . '/frontend_lib.php' );
 	Version 1.7 : Dec 2013
 	Version 1.8 : Jan 18, 2014
 	Version 1.9 : Mar 10, 2014
-	Version 2.1: Jul 31, 2014
+	Version 2.1 : Jul 31, 2014
 
 NOTE: Starting release 1.3 the functions in this file will be called by .php AJAX handlers
 	of the client side AND by the LamPI-daemon.php process. As of release 1.4 probably parts
@@ -88,63 +88,63 @@ function load_database()
 	}
 	//mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, gaddr, room, name, type, val, lastval, brand FROM devices";
+	$sqlCommand = "SELECT * FROM devices";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$devices[] = $row ;
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, name FROM rooms";
+	$sqlCommand = "SELECT * FROM rooms";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$rooms[] = $row ;
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, val, name, seq FROM scenes";
+	$sqlCommand = "SELECT * FROM scenes";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$scenes[] = $row ;
 	}
 	mysqli_free_result($query);
 
-	$sqlCommand = "SELECT id, name, scene, tstart, startd, endd, days, months, skip FROM timers";
+	$sqlCommand = "SELECT * FROM timers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$timers[] = $row ;
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, val, name FROM settings";
+	$sqlCommand = "SELECT * FROM settings";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$settings[] = $row ;
 	}
 	mysqli_free_result($query);	
 	
-	$sqlCommand = "SELECT id, name, brand, addr, unit, val, type, scene FROM handsets";
+	$sqlCommand = "SELECT * FROM handsets";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$handsets[] = $row ;
 	}
 	mysqli_free_result($query);
 
-	$sqlCommand = "SELECT id, name, fname FROM controllers";
+	$sqlCommand = "SELECT * FROM controllers";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$controllers[] = $row ;
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, name, fname FROM brands";
+	$sqlCommand = "SELECT * FROM brands";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$brands[] = $row ;
 	}
 	mysqli_free_result($query);
 	
-	$sqlCommand = "SELECT id, name, location, brand, address, channel, temperature, humidity, airpressure, windspeed, winddirection rainfall FROM weather";
+	$sqlCommand = "SELECT * FROM weather";
 	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$weather[] = $row ;
@@ -669,8 +669,7 @@ function store_handset($handset)
 	
 	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
 	{
-		$apperr .= "Error: Store handset, ";
-		$apperr .= "mysqli_query error" ;
+		$apperr .= "Error: Store_handset:: mysqli_query error: ";
 		mysqli_close($mysqli);
 		return (-1);
 	}

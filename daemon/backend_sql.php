@@ -1,6 +1,6 @@
 <?php 
-require_once( '../daemon/backend_cfg.php' );
-// require_once( '../daemon/backend_lib.php' );
+require_once( dirname(__FILE__) .'/../config/backend_cfg.php' );
+
 
 /*	------------------------------------------------------------------------------	
 	Note: Program to switch klikaanklikuit and coco equipment
@@ -16,7 +16,8 @@ require_once( '../daemon/backend_cfg.php' );
 	Version 1.9 : Mar 10, 2014
 	Version 2.0 : Jun 15, 2014
 	Version 2.1	: Jul 31, 2014
-	
+	Version 2.2 : Sep 15, 2014 Support for Z-Wave switches and dimmers
+	Version 2.4 : Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 	-------------------------------------------------------------------------------	*/
 
 
@@ -32,10 +33,10 @@ require_once( '../daemon/backend_cfg.php' );
 //
 function load_database()
 {
-	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php
-	global $dbname, $dbuser, $dbpass, $dbhost;	
+	// We assume that a database has been created by the user. host/name/passwd in backend_cfg.php	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	$config = array();
 	$devices = array();
@@ -48,55 +49,48 @@ function load_database()
 	$brands = array();
 	$weather = array();
 	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_database:: Failed to connect to MySQL on host ".$dbhost." (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-		return(-1);
-	}
-	$log->lwrite("load_database:: Connected to MySQL database",3);
-	
 	$sqlCommand = "SELECT * FROM devices";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $devices[] = $row ; }
 	mysqli_free_result($query);
 	
 	$sqlCommand = "SELECT * FROM rooms";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $rooms[] = $row ; }
 	mysqli_free_result($query);
 	
 	$sqlCommand = "SELECT * FROM scenes";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $scenes[] = $row ; }
 	mysqli_free_result($query);
 
 	$sqlCommand = "SELECT * FROM timers";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $timers[] = $row ; }
 	mysqli_free_result($query);
 	
 	$sqlCommand = "SELECT * FROM settings";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $settings[] = $row ; }
 	mysqli_free_result($query);	
 	
 	$sqlCommand = "SELECT * FROM handsets";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $handsets[] = $row ; }
 	mysqli_free_result($query);
 
 	$sqlCommand = "SELECT * FROM controllers";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $controllers[] = $row ; }
 	mysqli_free_result($query);
 	
 	$sqlCommand = "SELECT * FROM brands";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $brands[] = $row ; }
 	mysqli_free_result($query);
 	
 	$sqlCommand = "SELECT * FROM weather";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { $weather[] = $row ; }
 	mysqli_free_result($query);
 	$log->lwrite("load_database:: Done reading tables from MySQL database",3);
@@ -110,8 +104,7 @@ function load_database()
 	$config ['controllers']= $controllers;
 	$config ['brands']= $brands;
 	$config ['weather']= $weather;
-	
-	mysqli_close($mysqli);
+
 	$apperr = "";										// No error
 	return ($config);
 }
@@ -126,24 +119,17 @@ function read_device($name)
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	$res = array();
-	// We need to connect to the database for start
-
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("read_device:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-	}
 	
 	$sqlCommand = "SELECT * FROM devices WHERE name='$name' ";
 
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$res[] = $row ;
 	}
-
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
 	
 	// NOTE: Assuming every device name is unique, we return ONLY the first device
 	//	remember for seq only to use result['seq'] for sequence only
@@ -166,26 +152,18 @@ function load_devices()
 {
 	global $log, $debug;
 	global $apperr;
-	global $dbname, $dbuser, $dbpass, $dbhost;
+	global $pisql;
 	
 	$devices = array();
-
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_devices:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
-		return(-1);
-	}
 	
 	$sqlCommand = "SELECT * FROM devices";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 
 		$devices[] = $row ;
 	}
 	// There will be an array returned, even if we only have ONE result
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
 	
 	if (count($devices) == 0) {	
 		return(-1);
@@ -201,38 +179,30 @@ function load_devices()
 // ----------------------------------------------------------------------------------- */
 function add_device($device)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	// We need to connect to the database for start
-	$apperr = "add_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
+	$apperr = "add_device:: id: ".$device['id']." room: ".$device['room']." val: ".$device['val']."\n";
 	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("add_device:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		return (-1);
-	}
-	
-	if (!$mysqli->query("INSERT INTO devices (id, gaddr, room, name, type, val, lastval, brand) VALUES ('" 
-							. $device[id] . "','" 
-							. $device[gaddr] . "','"
-							. $device[room] . "','"
-							. $device[name] . "','"
-							. $device[type] . "','"
-							. $device[val] . "','"
-							. $device[lastval] . "','"
-							. $device[brand] . "')"
+	if (!$pisql->query("INSERT INTO devices (id, unit, gaddr, room, name, type, val, lastval, brand) VALUES ('" 
+							. $device['id'] . "','" 
+							. $device['unit'] . "','"
+							. $device['gaddr'] . "','"
+							. $device['room'] . "','"
+							. $device['name'] . "','"
+							. $device['type'] . "','"
+							. $device['val'] . "','"
+							. $device['lastval'] . "','"
+							. $device['brand'] . "')"
 							) 
 			)
 	{
-		$apperr .= "mysqli_query INSERT error(" . $mysqli->errno . ") " . $mysqli->error . "\n" ;
-		mysqli_close($mysqli);
+		$apperr .= "mysqli_query INSERT error(" . $pisql->errno . ") " . $pisql->error . "\n" ;
+		$log->lwrite("add_device:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(6);
 }
 
@@ -244,62 +214,46 @@ function add_device($device)
 	
 	-----------------------------------------------------------------------------------	*/
 function delete_device($device)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
+{	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	// We need to connect to the database for start
-	$apperr = "delete_device:: id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("delete_device:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-	}
-	
+	$apperr = "delete_device:: id: ".$device['id']." room: ".$device['room']." val: ".$device['val']."\n";
+
 	$msg = "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'";
 	$apperr .= $msg;
-	if (!mysqli_query($mysqli, "DELETE FROM devices WHERE id='$device[id]' AND room='$device[room]'" ))
+	if (!mysqli_query($pisql, $msg ))
 	{
 		$apperr .= "mysqli_query error" ;
-
+		$log->lwrite("delete_device:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
+		return(-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(4);
 }
 
 
 // ----------------------------------------------------------------------------------
 //
-// Store a device object as received from the ajax call and update mySQL
+// Store a device object as received from the ajax call or daemon and update mySQL
+// Key for the update function is that the room and the id match
 //
 function store_device($device)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr, $appmsg;
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
 	$apperr .= "store_device:: device id: ".$device[id]." room: ".$device[room]." val: ".$device[val]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-		return (-1);
-	}
-	
+
 	// Update the database
-	if (!mysqli_query($mysqli,"UPDATE devices SET gaddr='{$device[gaddr]}', val='{$device[val]}', lastval='{$device[lastval]}', name='{$device[name]}', brand='{$device[brand]}' WHERE room='$device[room]' AND id='$device[id]'" ))
+	if (!mysqli_query($pisql,"UPDATE devices SET unit='{$device['unit']}',gaddr='{$device['gaddr']}', val='{$device['val']}', lastval='{$device['lastval']}', name='{$device['name']}', brand='{$device['brand']}' WHERE room='$device[room]' AND id='$device[id]'" ))
 	{
 		$apperr .= "mysqli_query error" ;
-//		$apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
+		$log->lwrite("store_device:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(3);
 }
 
@@ -312,32 +266,24 @@ function store_device($device)
 // ----------------------------------------------------------------------------------- */
 function add_room($room)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	// We need to connect to the database for start
-	$apperr = "add_room:: id: ".$room[id]." name: ".$room[name]."\n";
+	$apperr = "add_room:: id: ".$room['id']." name: ".$room['name']."\n";
 	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("add_room:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-		return (-1);
-	}
-	
-	if (!$mysqli->query("INSERT INTO rooms (id, name) VALUES ('" 
-							. $room[id]	. "','" 
-							. $room[name] . "')"
+	if (!$pisql->query("INSERT INTO rooms (id, name) VALUES ('" 
+							. $room['id']	. "','" 
+							. $room['name'] . "')"
 							) 
 			)
 	{
-		$apperr .= "mysqli_query INSERT error(" . $mysqli->errno . ") " . $mysqli->error . "\n" ;
-		mysqli_close($mysqli);
+		$apperr .= "mysqli_query INSERT error(" . $pisql->errno . ") " . $pisql->error . "\n" ;
+		$log->lwrite("add_room:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 		return (-1);
 	}
 	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(7);
 }
 
@@ -348,27 +294,19 @@ function add_room($room)
 	
 	-----------------------------------------------------------------------------------	*/
 function delete_room($room)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
+{	
 	global $apperr;
 	global $log;
-	
-	// We need to connect to the database for start
-	$apperr .= "room id: ".$room['id']." name: ".$room['name']."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("delete_room:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-	}
+	global $pisql;
 	
 	$msg = "DELETE FROM rooms WHERE id='$room[id]' ";
 	$apperr .= $msg;
-	if (!mysqli_query($mysqli, "DELETE FROM rooms WHERE id='$room[id]' " ))
+	if (!mysqli_query($pisql, $msg ))
 	{
 		$apperr .= "mysqli_query error" ;
+		$log->lwrite("delete_room:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
+		return(-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(10);
 }
 
@@ -380,27 +318,19 @@ function delete_room($room)
 //	-----------------------------------------------------------------------------------
 function read_scene($name)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	$res = array();
-	// We need to connect to the database for start
-
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("read_scene:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-	}
 	
 	$sqlCommand = "SELECT id, val, name, seq FROM scenes WHERE name='$name' ";
-	//$sqlCommand = "SELECT seq FROM scenes WHERE name='$name' ";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$res[] = $row ;
 	}
 
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
 	
 	// NOTE: Assuming every sequence/scene name is unique, we return ONLY the first scene
 	//	remember for seq only to use result['seq'] for sequence only
@@ -430,27 +360,18 @@ function load_scenes()
 {
 	global $log, $debug;
 	global $apperr;
-	global $dbname, $dbuser, $dbpass, $dbhost;
+	global $pisql;
 	
 	$config = array();
 	$scenes = array();
 
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_scenes:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error);
-		return(-1);
-	}
-	
 	$sqlCommand = "SELECT * FROM scenes";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
-
 		$scenes[] = $row ;
 	}
 	// There will be an array returned, even if we only have ONE result
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
 	
 	if (count($scenes) == 0) {	
 		return(-1);
@@ -464,7 +385,9 @@ function load_scenes()
 // Find a single name in the scene database array opject.
 function load_scene($name)
 {
+	global $pisql;
 	global $log, $debug;
+	
 	$scenes = load_scenes();
 	if (count($scenes) == 0) return(-1);
 
@@ -486,34 +409,25 @@ function load_scene($name)
 // ----------------------------------------------------------------------------------- */
 function add_scene($scene)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	// We need to connect to the database for start
-	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name] . "\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("add_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-		return (-1);
-	}
-	
-	if (!$mysqli->query("INSERT INTO scenes (id, val, name, seq) VALUES ('" 
-							. $scene[id] . "','" 
-							. $scene[val]. "','"
-							. $scene[name]. "','"
-							. $scene[seq]. "')"
+	$apperr .= "scene id: " . $scene['id'] . " name: " . $scene['name'] . "\n";
+
+	if (!$pisql->query("INSERT INTO scenes (id, val, name, seq) VALUES ('" 
+							. $scene['id'] . "','" 
+							. $scene['val']. "','"
+							. $scene['name']. "','"
+							. $scene['seq']. "')"
 							) 
 			)
 	{
-		$apperr .= "mysqli_query INSERT error(" . $mysqli->errno . ") " . $mysqli->error . "\n" ;
-		mysqli_close($mysqli);
+		$apperr .= "mysqli_query INSERT error(" . $pisql->errno . ") " . $pisql->error . "\n" ;
+		$log->lwrite("add_scene:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(9);
 }
 
@@ -527,27 +441,18 @@ function add_scene($scene)
 //	-----------------------------------------------------------------------------------
 function delete_scene($scene)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
-	$apperr .= "scene id: " . $scene[id] . " name: " . $scene[name]  . "\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("delete_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-	}
-	
+	$apperr .= "scene id: " . $scene['id'] . " name: " . $scene['name']  . "\n";
 	$msg = "DELETE FROM scenes WHERE id='$scene[id]' ";
 	$apperr .= $msg;
-	if (!mysqli_query($mysqli, "DELETE FROM scenes WHERE id='$scene[id]' " ))
+	if (!mysqli_query($pisql, $msg ))
 	{
 		$apperr .= "mysqli_query error" ;
-
+		$log->lwrite("delete_scene:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(11);
 }
 
@@ -559,30 +464,19 @@ function delete_scene($scene)
 //	-----------------------------------------------------------------------------------
 function store_scene($scene)
 {	
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr, $log;
+	global $pisql;
+	$apperr .= "Scene id: ".$scene['id']." name: ".$scene['name']." val: ".$scene['val'].", seq".$scene['seq']."\n";
 	
-	// We need to connect to the database for start
-	$apperr .= "Scene id: ".$scene[id]." name: ".$scene[name]." val: ".$scene[val].", seq".$scene[seq]."\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("store_scene:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-		return (-1);
-	}
-//
-	$test = "UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE id='$scene[id]' ";
-	$apperr .= $test;
-	if (!mysqli_query($mysqli,"UPDATE scenes SET val='{$scene[val]}', name='{$scene[name]}', seq='{$scene[seq]}' WHERE  id='$scene[id]' " ))
+	$str = "UPDATE scenes SET val='{$scene['val']}', name='{$scene['name']}', seq='{$scene['seq']}' WHERE  id='$scene[id]' ";
+	$apperr .= $str;
+	if (!mysqli_query($pisql, $str))
 	{
 		$apperr .= "Error: Store scene, ";
 		$apperr .= "mysqli_query error" ;
-		mysqli_close($mysqli);
+		$log->lwrite("store_scene:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error, 1);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(8);
 }
 
@@ -599,31 +493,31 @@ function store_scene($scene)
  -------------------------------------------------------------------------------------*/
 function load_timers()
 {
-	 // We assume that a database has been created by the user
-	global $dbname;
-	global $dbuser;
-	global $dbpass;
-	global $dbhost;
+	// We assume that a database has been created by the user
 	global $log;
-	
-	$config = array();
+	global $pisql;
+	global $dbhost, $dbuser, $dbpass, $dbname;
 	$timers = array();
 	
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_timers:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error);
-		return(-1);
+	if (!$pisql->ping()) {
+		$log->lwrite("load_timers:: Making new pisql connection", 1);
+		mysqli_close($pisql);
+		$pisql = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+    }
+	// If there is an error 
+	if ($pisql->connect_errno) {
+		$log->lwrite("load_timers:: Failed to connect to MySQL: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
+		return (-1);
 	}
 	
 	$sqlCommand = "SELECT * FROM timers";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$timers[] = $row ;
 	}
 	
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
+	$log->lwrite("load_timers:: Returning timers", 2);
 	return($timers);
 }
 
@@ -633,38 +527,31 @@ function load_timers()
 //
 // ----------------------------------------------------------------------------------- */
 function add_timer($timer)
-{
-	global $dbname, $dbuser, $dbpass, $dbhost;	
+{	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
 	// We need to connect to the database for start
-	$apperr .= "timer id: " . $timer[id] . " name: " . $timer[name] . "\n";
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("add_timeer:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error, 1);
-		return (-1);
-	}
-	if (!$mysqli->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months, skip) VALUES ('" 
-							. $timer[id]. "','" 
-							. $timer[name]. "','"
-							. $timer[scene]. "','"
-							. $timer[tstart]. "','"
-							. $timer[startd]. "','"
-							. $timer[endd]. "','"
-							. $timer[days]. "','"
-							. $timer[months]. "','"
-							. $timer[skip]. "')"
+	$apperr .= "timer id: " . $timer['id'] . " name: " . $timer['name'] . "\n";
+
+	if (!$pisql->query("INSERT INTO timers (id, name, scene, tstart, startd, endd, days, months, skip) VALUES ('" 
+							. $timer['id']. "','" 
+							. $timer['name']. "','"
+							. $timer['scene']. "','"
+							. $timer['tstart']. "','"
+							. $timer['startd']. "','"
+							. $timer['endd']. "','"
+							. $timer['days']. "','"
+							. $timer['months']. "','"
+							. $timer['skip']. "')"
 							) 
 			)
 	{
-		$apperr .= "mysqli_query INSERT error(" . $mysqli->errno . ") " . $mysqli->error . "\n" ;
-		mysqli_close($mysqli);
+		$apperr .= "mysqli_query INSERT error(" . $pisql->errno . ") " . $pisql->error . "\n" ;
+		$log->lwrite("add_timer:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
 		return (-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(12);
 }
 
@@ -677,24 +564,18 @@ function add_timer($timer)
 //	-----------------------------------------------------------------------------------
 function delete_timer($timer)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
 	$apperr .= "timer id: ".$timer['id']." name: ".$timer['name']."\n";
 	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("delete_timer:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-	}
-	if (!mysqli_query($mysqli, "DELETE FROM timers WHERE id='$timer[id]' " ))
+	if (!mysqli_query($pisql, "DELETE FROM timers WHERE id='$timer[id]' " ))
 	{
 		$apperr .= "delete_timer:: mysqli_query error for timer: ".$timer['name'] ;
+		$log->lwrite("delete_timer:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
 		return(-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(11);
 }
 
@@ -705,28 +586,19 @@ function delete_timer($timer)
 //	-----------------------------------------------------------------------------------
 function store_timer($timer)
 {	
-	global $dbname, $dbuser, $dbpass, $dbhost;	
+	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("store_timer:: Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error , 1);
-		return (-1);
-	}
-	if (!mysqli_query($mysqli,"UPDATE timers SET name={$timer['name']}, scene={$timer['scene']}, tstart={$timer['tstart']}, startd={$timer['startd']}, endd={$timer['endd']}, days={$timer['days']}, months={$timer['months']}, skip={$timer['skip']} WHERE  id='$timer[id]' " ))
+	$str = "UPDATE timers SET name='{$timer['name']}', scene='{$timer['scene']}', tstart='{$timer['tstart']}', startd='{$timer['startd']}', endd='{$timer['endd']}', days='{$timer['days']}', months='{$timer['months']}', skip='{$timer['skip']}' WHERE  id='$timer[id]' " ;
+	if (!mysqli_query($pisql, $str ))
 	{
 		$apperr .= "Error: Store timer, ";
-		$apperr .= "mysqli_query error" ;
-	//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
+		$apperr .= "mysqli_query error";
+		$log->lwrite("store_timer:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
 		return (-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(13);
 }
 
@@ -746,34 +618,21 @@ function load_handsets()
 	global $apperr;
 	global $debug;
 	global $log;
- 	// We assume that a database has been created by the user
-	global $dbname;
-	global $dbuser;
-	global $dbpass;
-	global $dbhost;
+	global $pisql;
 	
 	$config = array();
 	$handsets = array();
 	
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("load_handsets:: Failed to connect to MySQL: (".$mysqli->connect_errno . ") ".$mysqli->connect_error);
-		return(-1);
-	}
-	
 	$sqlCommand = "SELECT * FROM handsets";
-	$query = mysqli_query($mysqli, $sqlCommand) or die (mysqli_error());
+	$query = mysqli_query($pisql, $sqlCommand) or die (mysqli_error());
 	while ($row = mysqli_fetch_assoc($query)) { 
 		$handsets[] = $row ;
 	}
-	if ($debug>1) $log->lwrite("load_handsets:: loaded MySQL handsets object");
+	$log->lwrite("load_handsets:: loaded MySQL handsets object",2);
 	
 	mysqli_free_result($query);
-	mysqli_close($mysqli);
 	return($handsets);
 }
-
 
 
 // ----------------------------------------------------------------------------------
@@ -785,37 +644,27 @@ function add_handset($handset)
 {
 	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
-	$log->lwrite("add_handset id: ".$handset[id]." name: ".$handset[name].", addr".$handset[addr]."\n",2);
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("add_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		mysqli_close($mysqli);
-		return (-1);
-	}
-	
-	if (!$mysqli->query("INSERT INTO handsets (id, name, brand, addr, unit, val, type, scene) VALUES ('" 
-							. $handset[id] . "','" 
-							. $handset[name]. "','"
-							. $handset[brand]. "','"
-							. $handset[addr]. "','"
-							. $handset[unit]. "','"
-							. $handset[val]. "','"
-							. $handset[type]. "','"
-							. $handset[seq]. "')"
+	$log->lwrite("add_handset id: ".$handset['id']." name: ".$handset['name'].", addr".$handset['addr']."\n",2);
+
+	if (!$pisql->query("INSERT INTO handsets (id, name, brand, addr, unit, val, type, scene) VALUES ('" 
+							. $handset['id'] . "','" 
+							. $handset['name']. "','"
+							. $handset['brand']. "','"
+							. $handset['addr']. "','"
+							. $handset['unit']. "','"
+							. $handset['val']. "','"
+							. $handset['type']. "','"
+							. $handset['seq']. "')"
 							) 
 			)
 	{
-		$log->lwrite("mysqli_query INSERT error(".$mysqli->errno.") ".$mysqli->error."\n",1);
-		mysqli_close($mysqli);
+		$log->lwrite("mysqli_query INSERT error(".$pisql->errno.") ".$pisql->error."\n",1);
 		return (-1);
 	}
-	mysqli_close($mysqli);
 	return(17);
 }
-
 
 
 /*	-----------------------------------------------------------------------------------
@@ -826,29 +675,18 @@ function add_handset($handset)
 	-----------------------------------------------------------------------------------	*/
 function delete_handset($handset)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
-	$log->lwrite("delete_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
-	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("delete_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		mysqli_close($mysqli);
-		return (-1);
-	}
+	$log->lwrite("delete_handset:: id: ".$handset['id']." name: ".$handset['name']."\n",2);
 
-	if (!mysqli_query($mysqli, "DELETE FROM handsets WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' "))
+	if (!mysqli_query($pisql, "DELETE FROM handsets WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' "))
 	{
-		mysqli_close($mysqli);
+		$log->lwrite("delete_handset:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
 		return (-1);
 	}
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(1);
 }
-
 
 
 // -----------------------------------------------------------------------------------
@@ -857,28 +695,18 @@ function delete_handset($handset)
 //	-----------------------------------------------------------------------------------
 function store_handset($handset)
 {	
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $log;
+	global $pisql;
 	
 	$log->lwrite("store_handset:: id: ".$handset[id]." name: ".$handset[name]."\n",2);
-	// We need to connect to the database for start
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("store_handset:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		mysqli_close($mysqli);
-		return (-1);
-	}
 
-	if (!mysqli_query($mysqli,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
+	if (!mysqli_query($pisql,"UPDATE handsets SET brand='{$handset[brand]}', addr='{$handset[addr]}',  name='{$handset[name]}', type='{$handset[type]}', scene='{$handset[scene]}' WHERE id='$handset[id]' AND unit='$handset[unit]' AND val='$handset[val]' " ))
 	{
-		mysqli_close($mysqli);
+		$log->lwrite("store_handset:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
 		return (-1);
 	}
-	mysqli_close($mysqli);
 	return(15);
 }
-
-
 
 
 // -----------------------------------------------------------------------------------
@@ -887,117 +715,88 @@ function store_handset($handset)
 //	-----------------------------------------------------------------------------------	
 function store_setting($setting)
 {
-	global $dbname, $dbuser, $dbpass, $dbhost;	
 	global $apperr;
 	global $log;
+	global $pisql;
 	
-	// We need to connect to the database for start
 	$log->lwrite("store_setting id: ".$setting['id']." name: ".$setting['name']." val: ".$setting['val']."\n",2);
 	
-	$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-	if ($mysqli->connect_errno) {
-		$log->lwrite("store_settings:: Failed to connect to MySQL: (".$mysqli->connect_errno.") ".$mysqli->connect_error,1);
-		return (-1);
-	}
-	
-	$test = "UPDATE settings SET val='{$setting[val]}' WHERE id='$setting[id]' ";
-	$apperr .= $test;
-	if (!mysqli_query($mysqli,"UPDATE settings SET val='{$setting[val]}' WHERE  id='$setting[id]' " ))
+	$msg = "UPDATE settings SET val='{$setting['val']}' WHERE id='$setting[id]' ";
+	$apperr .= $msg;
+	if (!mysqli_query($pisql, $msg))
 	{
-		$apperr .= "mysqli_query error" ;
-//		apperr .= "mysqli_query Error: " . mysqli_error($mysqli) ;
-		mysqli_close($mysqli);
-		return (-1);
+		$apperr .= "mysqli_query error";
+		$log->lwrite("store_setting:: Query Error: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
+		return(-1);
 	}
-	
-//	mysqli_free_result($result);
-	mysqli_close($mysqli);
 	return(5);
 }
 
 
-
 // -------------------------------------------------------------------------------
 // DBASE_PARSE()
+// ALL (!) database functions to be called by the GUI are parsed in this function.
 //
 function dbase_parse($cmd,$message)
 {
-	global $log;
-	global $apperr, $appmsg;
-	$log->lwrite("dbase_parse:: received cmd: ".$cmd);
-	$log->lwrite("dbase_parse:: message: ".$message);
+	global $pisql, $dbhost, $dbuser, $dbpass, $dbname;
+	global $log;									// Used by daemon
+	global $apperr, $appmsg;						// For ajax usage
+	
+	if ( (!$pisql) || (!$pisql->ping()) ) {
+		$log->lwrite("dbase_parse:: Ping failed, making new pisql connection to server", 1);
+		$pisql = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+    }
+	// If there is an error 
+	if ($pisql->connect_errno) {
+		$log->lwrite("dbase_parse:: Failed to connect to MySQL: (".$pisql->connect_errno.") ".$pisql->connect_error,1);
+		return (-1);
+	}
+	// For logging only	
+	if (is_array($message)) {
+		$str="";
+		foreach ($message as $key => $val) {
+			$str.=" {".$key.":".$val."}," ;
+		}
+		$log->lwrite("dbase_parse:: ".$cmd.": ".$str,1);
+	}
+	else {
+		$log->lwrite("dbase_parse:: message: ".$cmd.": ".$message,1);
+	}
+	//
+	// Depending on $cmd execute database function
 	switch($cmd)
 	{
+		// Database
+		case "load_database":	$ret= load_database(); break;
 		// Device
-		case "load_devices":
-			$ret= load_devices();
-		break;
-		case "add_device":
-			$ret= add_device($message);
-		break;
-		case "delete_device":
-			$ret= delete_device($message);
-		break;
-		case "store_device":
-			$ret= store_device($message);
-		break;
+		case "load_devices":	$ret= load_devices(); break;
+		case "add_device":		$ret= add_device($message); break;
+		case "delete_device":	$ret= delete_device($message); break;
+		case "store_device":	$ret= store_device($message); break;
 		// Room
-		case "add_room":
-			$ret= add_room($message);
-		break;
-		case "delete_room":
-			$ret= delete_room($message);
-		break;
+		case "add_room":		$ret= add_room($message); break;
+		case "delete_room":		$ret= delete_room($message); break;
 		// Scene
-		case "read_scene":
-			$ret= load_scene($message);
-		break;
-		case "load_scenes":
-			$ret= load_scenes();
-		break;
-		case "add_scene":
-			$ret= add_scene($message);
-		break;
-		case "delete_scene":
-			$ret= delete_scene($message);
-		break;
-		case "upd_scene":
-			$ret= upd_scene($message);
-		break;
-		case "store_scene":
-			$ret= store_scene($message);
-		break;
+		case "read_scene":		$ret= load_scene($message); break;
+		case "load_scenes":		$ret= load_scenes(); break;
+		case "add_scene":		$ret= add_scene($message); break;
+		case "delete_scene":	$ret= delete_scene($message); break;
+		case "upd_scene":		$ret= upd_scene($message); break;
+		case "store_scene":		$ret= store_scene($message); break;
 		// Timer
-		case "add_timer":
-			$ret= add_timer($message);
-		break;
-		case "delete_timer":
-			$ret= delete_timer($message);
-		break;
-		case "store_timer":
-			$ret= store_timer($message);
-		break;
+		case "add_timer":		$ret= add_timer($message); break;
+		case "delete_timer":	$ret= delete_timer($message); break;
+		case "store_timer":		$ret= store_timer($message); break;
 		// Handset
-		case "add_handset":
-			$ret= add_handset($message);
-		break;
-		case "delete_handset":
-			$ret= delete_handset($message);
-		break;
-		case "store_handset":
-			$ret= store_handset($message);
-		break;
+		case "add_handset":		$ret= add_handset($message); break;
+		case "delete_handset":	$ret= delete_handset($message); break;
+		case "store_handset":	$ret= store_handset($message); break;
 		// Weather
-		case "add_weather":
-			$ret= add_weather($message);
-		break;
-		case "delete_weather":
-			$ret= delete_weather($message);
-		break;
+		case "add_weather":		$ret= add_weather($message); break;
+		case "delete_weather":	$ret= delete_weather($message); break;
 		// Setting
-		case "store_setting":
-			$ret= store_setting($message);
-		break;
+		case "store_setting":	$ret= store_setting($message); break;
 		
 		default:
 	}

@@ -1,6 +1,6 @@
 <?php
 
-require_once( '../daemon/backend_cfg.php' );
+require_once( '../config/backend_cfg.php' );
 require_once( '../daemon/backend_lib.php' );
 require_once( '../daemon/backend_sql.php' );
 

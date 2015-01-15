@@ -1,6 +1,6 @@
 <?php 
-// define('__ROOT__', dirname(dirname(__FILE__)));
-require_once(dirname(__FILE__) .'/../frontend_cfg.php'); 
+//define('__ROOT__', dirname(dirname(__FILE__)));
+require_once(dirname(__FILE__) .'/../../config/backend_cfg.php'); 
 require_once(dirname(__FILE__) .'/../frontend_lib.php' );
 
 // LamPI, Javascript/jQuery GUI for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
@@ -172,6 +172,31 @@ function make_energy_graph ($type, $period, $sensors)
 			$log->lwrite("make_energy_graph:: Unknown graph type",1);
 	}
 	
+	switch($period) {
+		case '1h':
+			$pstep='';
+		break;
+		case '1d':
+			$pstep='';
+		break;
+		case '1w':
+			$log->lwrite("make_energy_graph:: Using override step for 1w period ",1);
+			$pstep=':step=21600';						// Nr of seconds in 6 hrs
+			//$pstep=':step=8640';
+		break;
+		case '1m':
+			$log->lwrite("make_energy_graph:: Using override step for 1m period ",1);
+			$pstep=':step=86400';						// Nr of seconds in a day
+			//$pstep=':step=8640';
+		break;
+		case '1m':
+			$pstep='';
+		break;
+		default:
+			$pstep='';
+			$log->lwrite("make_energy_graph:: Unknown period definition ".$period,1);
+	}
+	
 	// Make all definitions for the sensors, each sensor has its own DEF line
 	// and its own LINE part 
 	$log->lwrite("make_energy_graph:: There are ".count($sensors)." sensors in sensors var",2);
@@ -183,9 +208,9 @@ function make_energy_graph ($type, $period, $sensors)
 		else {
 			$eol="";
 		}
-		// if (($i>0) && ($type == 'E_PHA')) $valStack=":STACK";	// Optional STacking of graphs
+		// if (($i>0) && ($type == 'E_PHA')) $valStack=":STACK";	// Optional Stacking of graphs
 		// Define which sensors to graph
-		$DEFpart .= 'DEF:t'.($i+1).'='.$rrd_dir.$rrd_db.':'.$sensors[$i].':AVERAGE ';
+		$DEFpart .= 'DEF:t'.($i+1).'='.$rrd_dir.$rrd_db.':'.$sensors[$i].':AVERAGE'.$pstep.' ';
 		// Update graph color based on colors in $graphColor array ($i modulus sizeof array)
 		$LINEpart .= 'LINE2:t'.($i+1).'#'.$graphColor[$i % count($graphColor)].':"'.$sensors[$i].$eol.$valStack.'" ';
 		// this line is sensitive to correct syntax, especially the last part

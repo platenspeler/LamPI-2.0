@@ -1,6 +1,6 @@
 <?php 
-require_once ( 'frontend_cfg.php' );
-require_once ( 'frontend_lib.php' );
+require_once ( dirname(__FILE__) . '/../config/backend_cfg.php' );
+require_once ( dirname(__FILE__) . '/frontend_lib.php' );
 
 // This is the backend php script for th e handling of ICS-1000 communication.
 // I do have the program more or less up and running, but one of the near future
@@ -214,7 +214,7 @@ function get_parse()
 			$action = $val;
 	break;	
 	case "message":
-			$icsmsg=$val;
+			$icsmsg = $val;
 	break;
 	case "debug":
 		$_SESSION['debug'] = $val;
@@ -272,20 +272,13 @@ $ret = get_parse();
 switch($action)
 {	case "kaku":
 	case "lamp":
+	case "scene":
 		$appmsg .= "\naction: ";
 		$appmsg .= $action;
 		$appmsg .= ", icsmsg: ";
 		$appmsg .= $icsmsg;
 		$ret = ics_cmd($icsmsg); 
 	break;
-	
-	case "scene":
-		$appmsg .= "\naction: ";
-		$appmsg .= "lamp;";					// NOTE: For the ICS-1000 we can route sequence commands to the machine
-		$appmsg .= ", icsmsg: ";
-		$appmsg .= $icsmsg;
-		$ret = ics_cmd($icsmsg); 			// See above
-	break;	
 	
 	case "action":
 	case "blokker":

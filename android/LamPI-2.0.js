@@ -9,6 +9,10 @@
 // Version 1.8, Jan 18, 2014. Start support for (weather) sensors
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
+// Version 2.1, Jul 31, 2014, Support for Energy sensor (Smart Meter).
+// Version 2.1, Jul 31, 2014 Smart Meter support
+// Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
+// Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -90,6 +94,9 @@ var debug = "1";										// debug level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
 var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
+var use_weather = "0";
+var use_energy = "0";									// Initial value is 0
+var loginprocess=false;									// Is there a login process going on?
 
 // ----------------------------------------------------------------------------
 // s_STATE variables. They keep track of current room, scene and setting
@@ -105,6 +112,7 @@ var s_scene_id =1;
 var s_timer_id = 1;
 var s_handset_id = 1;
 var s_weather_id = '';									// Init empty
+var s_energy_id = 0;									// Init empty
 var s_setting_id = 0;
 var s_recorder = '';									// recording of all user actions in a scene. 
 var s_recording = 0;									// Set to 1 to record lamp commands
@@ -247,15 +255,15 @@ function start_LAMP(){
 // Handle the Header Room (HR) selection buttons
 //
 	$("#gui_header").on("click", ".hr_button", function(e){
-			e.preventDefault();
-//			e.stopPropagation();
-			selected = $(this);
+		e.preventDefault();
+//		e.stopPropagation();
+		selected = $(this);
 						
-			value=$(this).val();								// Value of the button
-			id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
-			$( '.hr_button' ).removeClass( 'hover' );
-			$( this ).addClass ( 'hover' );
-			activate_room(id);
+		value=$(this).val();								// Value of the button
+		id = $(e.target).attr('id');						// should be id of the button (array index substract 1)
+		$( '.hr_button' ).removeClass( 'hover' );
+		$( this ).addClass ( 'hover' );
+		activate_room(id);
 	}); 
 
 // --------------------------------------------------------------------------
@@ -340,6 +348,7 @@ function start_LAMP(){
   					},
   					'Confirm Create'
 			); // askForm
+			
 			
 		break;
 			
@@ -436,6 +445,7 @@ function start_LAMP(){
 		break;
 			
 		}
+		$( this ).removeClass ( 'hover' );
 	});
 
 
@@ -525,7 +535,7 @@ function start_LAMP(){
 						var newscene = {
 							id: ind,
 							name: ret[0],
-							val: "OFF",
+							val: "0",
 							seq: ""						// we should start with empty Scene
 						}
 						scenes.push(newscene);			// Add record newdev to devices array
@@ -677,6 +687,7 @@ function start_LAMP(){
 		  }).disableSelection();
 		}//else
 	
+		$( this ).removeClass ( 'hover' );
 	}); // Handler
 
 
@@ -771,7 +782,8 @@ function start_LAMP(){
 							startd: "01/01/13",
 							endd: "",
 							days: "mtwtfss",
-							months: "jfmamjjasond"
+							months: "jfmamjjasond",
+							skip: "0"
 						}
 						timers.push(newtimer);			// Add record newdev to devices array
 
@@ -877,7 +889,7 @@ function start_LAMP(){
 			default:
 					alert("Error:: click id " + id + " not recognized");
 		} // switch
-		
+		$( this ).removeClass ( 'hover' );
 	});	// CT Timer Handler
 
 
@@ -1145,7 +1157,7 @@ function start_LAMP(){
         	}//stop function	 
 		  }).disableSelection();
 		}//else
-	
+		$( this ).removeClass ( 'hover' );
 	}); // Handler for remotes handsets
 
 
@@ -1188,7 +1200,7 @@ function start_LAMP(){
 			
 			// Based on the row that is clicked, we should be able to determine the
 			// right type of 
-			var win=window.open('graphs/weather.html', '_blank');
+			var win=window.open('graphs/weather.html', '_parent');
 			
 			$( this ).removeClass( 'hover' );
 	}); // weather
@@ -1440,8 +1452,40 @@ function start_LAMP(){
         	}//stop function	 
 		  }).disableSelection();
 		}//else
-	
+		$( this ).removeClass ( 'hover' );
 	}); // Handler for weathers
+
+
+// ------------------------------------------------------------------------------
+// Energy
+// Handle the Weather (=remote) selection in the Content area
+// This function deals with the Command WEnergy (ce) buttons diaplayed in the content section.
+// If the user selects one of these buttons, the corresponding energy action is activated.
+//
+	$("#gui_content").on("click", ".ce_button", function(e){
+			e.preventDefault();
+//			e.stopPropagation();
+			selected = $(this);
+						
+			value=$(this).val();							// Value of the button
+			id = $(e.target).attr('id');					// should be id of the button (array index substract 1)
+			$( '.ce_button' ).removeClass( 'hover' );
+			$( this ).addClass ( 'hover' );
+			//activate_energy(id);
+			//alert("Clicked Energy Button, id: "+id+", value: "+value);
+			
+			// Based on the row that is clicked, we should be able to determine the
+			// right type of 
+			var win=window.open('graphs/energy.html', '_parent');
+			//$.getScript("graphs/enerpi.js", function(){
+			//		start_ENERPI();
+			//		alert("start_ENERPI finished");
+			//	});
+			$( this ).removeClass( 'hover' );
+	}); // energy
+
+
+
 
 // ----------------------------------------------------------------------------
 // CONFIG
@@ -1511,7 +1555,7 @@ function start_LAMP(){
 
 
 	// ----------------------------------------------------------------------------------------
-	//	Init websockets communication
+	//	INIT WEBSOCKETS communication
 	//	Especially the handlers for websockets etc, that need to test the state of the connection
 	//	
 	function init_websockets() {
@@ -1541,8 +1585,8 @@ function start_LAMP(){
 		};
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed "+w_uri);
-			alert("Connection closed by server, click OK to re-establish the connection");
-			// setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+			///alert("Connection closed by server, click OK to re-establish the connection");
+			setTimeout( function() { message('<p style="textdecoration: blink; background-color:yellow; color:black;">Restarting the Websocket</p>'); }, 1500);
 			//
 			w_sock.close();
 			setTimeout( function() { init_websockets(); }, 1500);
@@ -1596,7 +1640,7 @@ function start_LAMP(){
 				// The daemon wants to display something on the message area, or if the debug level
 				// is high enough will display through an alert.
 				case "alert":
-					if (debug>1) alert("Server msg:: "+rcv.message);
+					if (debug>=1) alert("Server msg:: "+rcv.message);
 				break;
 				
 				// Update messages can contain updates of devices, scenes, timers or settings.
@@ -1658,8 +1702,7 @@ function start_LAMP(){
 				// The weather stations that we allow for receiving are specified in the 
 				// database.cfg file (and in the database).
 				
-				case 'weather':
-					
+				case 'weather':	
 					var j;
 					// Compare address and channel to identify a weather sensor
 					// Decided not to use the name for this :-)
@@ -1711,8 +1754,17 @@ function start_LAMP(){
 				// Support for energy systems is tbd
 				//
 				case 'energy':
-					console.log("Lampi.js:: received energy message");
-					
+					console.log("Lampi.js:: received energy message, kw_act_use: "+rcv.kw_act_use);
+					energy['kw_hi_use']	=rcv.kw_hi_use;
+					energy['kw_lo_use']	=rcv.kw_lo_use;
+					energy['kw_hi_ret']	=rcv.kw_hi_ret;
+					energy['kw_lo_ret']	=rcv.kw_lo_ret;
+					energy['gas_use']	=rcv.gas_use;
+					energy['kw_act_use']=rcv.kw_act_use;
+					energy['kw_act_ret']=rcv.kw_act_ret;
+					energy['kw_ph1_use']=rcv.kw_ph1_use;
+					energy['kw_ph2_use']=rcv.kw_ph2_use;
+					energy['kw_ph3_use']=rcv.kw_ph3_use;
 				break;
 				
 				//
@@ -1731,18 +1783,17 @@ function start_LAMP(){
 				case 'login':
 					var uname;
 					var pword;
+					if (loginprocess) break;
+					loginprocess=true;
 					
-					//var msg   = rcv.message;
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
 						// alert("Support for localstorage");
-  						// uname= window.localStorage.getItem("uname");		// username
-						uname= localStorage.getItem('uname');		// username
-						pword= localStorage.getItem('pword');		// pin
+						uname= localStorage.getItem('uname');				// username
+						pword= localStorage.getItem('pword');				// pin
 						if (debug>=2) {
 							console.log("Support for localstorage, uname: "+uname);
 						}
-						
 						if (uname == null) uname = "";
 						if (pword == null) pword = "";
  					}
@@ -1792,16 +1843,17 @@ function start_LAMP(){
 						// Send the password back to the daemon
 						// message("Login and Password sent to server",1);
 						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
-						
+						loginprocess=false;
 						return(1);										//return(1);
 						
 						// Cancel	
   					}, function () {
 						if (debug >= 2) alert("Submit login Cancelled");
+						loginprocess=false;
 						return(0); 									// Avoid further actions for these radio buttons 
   					},
   					'Confirm Login'
-					); // askForm
+					); // askFor
 				break;
 				
 				case 'load_database':
@@ -2069,8 +2121,21 @@ function init() {
 		skin = settings[4]['val'];
 		$("link[href^='styles']").attr("href", skin);
 	}
+	use_weather = settings[8]['val'];							// Will we display weather info and buttons
+	use_energy = settings[8]['val'];							// Will we use energy display, only when P1-sensor is working
+	energy['kw_hi_use'] = 0;
+	energy['kw_lo_use'] = 0;
+	energy['kw_hi_ret'] = 0;
+	energy['kw_lo_ret'] = 0;
+	energy['gas_use'] = 0;
+	energy['kw_act_use'] = 0;
+	energy['kw_act_ret'] = 0;
+	energy['kw_ph1_use'] = 0;
+	energy['kw_ph2_use'] = 0;
+	energy['kw_ph3_use'] = 0;
+	
 	init_rooms(s_room_id);										// Initial startup config
-	init_menu(s_setting_id);		
+	init_menu(s_setting_id);
 }		
 
 // ************************ SUPPORTING FUNCTIONS *********************************
@@ -2100,7 +2165,7 @@ function read_int(s) {								// Read only first in in string
 
 // ----------------------------------------------------------------------------
 // Alert Box
-// DIfference from alert() is that this does not stop program execution of other
+// Difference from alert() is that this does not stop program execution of other
 // threads. Also, breaks in lines not with \n but with </br>
 //
 function myAlert(msg, title) {
@@ -2445,12 +2510,11 @@ function init_rooms(cmd)
 	// First define the handler, and then activate_room() will make buttons for those devices
 	//<input type="submit" id="' + id + '" value= "'+ val + '" class="buttons">
 	$("#gui_header").empty();
+	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+	$("#gui_header").append(html_msg);
 						 
 	// For all rooms write a button to the document
-	$("#gui_header").append('<table border="0">');				// Write table def to DOM
-	var table = $( "#gui_header" ).children();					// to add to the table tree in DOM
-	var but = '<tr class="rroom">' ;
-	but += '<td>';
+	var but = '';
 	for (var i = 0; i < rooms.length; i++ ) 
 	{
 		room_name = rooms[i]['name'];
@@ -2462,14 +2526,13 @@ function init_rooms(cmd)
 			but += room_button(room_id, room_name);				// Write a room button to the document
 		}
 	}
-	but += "</td>";
-	but +=  "<td>" ;
-	but += '<input type="submit" id="Add" value= "+"  class="cr_button new_button">'  ;
-	but += '<input type="submit" id="Del" value= "X"  class="cr_button del_button">'  ;
+	$("#gui_header_content").append(but);
+
+	but  = '<input type="submit" id="Add"  value= "+"  class="cr_button new_button">'  ;
+	but += '<input type="submit" id="Del"  value= "X"  class="cr_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="cr_button help_button">'  ;
-	but += "</td>";
-	$(table).append(but);	
-	
+	$("#gui_header_controls").append(but);
+		
 	//	Display the devices for the room at the first time run
 	s_screen='room';
 	activate_room(s_room_id);		
@@ -2481,37 +2544,32 @@ function init_rooms(cmd)
 function init_scenes(cmd) 
 {
 	$("#gui_header").empty();
-	$("#gui_header").append('<table border="0">');			// Write table def to DOM
-	var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
+	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+	$("#gui_header").append(html_msg);
+	
 	var msg = 'Init Scenes, scenes read: ';			
-	var but = '<tr class="rroom">' ;	
-	but += "<td>";
+	var but = '';
 	for (var j = 0; j<scenes.length; j++ ){
-  
 		var scene_id = scenes[j]['id'];
 		var scene_name = scenes[j]['name'];
 		var scene_seq = scenes[j]['seq'];
 		msg += j + ', ';
 		if (scene_id == s_scene_id ) {
-//			but +=  "<td>" + scene_button(scene_id, scene_name, "hover") + "</td>" ;
-			but +=  scene_button(scene_id, scene_name, "hover") ;
+			but +=  scene_button(scene_id, scene_name, "hover");
 		}
 		else {
-//			but +=  "<td>" + scene_button(scene_id, scene_name) + "</td>" ;
-			but +=  scene_button(scene_id, scene_name) ;
+			but +=  scene_button(scene_id, scene_name);
 		}		
 	}
-	but += "</td>";
 	if (debug>1) message(msg);
+	$("#gui_header_content").append(but);
+	
 	// Add special buttons for controlling the scenes
-	// Add a scene
-	but +=  "<td>" ;
-	but += '<input type="submit" id="Add" value= "+" class="cs_button new_button">'  ;
+	but  = '<input type="submit" id="Add" value= "+" class="cs_button new_button">'  ;
 	but += '<input type="submit" id="Del" value= "X" class="cs_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="cs_button help_button">'  ;
-	but += "</td>";
-	
-	$(table).append(but);
+
+	$("#gui_header_controls").append(but);
 	s_screen='scene';					// Active sreen is a scene screen now
 	activate_scene(s_scene_id);			// Activate the first scene with the id s_scene_id
 }
@@ -2523,11 +2581,11 @@ function init_scenes(cmd)
 function init_timers(cmd) 
 {
 	$("#gui_header").empty();
-	$("#gui_header").append('<table border="0">');			// Write table def to DOM
-	var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
+	html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+	$("#gui_header").append(html_msg);
+	
 	var msg = 'Init Timers, timers read: ';	
-	var but = '<tr class="rroom">' ;
-	but += '<td>';
+	var but = '' ;
 	for (var j = 0; j<timers.length; j++ ){
   
 		var timer_id = timers[j]['id'];
@@ -2542,15 +2600,16 @@ function init_timers(cmd)
 		}			
 	}
 	if (debug>1) message(msg);
-	but += '</td>';
+	$("#gui_header_content").append(but);
+	
 	// Add special buttons for controlling the scenes
 	// Add a scene
-	but +=  '<td>';
+	but  =  '';
 	but += '<input type="submit" id="Add" value= "+" class="ct_button new_button">'  ;
 	but += '<input type="submit" id="Del" value= "X" class="ct_button del_button">'  ;
 	but += '<input type="submit" id="Help" value= "?" class="ct_button help_button">'  ;
-	but += '</td>';		
-	$(table).append(but);
+	
+	$("#gui_header_controls").append(but);
 	s_screen = 'timer';
 	activate_timer(s_timer_id);
 }
@@ -2562,12 +2621,11 @@ function init_timers(cmd)
 function init_handsets(cmd) 
 {
 		$("#gui_header").empty();
-		$("#gui_header").append('<table border="0">');			// Write table def to DOM
-		var table = $( "#gui_header" ).children();				// to add to the table tree in DOM
+		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+		$("#gui_header").append(html_msg);
+		
 		var msg = 'Init Handsets, handsets read: ';	
-
-		var but = '<tr class="rroom">' ;
-		but += '<td>';
+		var but = '' ;
 		var hset_list=[];										// Array of names that we like to put in the header
 		for (var j = 0; j<handsets.length; j++ )
 		{
@@ -2590,21 +2648,18 @@ function init_handsets(cmd)
 				else {
 					but +=  handset_button(handset_id, handset_name);
 				}
-				
 				hset_list[hset_list.length]= handsets[j]['id'];
-				
 			}
 		}
 		if (debug>1) message(msg);
-				
-		but += '</td>';
+		$("#gui_header_content").append(but);
+		
 		// Add special buttons for controlling the handsets
-		but +=  '<td>';
+		but  =  '';
 		but += '<input type="submit" id="Add" value= "+" class="ch_button new_button">'  ;
 		but += '<input type="submit" id="Del" value= "X" class="ch_button del_button">'  ;
-		but += '<input type="submit" id="Help" value= "?" class="ch_button help_button">'  ;
-		but += '</td>';		
-		$(table).append(but);
+		but += '<input type="submit" id="Help" value= "?" class="ch_button help_button">'  ;	
+		$("#gui_header_controls").append(but);
 		
 		s_screen = 'handset';
 		activate_handset(s_handset_id);
@@ -2617,17 +2672,14 @@ function init_handsets(cmd)
 function init_weather(cmd) 
 {
 		$("#gui_header").empty();
-		$("#gui_header").append('<table border="0">');	// Write table def to DOM
-		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
-		var msg = 'Init weather, config read: ';
+		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+		$("#gui_header").append(html_msg);
 		
-		// XXX class rroom?
-		var but = '<tr class="rroom">' ;
-		but += '<td>';
+		var msg = 'Init weather, config read: ';
+		var but = '' ;
 		
 		if (s_weather_id == "") { 
 			s_weather_id = weather[0]['location']; 
-			//alert("init_weather:: loc id: "+s_weather_id);
 		}
 		
 		var weather_list=[];
@@ -2653,18 +2705,69 @@ function init_weather(cmd)
 			}
 		}
 		if (debug>1) message(msg);
+		$("#gui_header_content").append(but);	
 		
-		but += '</td>';	
-		but +=  '<td>';
-		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">'  ;
-		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">'  ;
+		but =  '';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">';
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">';
 		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
-		but += '</td>';
-		$(table).append(but);	
+		$("#gui_header_controls").append(but);
 
 		
 		s_screen = 'weather';
 		activate_weather(s_weather_id);	
+}
+
+// ------------------------------------------------------------------------------------------
+// Setup the weather event handling
+// Display only weather buttons for unique locations. SO in the header section
+// there will be one button for a loction. Weather dials will be sorted to locations as well
+function init_energy(cmd) 
+{
+		$("#gui_header").empty();
+		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+		$("#gui_header").append(html_msg);
+		
+		var msg = 'Init energy, config read: ';
+		var but = '';
+		$("#gui_header_content").append(but);
+		
+		//if (s_weather_id == "") { 
+		//	s_weather_id = weather[0]['location']; 
+		//	//alert("init_weather:: loc id: "+s_weather_id);
+		//}
+		
+		//var weather_list=[];
+		//for (var j = 0; j<weather.length; j++ ){
+		//	// Create only unique buttons
+  		//	if ( $.inArray(weather[j]['location'],weather_list) == -1) {
+		//		//alert("adding id: "+j);
+		//		var weather_id = weather[j]['id'];
+		//		var location = weather[j]['location'];
+		//		var temperature = weather[j]['temperature'];
+		//		
+		//		msg += j + ', ';
+		//		if ( location == s_weather_id ) {
+		//			//but +=  weather_button(weather_id, location, "hover");
+		//			but +=  weather_button(location, location, "hover");
+		//		}
+		//		else
+		//		{
+		//			//but +=  weather_button(weather_id, location);
+		//			but +=  weather_button(location, location);
+		//		}
+		//		weather_list[weather_list.length]= weather[j]['location'];
+		//	}
+		//}
+		if (debug>1) message(msg);
+		but= '';
+		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">';
+		//but += '<input type="submit" id="Del" value= "X" class="cw_button del_button">';
+		but += '<input type="submit" id="Help" value= "?" class="cw_button help_button">';
+		$("#gui_header_controls").append(but);	
+
+		s_screen = 'energy';
+		activate_energy(s_energy_id);	
 }
 
 // ------------------------------------------------------------------------------------------
@@ -2673,12 +2776,12 @@ function init_weather(cmd)
 function init_settings(cmd) 
 {
 		$("#gui_header").empty();
-		$("#gui_header").append('<table border="0">');	// Write table def to DOM
-		var table = $( "#gui_header" ).children();		// to add to the table tree in DOM
+		html_msg = '<div id="gui_header_content"></div><div id="gui_header_controls"></div>';
+		$("#gui_header").append(html_msg);
+		
 		var msg = 'Init Config, config read: ';	
 		// XXX rroom??
-		var but = '<tr class="rroom">' ;
-		but += '<td>';
+		var but = '';
 		for (var j = 0; j<settings.length; j++ ){
   
 			var setting_id = settings[j]['id'];
@@ -2695,11 +2798,12 @@ function init_settings(cmd)
 			}	
 		}
 		if (debug>1) message(msg);
-		but += '</td>';	
-		but +=  '<td>';
+		$("#gui_header_content").append(but);
+
+		but = '';
 		but += '<input type="submit" id="Help" value= "?" class="cc_button help_button">'  ;
 		but += '</td>';
-		$(table).append(but);	
+		$("#gui_header_controls").append(but);	
 		
 		s_screen = 'config';
 		activate_setting(s_setting_id);	
@@ -2718,13 +2822,17 @@ function init_menu(cmd)
 		
 	// For all menu buttons, write all to a string and print string in 1 time
 	if (jqmobile == 1) {
-			var but =  ''
+		var but =  ''
 		+ '<tr><td>'
 		+ '<input type="submit" id="M1" value= "Rooms" class="hm_button hover">' 
 		+ '<input type="submit" id="M2" value= "Scenes" class="hm_button">'
 		+ '<input type="submit" id="M3" value= "Timers" class="hm_button">'
 		+ '<input type="submit" id="M4" value= "Handsets" class="hm_button">'
-		+ '<input type="submit" id="M5" value= "Config" class="hm_button">'
+		;
+		if (weather.length > 0) {
+			but += '<input type="submit" id="M6" value= "Weather" class="hm_button">';
+		}
+		but += '<input type="submit" id="M5" value= "Config" class="hm_button">'
 		+ '</td></tr>'
 		;
 		$(table).append(but);
@@ -2741,10 +2849,10 @@ function init_menu(cmd)
 			but += '<tr class="switch"><td><input type="submit" id="M6" value= "Weather" class="hm_button"></td>'
 		}
 		// Do we have energy definitions in database.cfg file?
-		if (energy.length > 0) {
+		if (use_energy > 0) {
 			but += '<tr class="switch"><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
 		}
-		// Do we have energy records in database.cfg?
+
 		but += '<tr><td></td>'
 		+ '<tr><td></td>'
 		+ '<tr class="switch"><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
@@ -2788,6 +2896,10 @@ function init_menu(cmd)
 			case "M6":
 				init_weather();
 			break;
+			
+			case "M7":
+				init_energy();
+			break;
 				
 			default:
 				message('init_menu:: id: ' + id + ' not a valid menu option');
@@ -2819,7 +2931,7 @@ function activate_room(new_room_id, selectable)
 	// 	Clean the DOM area where we want to output devices
 	// Empty the parent works best in changing rooms
 	$("#gui_content").empty();
-
+	$("#gui_content").css( "overflow-y", "auto" );
 	// XXX We might have to destroy the old sliders, depending
 	// whether the memory s reused for the sliders or we keep on allocating new memory with every room change
 	html_msg = '<div id="gui_devices"></div>';
@@ -2834,6 +2946,7 @@ function activate_room(new_room_id, selectable)
 	var but = '<thead><tr class="switch">' ;
 	if (selectable == "Del") { but+= '<td colspan="2">' ; }
 		else {but += '<td>' };
+	// class dbuttons belongs to device screen and defines round corners etc.
 	but += '<input type="submit" id="Rx" value="X" class="dbuttons del_button" >'
 		+ '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
 		+ '</td>'
@@ -3395,7 +3508,7 @@ function activate_room(new_room_id, selectable)
 function activate_scene(scn)
 {
 	$( "#gui_content" ).empty();
-	
+	$( "#gui_content" ).css( "overflow-y", "auto" );	
 	html_msg = '<div id="gui_scenes"></div>';
 	$( "#gui_content" ).append (html_msg);
 	
@@ -3497,7 +3610,7 @@ function activate_scene(scn)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("upd_scene", scenes[j]);
+				send_2_dbase("store_scene", scenes[j]);
 				message("Device command added to the scene");
 				
 			} // if recording
@@ -3540,12 +3653,9 @@ function activate_scene(scn)
 					case "Fe":
 						var scene_cmd = '!FeP"' + scene['name'] + '"=' + scene['seq'];
 						
-						// alert("Fe Storing scene:: "+scene_cmd);
+						// alert("Fe Storing scene:: "+scene_cmd+", length: "+scene['seq'].length);
 						// Send to database and update the current scene record
-						send_2_dbase("upd_scene", scene);
-						
-						// Send to controller (necessary for the ICS-1000)
-						message_device("scene", scene_cmd );
+						send_2_dbase("store_scene", scene);
 					break;
 						
 					// DELETE scene action, ONE of the actions in the seq!!!
@@ -4050,7 +4160,7 @@ function activate_timer(tim)
 						+ ", months: " + timer['months'] + "\n"
 						+ ", skip: " + timer['skip'] + "\n"				// Skip one time
 						;
-						// alert(str);
+						if (debug >=1) console.log("store_timer"+str);
 						send_2_dbase( "store_timer", timer); 
 						
 						// XXX Need to fix this for ICS-1000. At the moment we optimized so much for
@@ -4306,7 +4416,8 @@ function activate_timer(tim)
 function activate_handset(hset)
 {
 	$( "#gui_content" ).empty();
-	
+	$( "#gui_content" ).css( "overflow-y", "auto" );
+	//html_msg = '<div id="gui_handsets" style="overflow-y:scroll;"></div>';
 	html_msg = '<div id="gui_handsets"></div>';
 	$( "#gui_content" ).append (html_msg);
 	
@@ -4408,7 +4519,7 @@ function activate_handset(hset)
 				// Make sure to sync the new record to the array
 				// Or should we use the global var s_handset_id?
 				if (ind == 1) {
-					// First device in the scene.seq
+					// First device in the handset.seq
 					handsets[j]['scene'] = s_recorder + ",00:00:10";
 				}
 				else {
@@ -4422,12 +4533,12 @@ function activate_handset(hset)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("upd_scene", handsets[j]);
-				message("Device command added to the scene",1);
+				send_2_dbase("store_handset", handsets[j]);
+				message("Device command added to the handsets",1);
 				
 			} // if recording
 
-			// We have to setup an event handler for this screen.
+			// We have to setup an event handler for this handsets.
 			// After all, the user might like to change things and press some buttons
 			
 		}// if a handset is s_handset_id
@@ -4795,6 +4906,8 @@ function activate_weather(location)
 	// Cleanup work area
 	$( "#gui_messages" ).empty();
 	$( "#gui_content" ).empty();					// Empty our drawing area
+	$( "#gui_content" ).css( "overflow-x", "auto" );
+	// html_msg = '<div id="gui_weather" style="overflow-y:hidden; overflow-x:scroll;"></div>';
 	html_msg = '<div id="gui_weather"></div>';
 	$( "#gui_content" ).append (html_msg);	
 	html_msg = '<table border="0">';
@@ -4860,9 +4973,14 @@ function activate_weather(location)
 		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
                     	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
                     	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
-
+		
+			baro_sections = [steelseries.Section( 950, 990, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(990, 1030, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(1030, 1050, 'rgba(220, 220, 0, 0.3)') ],
+			
             // Define one area
             areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+			baro_areas = [steelseries.Section(1050, 1100, 'rgba(220, 0, 0, 0.3)')],
 
             // Define value gradient for bargraph temperature
             tempGrad = new steelseries.gradientWrapper(  -20,
@@ -4872,7 +4990,7 @@ function activate_weather(location)
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
 			
 			valGrad = new steelseries.gradientWrapper(  0,
                                                         100,
@@ -4881,9 +4999,9 @@ function activate_weather(location)
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 200, 0, 1),
                                                           new steelseries.rgbaColor(200, 0, 0, 1),
-                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);
-			pressGrad = new steelseries.gradientWrapper( 700,
-                                                        1200,
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
+			pressGrad = new steelseries.gradientWrapper( 950,
+                                                        1100,
                                                         [ 0, 0.33, 0.66, 0.85, 1],
                                                         [ new steelseries.rgbaColor(0, 0, 200, 1),
                                                           new steelseries.rgbaColor(0, 200, 0, 1),
@@ -4901,7 +5019,9 @@ function activate_weather(location)
 				// XXX We assume that we ALWAYS have a temperature as part of the sensor
 				// reading. This may NOT be true in which case the radial below needs to be
 				// conditional as with the humidity
-				radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
+				if (('temperature' in weather[j]) && (typeof weather[j]['temperature'] !== 'undefined') && (weather[j]['temperature'] !== ""))
+				{
+					radial[i] = new steelseries.RadialBargraph('canvasRadial'+(i+1), {
                             	gaugeType: steelseries.GaugeType.TYPE4,
                             	size: 201,
 								minValue: -20,							// Set the min value on the scale
@@ -4913,13 +5033,17 @@ function activate_weather(location)
 								threshold: 30,
                             	lcdVisible: true
                         });
-				radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
-				radial[i].setValueAnimated(weather[j]['temperature']);
-				radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
-			
+					radial[i].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+					radial[i].setValueAnimated(weather[j]['temperature']);
+					radial[i].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+				}
+				else {
+					console.log("weather temperature "+i+" is not defined");
+				}
+				
 				// humidity radial gauges
 				
-				if (('humidity' in weather[j]) && (weather[j]['humidity'] != ""))
+				if (('humidity' in weather[j]) && (typeof weather[j]['humidity'] !== 'undefined') && (weather[j]['humidity'] !== ""))
 				{
 					//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
@@ -4942,16 +5066,19 @@ function activate_weather(location)
 				
 				// Airpressure radial gauges. 
 				
-				if (('airpressure' in weather[j]) && (weather[j]['airpressure'] != ""))
+				if ( ('airpressure' in weather[j]) && (typeof weather[j]['airpressure'] !== 'undefined') && (weather[j]['airpressure'] !== '') )
 				{
 					console.log("iradial "+ (i+wl) +",j: "+j+" set airpressure: "+weather[j]['airpressure']);
 					radial[i+wl] = new steelseries.RadialBargraph('canvasRadial'+(i+wl+1), {
                             	gaugeType: steelseries.GaugeType.TYPE3,
                             	size: 201,
-								minValue: 900,							// Set the min value on the scale
+								minValue: 950,							// Set the min value on the scale
 								maxValue: 1100,
-                            	valueGradient: pressGrad,
-                            	useValueGradient: true,
+ 								area: baro_areas,
+								section: baro_sections,
+								useSectionColors: true,
+                            	//valueGradient: pressGrad,
+                            	//useValueGradient: true,
                             	titleString: weather[j]['location'],
                             	unitString: 'Pressure Pa',
 								threshold: 80,
@@ -5061,6 +5188,267 @@ function activate_weather(location)
 		
 	});
 }
+
+
+// --------------------------------- ACTIVATE ENERGY -------------------------------------
+//
+// It is quite good possible to config the sceen so that for 2 or 4 or 6 sensors
+// With 3 we will have a good layout on the screen, otherwise we'll scroll.
+//
+// THere are only a few sensors in the SMART meter that are interesting to me
+// Actual Power usage (and return)
+// Gas Usage
+//
+function activate_energy(location)
+{
+	// Cleanup work area
+	$( "#gui_messages" ).empty();
+	$( "#gui_content" ).empty();					// Empty our drawing area
+	$( "#gui_content" ).css( "overflow-x", "auto" );
+	html_msg = '<div id="gui_energy"></div>';
+	$( "#gui_content" ).append (html_msg);	
+	html_msg = '<table border="0">';
+	$( "#gui_energy" ).append( html_msg );
+	
+	var table = $( "#gui_energy" ).children();		// to add to the table tree in DOM
+	var offbut, onbut;
+	
+	// We take rows of 3 positions and vertical as many as needed
+	var wl = 4; 		
+	var wi = 100/wl;
+	
+	// Do two rows with each 4 dials/gauges
+	// First row; Create the canvasses and make room for the temprature dials..	
+	var buf = '<tbody><tr>';
+	for (var i=0; i< wl; i++) {
+		buf += '<td width="'+wi+'%" class="ce_button">';
+        buf += '<canvas id="canvasRadial'+(i+1)+'" width="201" height="201"></canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	
+	// This is the second row, with the dials for humidity
+	buf += '<tr>';
+	for (var i=0; i< wl; i++) {
+		var canv = 'canvasRadial'+(wl+i+1)+'';
+		buf += '<td width="'+wi+'%" class="ce_button">';
+        buf += '<canvas id="'+canv+'" width="201" height="201">No canvas in your browser...</canvas>';
+		buf += '</td>';
+	}
+	buf += '</tr>';
+	buf += '</tbody></table>';
+	
+	$(table).append(buf);							// Display the table with canvas
+	
+	// XXX When working OK, switch to min version of steel asap
+	// We load the .js file for steel animation. This is done in jQuery so that once
+	// loaded all functions are available, but the functions are no integral/permanent part
+	// of the code
+	$.getScript("steel/steelseries-min.js", function(){
+	//$.getScript("steel/steelseries.js", function(){
+		
+
+		// sections are used for:
+		var sections = [steelseries.Section( 0, 25, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
+
+			pwr_sections = [steelseries.Section( 950, 990, 'rgba(0, 0, 220, 0.3)'),
+                    	steelseries.Section(990, 1030, 'rgba(0, 220, 0, 0.3)'),
+                    	steelseries.Section(1030, 1050, 'rgba(220, 220, 0, 0.3)') ],
+			
+            // Define one area
+            areas = [steelseries.Section(75, 100, 'rgba(220, 0, 0, 0.3)')],
+			pwr_areas = [steelseries.Section(1050, 1100, 'rgba(220, 0, 0, 0.3)')],
+
+            // Define value gradient for bargraph temperature
+            pwrGrad = new steelseries.gradientWrapper(  0,
+                                                        5000,
+                                                        [ 0, 0.20, 0.40, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]),
+			
+			valGrad = new steelseries.gradientWrapper(  0,
+                                                        100,
+                                                        [ 0, 0.33, 0.66, 0.85, 1],
+                                                        [ new steelseries.rgbaColor(0, 0, 200, 1),			// Blauw
+                                                          new steelseries.rgbaColor(0, 200, 0, 1),			// Groen
+                                                          new steelseries.rgbaColor(200, 200, 0, 1),		// Geel
+                                                          new steelseries.rgbaColor(200, 0, 0, 1),			// Rood
+                                                          new steelseries.rgbaColor(200, 0, 0, 1) ]);		// rood
+		
+		var radial={};
+		var i=0;
+		// dial 1 (Power actual use
+		radial[0] = new steelseries.RadialBargraph('canvasRadial'+(0+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Actual',
+                            	unitString: 'kW',
+								threshold: 30,
+                            	lcdVisible: true
+                        });
+		radial[0].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[0].setValueAnimated(energy['kw_act_use']);
+		radial[0].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+
+		// PHA 1 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[1] = new steelseries.RadialBargraph('canvasRadial'+(1+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 1',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[1].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[1].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[1].setValueAnimated(energy['kw_ph1_use']);
+
+		// PHA 2 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[2] = new steelseries.RadialBargraph('canvasRadial'+(2+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 2',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[2].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[2].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[2].setValueAnimated(energy['kw_ph2_use']);
+
+		// PHA 3 radial gauges
+		//console.log("iradial "+ (i+wl) +",j: "+j+" set humidity: "+weather[j]['humidity']);
+		radial[3] = new steelseries.RadialBargraph('canvasRadial'+(3+1), {
+                            	gaugeType: steelseries.GaugeType.TYPE4,
+                            	size: 201,
+								minValue: 0,							// Set the min value on the scale
+								maxValue: 4,
+                            	valueGradient: pwrGrad,
+                            	useValueGradient: true,
+                            	titleString: 'Phase 3',
+                            	unitString: 'kW',
+								threshold: 75,
+                            	lcdVisible: true
+                        });
+		radial[3].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[3].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[3].setValueAnimated(energy['kw_ph3_use']);
+
+
+		// HI USE  radial gauges
+		//
+		radial[0+wl] = new steelseries.RadialBargraph('canvasRadial'+(0+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Hi Use',
+                            unitString: 'kWhr',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[0+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[0+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[0+wl].setValueAnimated(energy['kw_hi_use']);
+
+		// Lo Use
+		radial[1+wl] = new steelseries.RadialBargraph('canvasRadial'+(1+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Lo Use',
+                            unitString: 'kWhr',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[1+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[1+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[1+wl].setValueAnimated(energy['kw_lo_use']);
+		
+		// Gas Use
+		radial[3+wl] = new steelseries.RadialBargraph('canvasRadial'+(3+wl+1), {
+                          	gaugeType: steelseries.GaugeType.TYPE4,
+                          	size: 201,
+							minValue: 0,							// Set the min value on the scale
+							maxValue: 3200,
+                            valueGradient: pwrGrad,
+                            useValueGradient: true,
+                            titleString: 'Gas Use',
+                            unitString: 'm3',
+							threshold: 75,
+                            lcdVisible: true
+                        });
+		radial[3+wl].setFrameDesign(steelseries.FrameDesign.GLOSSY_METAL);
+		radial[3+wl].setBackgroundColor(steelseries.BackgroundColor.BRUSHED_METAL);
+		radial[3+wl].setValueAnimated(energy['gas_use']);	
+		
+		// Once every 2 seconds we update the gauge meters based on the current
+		// value of the weather array (which might change due to incoming messages
+		// over websockets.
+		var id;
+		id = setInterval(function()
+		{
+			// Do work if we are in the weather screen
+			if (s_screen == "energy" )
+			{
+				radial[0].setValueAnimated(energy['kw_act_use']);
+				radial[1].setValueAnimated(energy['kw_ph1_use']);
+				radial[2].setValueAnimated(energy['kw_ph2_use']);
+				radial[3].setValueAnimated(energy['kw_ph3_use']);
+				radial[0+wl].setValueAnimated(energy['kw_hi_use']);
+				radial[1+wl].setValueAnimated(energy['kw_lo_use']);
+				//radial[2+wl].setValueAnimated(energy['kw_ph2_use']);
+				radial[3+wl].setValueAnimated(energy['gas_use']);
+
+				// Make a new connection and start registering the various actions,
+				// State 0: Not ready (yet), connection to e established
+				// State 1: Ready
+				// State 2: Close in progress
+				// State 3: Closed
+				var state = w_sock.readyState;
+				if (state != 1) 
+				{
+					console.log("Websocket:: error. State is: "+state);
+					message("Websocket:: error. State is: "+state);
+					//w_sock = new WebSocket(w_uri);
+				}
+			}
+			else
+			{
+				// Kill this timer temporarily
+				clearInterval(id);
+				message("Suspend Dials");
+				console.log("activate_energy:: s_screen is: "+s_screen)
+			}
+		}, 2000);		// 2 seconds (in millisecs)
+		
+	});
+}
+
 
 // -------------------------------------------------------------------------------
 // Activate the Settings screen for a certain setting
@@ -5349,7 +5737,7 @@ function activate_setting(sid)
 			var skin_help = "This option allows you to set the skin for your LamPI application. ";
 			skin_help += "It will allow you to make your own selection of skins in a /styles/yourskin.css file, ";
 			skin_help += "and make it the style of choice for your setting.<br><br>";
-			skin_help += "Note: Not supportted on mobile devices!<br>";
+			skin_help += "Note: Not supported on mobile devices!<br>";
 			skin_help += "Note: Better not choose a files for use on mobile devices ...<br><br>";
 			
 			$(table).append('<tr><td colspan="2"><span>' + skin_help + '</span>');		
@@ -5504,24 +5892,7 @@ function activate_setting(sid)
 			html_msg = '<table border="0">';
 			$( "#gui_console" ).append( html_msg );
 			var table = $( "#gui_console" ).children();		// to add to the table tree in DOM
-			
-			// Start writing the table code to DOM
-	
-			var but = '<thead><tr class="switch">' ;
-						
-			if (jqmobile == 1) {
-				but += '<td><input type="submit" id="Cc" value="Clients" class="dbuttons" ></td>';
-			}
-			else {
-				but += '<td>';
-				but += '<input type="submit" id="Cc" value="Clients" class="dbuttons" >';
-				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
-				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
-				but += '</td>';
-			}
-			$(table).append(but);
-			$(table).append('</tr>');
-			
+
 			// Create a few buttons and call frontend_set.php directly!!
 			// Cosmetically not the most beutiful solution but it works great for the moment
 			var but =  ''	
@@ -5531,6 +5902,25 @@ function activate_setting(sid)
 					+ '</td></tr></thead>'
 					;
 			$(table).append(but);
+
+			// Start writing the table code to DOM
+			var but = '<thead><tr class="switch">' ;
+						
+			if (jqmobile == 1) {
+				but += '<td><input type="submit" id="Cc" value="Clients" class="dbuttons" ></td>';
+			}
+			else {
+				but += '<td>';
+				but += '<input type="submit" id="Cc" value="Connected Clients" class="dbuttons" >';
+				but += '<input type="submit" id="Cs" value="Sunrise Sunset" class="dbuttons" >';
+				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
+				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
+				but += '</td>';
+			}
+			$(table).append(but);
+			$(table).append('</tr>');
+			
+
 
 			// Now define the callback function for this config screen
 			//
@@ -5566,7 +5956,20 @@ function activate_setting(sid)
 						message("Console Log request sent to server",1);
 						w_sock.send(JSON.stringify(client_msg));	
 					break;
-
+						
+					case "Cs":
+						var client_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'console',
+							request: 'sunrisesunset'
+						}
+						console.log(client_msg);
+									
+						// Send the password back to the daemon
+						message("Console Sunrise/Sunset request sent to server",1);
+						w_sock.send(JSON.stringify(client_msg));
+					break;
+					
 					//
 					// Client button, list all active clients on the daemon
 					//	
@@ -5606,6 +6009,15 @@ function activate_setting(sid)
 			
 		break; //6
 		
+		// weather
+		case '7':
+			console.log("init_settings:: weather selected");
+		break;
+		
+		// Energy
+		case '8':
+			console.log("init_settings:: energy selected");
+		break;
 		
 		default:
 			myAlert("Config encountered internal error: unknown button "+sid);
@@ -5644,11 +6056,11 @@ function scene_button(id, val, hover)
 //
 function menu_button(id, val, hover) 
 {
-			var but = ''
-			+ '<td>'
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hm_button ' + hover + '">'
-			+ '</td>'
-			return (  but );	
+	var but = ''
+	+ '<td>'
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hm_button '+hover+'">'
+	+ '</td>'
+	return ( but );	
 }
 //
 // Print a timer button
@@ -5656,9 +6068,9 @@ function menu_button(id, val, hover)
 //
 function timer_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="ht_button ' + hover + '">'
-			return (  but );	
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="ht_button '+hover+'">'
+	return ( but );	
 }
 //
 // Print a handset button
@@ -5666,9 +6078,9 @@ function timer_button(id, val, hover)
 //
 function handset_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hh_button ' + hover + '">'
-			return (  but );	
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hh_button '+hover+'">'
+	return ( but );	
 }
 //
 // Print a weather button
@@ -5676,9 +6088,9 @@ function handset_button(id, val, hover)
 //
 function weather_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hw_button ' + hover + '">'
-			return (  but );	
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hw_button '+hover+'">'
+	return ( but );	
 }
 //
 // Re use of button class
@@ -5686,9 +6098,9 @@ function weather_button(id, val, hover)
 //
 function setting_button(id, val, hover) 
 {
-			var but = ''
-			+ '<input type="submit" id="' + id + '" value= "'+ val + '" class="hc_button ' + hover + '">'
-			return (  but );	
+	var but = ''
+	+ '<input type="submit" id="'+id+'" value= "'+val+'" class="hc_button '+hover+'">'
+	return ( but );	
 }
 
 // ------------------------------------- DEVICES -----------------------------------------
@@ -6173,6 +6585,21 @@ function load_database(dbase_cmd)
 	if (debug>=2) alert("load_database:: sqlServer:: " + sqlServer);
 	else console.log("load_database:: sqlServer: "+ sqlServer);
 	
+	if ( phonegap != 1 ) 
+	{
+		if (debug>=2) console.log("load_database:: XXX Should be Calling send2daemon with load_database, xxx, xxxx");
+		console.log("load_database:: XXX Should be Calling send2daemon with load_database, xxx, xxxx");
+		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
+		// and be same as ICS-1000, and will not be full-blown json.
+		//while (w_sock.readyState != 1) { };
+		//send2daemon("load_database",dbase_cmd,dbase_cmd);
+		//return(1);
+	}
+	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
+	{
+		console.log("load_database:: Using good old ajax style");
+	}
+	
 	$.ajax({
         url: sqlServer,	
 		async: false,					// Synchronous operation 
@@ -6233,7 +6660,7 @@ function load_database(dbase_cmd)
 					+ "\nError: " + jqXHR.status
 					+ "\nTextStatus: "+ textStatus
 					+ "\nerrorThrown: "+ errorThrown
-					+ "\n\nFunction will finish now!" );
+					+ "\n\nFunction load_database will finish now!" );
 			}
 			else
 				alert("Timeout connecting to database on "+sqlServer);
@@ -6268,11 +6695,13 @@ function message_device(action, controller_cmd)
 	// if not using phonegap, and controller == raspberry, use websockets 
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
+		if (debug>=2) console.log("message_device:: Calling send2daemon with gui, set, "+controller_cmd);
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("gui","set",controller_cmd);
 	}
 	
+	// AJAX used
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		$.ajax({
@@ -6344,14 +6773,15 @@ function message_device(action, controller_cmd)
 //
 function send_2_dbase(dbase_cmd, dbase_arg) 
 {
+	// WEBSOCKETS
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
-		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd);
+		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd+", dbase_arg: <"+dbase_arg+">");
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("dbase",dbase_cmd,dbase_arg);
 	}
-	
+	// AJAX
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		console.log("send_2_database:: Receiving ajax command "+dbase_cmd);
@@ -6387,7 +6817,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 			+ "\nError: " + jqXHR.responseText
 			+ "\nTextStatus: "+ textStatus
 			+ "\nerrorThrown: "+ errorThrown
-			+ "\n\nFunction will finish now!" );
+			+ "\n\nFunction send_2_dbase will finish now!" );
 			return(-1);
 		}
 		});
@@ -6398,7 +6828,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 };
 
 // --------------------------------------------------------------------------------------
-// Send_2_set: Send commands to the backend PHP system. 
+// Send_2_set: Send commands to the backend PHP system, mainly for changing LamPI settings. 
 // These commands are used for retrieving skins, settings and other stuff
 // supporting the GUI program.
 // As we need the results of this call for our program, we need SYNC call, so
@@ -6445,7 +6875,7 @@ function send_2_set(command, parameter)
 				+ "\nError:" + jqXHR
 				+ "\nTextStatus: "+ textStatus
 				+ "\nerrorThrown: "+ errorThrown
-				+ "\n\nFunction will finish now!" );
+				+ "\n\nFunction send_2_set will finish now!" );
 			return(-1);
 		}
 	});

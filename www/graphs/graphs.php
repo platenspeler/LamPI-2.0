@@ -1,7 +1,7 @@
 <?php 
-
-require_once( dirname(__FILE__) .'/../frontend_cfg.php'); 
+require_once( dirname(__FILE__) .'/../../config/backend_cfg.php'); 
 require_once( dirname(__FILE__) .'/../frontend_lib.php' );
+
 // LamPI, Javascript/jQuery GUI for controlling 434MHz devices (e.g. klikaanklikuit, action, alecto)
 // Author: M. Westenberg (mw12554 @ hotmail.com)
 // (c) M. Westenberg, all rights reserved
@@ -15,7 +15,7 @@ require_once( dirname(__FILE__) .'/../frontend_lib.php' );
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
 // Version 2.1, Jul 31, 2014, Weather support
 //
-// This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
+// This is the code to animate the front-end of the application. The main screen is divided in 4 regions:
 //
 // Copyright, Use terms, Distribution etc.
 // =========================================================================================
@@ -37,6 +37,8 @@ require_once( dirname(__FILE__) .'/../frontend_lib.php' );
 //    along with LamPI.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//$log->lwrite("Starting graph.php script. __ROOT__ is ".__ROOT__);
+define('__ROOT__', dirname(dirname(__FILE__)));
 $log = new Logging();
 $logfile='/home/pi/log/TemPI.log';
 $log->lfile($logfile);

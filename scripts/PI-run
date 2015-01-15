@@ -21,7 +21,7 @@ if [ "$1" = "-r" ]; then
 	echo "`date`:: Kill previous version of daemons" >> $LOGFILE
 	pkill -f "php ./$PROGRAM"
 fi
-
+#
 # If instead of -r (reset) -i (init) is specified, the database.cfg file is reread as well
 if [ "$1" = "-i" ]; then
 	echo "`date`:: Kill previous version of daemons" >> $LOGFILE

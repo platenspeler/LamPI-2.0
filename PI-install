@@ -15,6 +15,12 @@ WIRING="y"; export WIRING
 RRDTOOL="n"; export RRDTOOL
 RAZBERRY="n"; export RAZBERRY
 CRONTAB="y"; export CRONTAB
+
+# This will be THE directory where LamPI is installed. It is possible to change the install directory.
+# But please update the ~/daemon/backend_cfg.php and the ~/www/frontend_cfg.php file to update the new
+# location. Also watch the log files as there might be other places where I have hardcoded /home/pi as
+# the installation directory.
+
 HOMEDIR="/home/pi"; export HOMEDIR
 
 # -----------------------------------------------------------------------------------------------------
@@ -120,7 +126,7 @@ install_lampi()
     
 	# ----------------------------------------------------------------
 	# Set the apache base directory, replace the standard /var/www directory
-	# with the new /home/pi/www directory as in $HOMEDIR/www
+	# with the new directory as in $HOMEDIR/www
 	#
 	echo "editing sites-available"
 	sudo sed "s|/var/www|${HOMEDIR}/www|g" /etc/apache2/sites-available/default > /tmp/effe
@@ -133,15 +139,13 @@ install_lampi()
 	#
 	sudo chown -R pi $HOMEDIR
 	sudo chgrp -R pi $HOMEDIR
-
-	mkdir $HOMEDIR/log; sudo chgrp www-data $HOMEDIR/log
-	mkdir $HOMEDIR/exe
+    
 	mkdir $HOMEDIR/daemon
-    #mkdir $HOMEDIR/daemon	# assume this is not necessary, daemon directory exists
+	mkdir -m 775 $HOMEDIR/log; sudo chgrp www-data $HOMEDIR/log
+	mkdir -m 755 $HOMEDIR/exe; sudo chown -R root $HOMEDIR/exe; sudo chmod u+s $HOMEDIR/exe/*
 
-	sudo chown -R root $HOMEDIR/exe
-    sudo chmod 755 $HOMEDIR/exe/*
-	sudo chmod u+s $HOMEDIR/exe/*
+
+
 	sudo chmod 755 $HOMEDIR/scripts/PI*
 
 	# --------------------------------------------------------------
@@ -195,25 +199,25 @@ setup_cron()
 
         if [ "$1" == "-m" ]; then
 			echo "Setting up contab with PI-run for manager"
-            echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
 			echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
 			echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w		> /dev/null 2>&1"	>> /tmp/effe
 			echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03	> /dev/null 2>&1"	>> /tmp/effe
-        	echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
-        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
+			echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
 			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-run	> /dev/null 2>&1"	>> /tmp/effe
         elif [ "$1" == "-z" ]; then
-        	echo "Setting up contab for Zway Gateway"
-            echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
-        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-gate	> /dev/null 2>&1"	>> /tmp/effe
+			echo "Setting up contab for Zway Gateway"
+			echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-gate	> /dev/null 2>&1"	>> /tmp/effe
 		else
-        	echo "Setting up contab for slave"
-            echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
+			echo "Setting up contab for slave"
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-rcv	> /dev/null 2>&1"	>> /tmp/effe
 			echo "0   2 * * * cd $HOMEDIR/scripts && sh ./PI-log	> /dev/null 2>&1"	>> /tmp/effe
 			echo "*/2 * * * * cd $HOMEDIR/scripts && sh ./PI-1w		> /dev/null 2>&1"	>> /tmp/effe
 			echo "*/5 * * * * cd $HOMEDIR/scripts && sh ./PI-rht03	> /dev/null 2>&1"	>> /tmp/effe
-        	echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
-        	echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
+			echo "*/3 * * * * cd $HOMEDIR/scripts && sh ./PI-i2c	> /dev/null 2>&1"	>> /tmp/effe
+			echo "*   * * * * cd $HOMEDIR/scripts && sh ./PI-energy > /dev/null 2>&1"	>> /tmp/effe
         fi
         
 		crontab -u pi /tmp/effe
@@ -255,7 +259,6 @@ setup_wlan()
 	echo "sudo vi /etc/wpa_supplicant/wpa_supplicant.conf, press <ENTER> to continue"
 	read a
 	sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
-    
 }
 
 # -----------------------------------------------------------------------------------------------------
@@ -263,7 +266,7 @@ setup_wlan()
 #
 install_jasper()
 {
-	JHOME=/home/pi/jasper.src
+	JHOME=$HOMEDIR/jasper.src
     mkdir $JHOME
 	sudo apt-get install vim git-core espeak python-dev python-pip bison libasound2-dev libportaudio-dev python-pyaudio --yes
     
@@ -355,13 +358,19 @@ install_jasper()
 #
 install_node()
 {
+	cd $HOMEDIR
 	sudo apt-get upgrade; 
 	sudo apt-get update
+    
     wget http://nodejs.org/dist/v0.10.2/node-v0.10.2-linux-arm-pi.tar.gz
 	tar -xvzf node-v0.10.2-linux-arm-pi.tar.gz
 	node-v0.10.2-linux-arm-pi/bin/node --version
     NODE_JS_HOME=/home/pi/node-v0.10.2-linux-arm-pi ; export NODE_JS_HOME
 	PATH=$PATH:$NODE_JS_HOME/bin
+    
+    npm install --save express@4.10.2
+    npm install --save socket.io
+    npm install --save string
 }
 
 # -----------------------------------------------------------------------------------------------------

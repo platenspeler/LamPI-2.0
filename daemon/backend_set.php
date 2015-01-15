@@ -1,7 +1,7 @@
 <?php 
-require_once( '../daemon/backend_cfg.php' );
-require_once( '../daemon/backend_lib.php' );
-require_once( '../daemon/backend_sql.php' );
+require_once( dirname(__FILE__) . '/../config/backend_cfg.php' );
+require_once( dirname(__FILE__) . '/backend_lib.php' );
+require_once( dirname(__FILE__) . '/backend_sql.php' );
 
 
 /*	======================================================================================	
@@ -142,15 +142,16 @@ function fill_database($cfg)
 	// ----------------------------------------------------------
 	// create table devices
 	if (!$mysqli->query("DROP TABLE IF EXISTS devices") ||
-    	!$mysqli->query("CREATE TABLE devices(id CHAR(3), gaddr CHAR(12), room CHAR(12), name CHAR(20), type CHAR(12), val INT, lastval INT, brand CHAR(20) )") )
+    	!$mysqli->query("CREATE TABLE devices(id CHAR(3), unit CHAR(3), gaddr CHAR(12), room CHAR(12), name CHAR(20), type CHAR(12), val INT, lastval INT, brand CHAR(20) )") )
 	{
     	$log->lwrite("fill_database:: ERROR Table creation devices failed: (" . $mysqli->errno . ") " . $mysqli->error);
 	}
 	// Insert devices	
 	for ($i=0; $i < count($devices); $i++)
 	{
-		if (!$mysqli->query("INSERT INTO devices (id, gaddr, room, name, type, val, lastval, brand) VALUES ('" 
+		if (!$mysqli->query("INSERT INTO devices (id, unit, gaddr, room, name, type, val, lastval, brand) VALUES ('" 
 							. $devices[$i]['id']. "','" 
+							. $devices[$i]['unit']. "','"
 							. $devices[$i]['gaddr']. "','"
 							. $devices[$i]['room']. "','"
 							. $devices[$i]['name']. "','"
@@ -372,8 +373,9 @@ function print_database($cfg)
 	// Devices
 	$log->lwrite("Count of devices: " . count($devices) . "\n");
 	for ($i=0; $i < count($devices); $i++) 	{
-		$log->lwrite("index: $i id: ".$devices[$i]['id'].", gaddr: ".$devices[$i]['gaddr'].", room: ".$devices[$i]['room'].
-					", data: ".$devices[$i]['name'].", brand: ".$devices[$i]['brand']
+		$log->lwrite("index: $i id: ".$devices[$i]['id'].", unit: ".$devices[$i]['unit'].", gaddr: ".$devices[$i]['gaddr'].
+					", room: ".$devices[$i]['room'].", data: ".$devices[$i]['name'].
+					", brand: ".$devices[$i]['brand'].", type: ".$devices[$i]['type']
 					);
 	}
 	$log->lwrite("\n");	

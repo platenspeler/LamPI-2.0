@@ -1,6 +1,6 @@
 <?php 
-require_once ( 'frontend_cfg.php' );
-require_once ( 'frontend_lib.php' );
+require_once ( dirname(__FILE__) . '/../config/backend_cfg.php' );
+require_once ( dirname(__FILE__) . '/frontend_lib.php' );
 
 /*	======================================================================================	
 	Note: Program to switch klikaanklikuit and coco equipment

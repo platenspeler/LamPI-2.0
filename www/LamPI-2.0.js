@@ -10,6 +10,9 @@
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging, and internet access ...
 // Version 2.0, Jun 15, 2014, Initial support for Z-Wave devices through Razberry slave device.
 // Version 2.1, Jul 31, 2014, Support for Energy sensor (Smart Meter).
+// Version 2.1, Jul 31, 2014 Smart Meter support
+// Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
+// Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -68,7 +71,7 @@ var fake=0;												// Set to 1 if we fake communication
 //
 var w_url = location.host; 								// URL of webserver
 var w_svr = 'LamPI-daemon.php';							// webserver filename
-var w_port = '5000'; 									// port
+var w_port = '5000'; 									// port, should make this one dynamic!
 var w_uri;
 var w_sock;												// Socket variable
 var w_tcnt = 0;											// Transaction counter
@@ -93,6 +96,7 @@ var mysql = "1";										// Default is using mySQL
 var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
 var use_weather = "0";
 var use_energy = "0";									// Initial value is 0
+var loginprocess=false;									// Is there a login process going on?
 
 // ----------------------------------------------------------------------------
 // s_STATE variables. They keep track of current room, scene and setting
@@ -290,12 +294,12 @@ function start_LAMP(){
 						break; 								// for
 					}
 				}
-					// If we are here, then we did not find device with id == "D"+ind
-					// So the ind is unused, we use it
+				// If we are here, then we did not find device with id == "D"+ind
+				// So the ind is unused, we use it
 				if (i == rooms.length){		
 					break; // while
 				}
-					ind++;
+				ind++;
 			}
 			// Now we have an index either empty slot in between room records, or append the current array
 			if ( ind > max_rooms ) {
@@ -329,7 +333,7 @@ function start_LAMP(){
 						s_room_id = ind;				// Make the new room the current room
 						console.log(newroom);
 						
-						send_2_dbase("add_room", newroom);
+						send2dbase("add_room", newroom);
 						// And add the line to the #gui_devices section
 						// Go to the new room
 						// activate_room(new_room_id);
@@ -400,7 +404,7 @@ function start_LAMP(){
 						if ( persist > 0 ) {
 							console.log(removed[0]);
 							// Remove the room from MySQL
-							send_2_dbase("delete_room", removed[0]);
+							send2dbase("delete_room", removed[0]);
 							if (debug>1)
 								alert("Removed from dbase:: id: " + removed[0]['id'] + " , name: " + removed[0]['name']);
 						}
@@ -536,7 +540,7 @@ function start_LAMP(){
 						}
 						scenes.push(newscene);			// Add record newdev to devices array
 						// console.log(newscene);
-						send_2_dbase("add_scene", newscene);
+						send2dbase("add_scene", newscene);
 						// And add the line to the #gui_devices section
 						// Go to the new scene
 						s_scene_id = ind;
@@ -601,7 +605,7 @@ function start_LAMP(){
 						if ( persist > 0 ) {
 							console.log(removed[0]);
 							// Remove the room from MySQL
-							send_2_dbase("delete_scene", removed[0]);
+							send2dbase("delete_scene", removed[0]);
 							if (debug>1)
 								alert("Removed from dbase:: id: " + removed[0]['id'] + " , name: " + removed[0]['name']);
 						}
@@ -783,7 +787,7 @@ function start_LAMP(){
 						}
 						timers.push(newtimer);			// Add record newdev to devices array
 
-						send_2_dbase("add_timer", newtimer);
+						send2dbase("add_timer", newtimer);
 						// And add the line to the #gui_devices section
 						// Go to the new timer
 						// XXX Better would be just to add one more button and activate it in #gui_header !!
@@ -846,7 +850,7 @@ function start_LAMP(){
 						if ( persist > 0 ) {
 							console.log(removed[0]);
 							// Remove the timer from MySQL
-							send_2_dbase("delete_timer", removed[0]);
+							send2dbase("delete_timer", removed[0]);
 							if (debug>1)
 								alert("Removed from dbase:: id: " + removed[0]['id'] + " , name: " + removed[0]['name']);
 						}
@@ -1002,7 +1006,7 @@ function start_LAMP(){
 						}
 						handsets.push(newhandset);			// Add record newdev to devices array
 						console.log("Added new handset "+newhandset['name']);
-						send_2_dbase("add_handset", newhandset);
+						send2dbase("add_handset", newhandset);
 						// And add the line to the #gui_devices section
 						// Go to the new scene
 						s_handset_id = ind;
@@ -1074,7 +1078,7 @@ function start_LAMP(){
 								if ( persist > 0 ) {
 									console.log(removed[0]);
 									// Remove the room from MySQL
-									send_2_dbase("delete_handset", removed[0]);
+									send2dbase("delete_handset", removed[0]);
 									if (debug>1)
 										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
 								}
@@ -1295,7 +1299,7 @@ function start_LAMP(){
 						}
 						weather.push(newweather);			// Add record newdev to devices array
 						console.log("Added new weather "+neweather['name']);
-						send_2_dbase("add_weather", newweather);
+						send2dbase("add_weather", newweather);
 						// And add the line to the #gui_devices section
 						// Go to the new weather
 						s_weather_id = ind;
@@ -1368,7 +1372,7 @@ function start_LAMP(){
 								if ( persist > 0 ) {
 									console.log(removed[0]);
 									// Remove the handset from MySQL
-									send_2_dbase("delete_weather", removed[0]);
+									send2dbase("delete_weather", removed[0]);
 									if (debug>1)
 										myAlert("Removed from dbase:: id: "+removed[0]['id']+" , name: "+removed[0]['name']);
 								}
@@ -1582,7 +1586,7 @@ function start_LAMP(){
 		w_sock.onclose	= function(ev){
 			console.log("Websocket:: socket closed "+w_uri);
 			///alert("Connection closed by server, click OK to re-establish the connection");
-			setTimeout( function() { message('<p style="textdecoration: blink; background-color:yellow; color:black;">Restarting the Websocket</p>'); }, 1500);
+			setTimeout( function() { message('<DIV style="textdecoration: blink; background-color:yellow; color:black;">Restarting the Websocket. Please wait ...</DIV>'); }, 1500);
 			//
 			w_sock.close();
 			setTimeout( function() { init_websockets(); }, 1500);
@@ -1646,7 +1650,7 @@ function start_LAMP(){
 				case "upd":
 				case "gui":
 					var msg   = rcv.message;
-					message("action: "+action+", tcnt: "+tcnt+", mes: "+msg+", type: "+type);
+
 					// if content is coded in json, decode rest of message
 					switch (type) {
 						case 'json': 
@@ -1667,7 +1671,9 @@ function start_LAMP(){
 							// As we receive updates for devices
 							if ( msg.substr(0,2) == "!R" ){
 								var room = pars[0];
-								var device = pars[1];
+								var uaddr = pars[1];
+								// find the correct device index based on rge unit address
+								var ind = lookup_uaddr(room, uaddr); 
 								// Now we need to check if it's a dim or F1 command. If dim
 								// we need not use value 1 but last used value in devices!
 								// XXX
@@ -1678,8 +1684,7 @@ function start_LAMP(){
 								else {
 									val = pars[2];
 								}
-								var ind = find_device(room, "D"+device);
-								console.log("onmessage:: room: "+room+", device: "+device+", val: "+val+", ind: "+ind);
+								console.log("onmessage:: room: "+room+", device: "+uaddr+", val: "+val+", ind: "+ind);
 								devices[ind]['val']=val;
 								if ((room == s_room_id) && (s_screen == 'room')) {
 									activate_room(s_room_id);
@@ -1689,6 +1694,16 @@ function start_LAMP(){
 						
 						default: 
 							console.log("onmessage:: read upd message. Unknown type: "+type);
+					}
+					// After updating the switch or the slider in the content area
+					// Now print more information in the message area for the user
+					if (debug == 0) {
+						// For debug equal to 0, print human readable message
+						message("Update: "+devices[ind]['name']+" to value: "+val);
+					}
+					else {
+						// For debug type of messages, print devices codes etc
+						message("action: "+action+", tcnt: "+tcnt+", mes: "+msg+", type: "+type);
 					}
 				break;
 				
@@ -1779,18 +1794,17 @@ function start_LAMP(){
 				case 'login':
 					var uname;
 					var pword;
+					if (loginprocess) break;
+					loginprocess=true;
 					
-					//var msg   = rcv.message;
 					if(typeof(Storage)!=="undefined") {
   						// Code for localStorage/sessionStorage.
 						// alert("Support for localstorage");
-  						// uname= window.localStorage.getItem("uname");		// username
-						uname= localStorage.getItem('uname');		// username
-						pword= localStorage.getItem('pword');		// pin
+						uname= localStorage.getItem('uname');				// username
+						pword= localStorage.getItem('pword');				// pin
 						if (debug>=2) {
 							console.log("Support for localstorage, uname: "+uname);
 						}
-						
 						if (uname == null) uname = "";
 						if (pword == null) pword = "";
  					}
@@ -1840,16 +1854,17 @@ function start_LAMP(){
 						// Send the password back to the daemon
 						// message("Login and Password sent to server",1);
 						if (debug >= 2) alert("Submit login: "+ret[0]+", password: "+ret[1] );
-						
+						loginprocess=false;
 						return(1);										//return(1);
 						
 						// Cancel	
   					}, function () {
 						if (debug >= 2) alert("Submit login Cancelled");
+						loginprocess=false;
 						return(0); 									// Avoid further actions for these radio buttons 
   					},
   					'Confirm Login'
-					); // askForm
+					); // askFor
 				break;
 				
 				case 'load_database':
@@ -2113,12 +2128,16 @@ function init() {
 	}
 	mysql = settings[2]['val'];
 	persist = settings[3]['val'];
+	// XXX Why we would this only for non-jqmobile use is not clear.
 	if (jqmobile != 1) { 
 		skin = settings[4]['val'];
 		$("link[href^='styles']").attr("href", skin);
 	}
-	use_weather = settings[8]['val'];							// Will we display weather info and buttons
-	use_energy = settings[8]['val'];							// Will we use energy display, only when P1-sensor is working
+	use_weather = settings[7]['val'];						// Will we display weather info and buttons
+	use_energy = settings[8]['val'];						// Will we use energy display, only when P1-sensor is working
+	
+	// XXX This type of init it not flexible.. Foryunately number and type of fields
+	// used for energy is fixed. All of these fields are present in a modern Energy P1 meter
 	energy['kw_hi_use'] = 0;
 	energy['kw_lo_use'] = 0;
 	energy['kw_hi_ret'] = 0;
@@ -2130,6 +2149,22 @@ function init() {
 	energy['kw_ph2_use'] = 0;
 	energy['kw_ph3_use'] = 0;
 	
+	// Sort the devices array on the "id" field
+	//sort(devices);
+	// XYZ
+	function idsort(a,b) {
+		if (a.id < b.id)
+			return -1;
+  		if (a.id > b.id)
+    		return 1;
+  		return 0;
+	}
+
+	devices.sort(idsort);
+	for (var i=0; i< devices.length; i++) {
+		console.log("devices i: "+i+", id: "+devices[i]['id']+", name: "+devices[i]['name']);
+	}
+
 	init_rooms(s_room_id);										// Initial startup config
 	init_menu(s_setting_id);
 }		
@@ -2426,8 +2461,8 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 			icon : "check"
 		}).bind("click", function() {
 			if (typeof (okFunc) == 'function') {
-				// Return max of 4 results (may define more)...
-				var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+				// Return max of 5 results (may define more)...
+				var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val(), , $("#val_5").val() ];
 				setTimeout(function(){ okFunc(ret) }, 50);
 			}
 			if (debug>=2) alert("Submit");
@@ -2469,8 +2504,8 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 					//var bValid = true;
 	//				bValid = bValid && checkLength( name, "name", 3, 16 );
         			if (typeof (okFunc) == 'function') {
-						// Return max of 4 results (may define more)...
-						var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val() ];
+						// Return max of 5 results (may define more)...
+						var ret = [ $("#val_1").val(), $("#val_2").val(), $("#val_3").val(), $("#val_4").val(), $("#val_5").val() ];
 						setTimeout(function(){ okFunc(ret) }, 50);
 					}
 					$(this).dialog('destroy');
@@ -2928,8 +2963,8 @@ function activate_room(new_room_id, selectable)
 	// Empty the parent works best in changing rooms
 	$("#gui_content").empty();
 	$("#gui_content").css( "overflow-y", "auto" );
-	// XXX We might have to destroy the old sliders, depending
-	// whether the memory s reused for the sliders or we keep on allocating new memory with every room change
+	// XXX We might have to destroy the old sliders, depending on whether the memory is
+	// re-used for the sliders or we keep on allocating new memory with every room change
 	html_msg = '<div id="gui_devices"></div>';
 	$( "#gui_content" ).append(html_msg);
 
@@ -2944,8 +2979,8 @@ function activate_room(new_room_id, selectable)
 		else {but += '<td>' };
 	// class dbuttons belongs to device screen and defines round corners etc.
 	but += '<input type="submit" id="Rx" value="X" class="dbuttons del_button" >'
-		+ '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
-		+ '</td>'
+		+  '<input type="submit" id="Ra" value="+" class="dbuttons new_button" >'
+		+  '</td>'
 		;
 	but += '<td class="filler" align="center">'+room_name+'</td>';
 	if (jqmobile == 1) {
@@ -3090,6 +3125,7 @@ function activate_room(new_room_id, selectable)
 								$("#"+id.slice(0,-2)+"F0").removeClass( 'hover' );
 								$("#"+id.slice(0,-2)+"F1").addClass( 'hover' );
 							}
+							// Update the devices[][] array
 							store_device(s_room_id, id.slice(0,-2), val);
 						}
 					});
@@ -3143,6 +3179,7 @@ function activate_room(new_room_id, selectable)
 								$( this ).parent().siblings().children().removeClass( 'hover' );
 								$( this ).parent().siblings().children("#"+id.slice(0,-2)+"F1").addClass( 'hover' );
 							}
+							// Update the devices[][] array
 							store_device(s_room_id, id.slice(0,-2), val);
 						}
 					});
@@ -3152,18 +3189,136 @@ function activate_room(new_room_id, selectable)
 				
 			break;
 			
+			case "thermostat":
+			
+					// Unfortunately, code for jqmobile and Web jQuery UI is not the same
+				if (jqmobile == 1) {	
+					var slid = '<tr class="devrow dimrow">';
+					if (selectable == "Del")
+						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';	
+					slid += '<td colspan="2"><label for="'+device_id+'Fd">'+device_name+'</label>';
+					slid += '<input type="number" data-type="range" style="min-width:32px;" id="'+device_id+'Fd" name="'+device_id+'Fl" value="'+device_val+'" min=15 max=25 data-highlight="true" data-mini="false" data-theme="b" class="ddimmer"/></td>';
+					slid += '<td></td>';
+					slid += '</tr>';
+				}
+				else // This is the jQuery UI normal
+				{
+					var slid = '<tr class="devrow dimrow">' ;
+					if (selectable == "Del")
+						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';
+						
+					slid += '<td><input type="submit" id="' +device_id 
+						+ '" value= "'+device_name + '" class="dlabels"></td>'
+						+ '<td><div id="' +device_id + 'Fd" class="slider slider-thermo"></div></td>'	
+						+ '<td><input type="text" id="' +device_id+'Fl" class="slidval"></td>'
+						// On/Off buttons do not apply for thermostat
+						+ '<td></td>'
+						+ '<td></td>'
+						+ '</tr>'
+						;
+				}
+				table.append(slid);
+							
+				//XXX Thermostat
+				// eventhandler for the slider. Use a div and id to make distict sliders
+				// This function works only if the handler is put AFTER the sliders generated
+				// So if we want to connect to a
+					
+				var label ="#"+device_id+"Fl"; 
+				var slidid="#"+device_id+"Fd";
+
+				//XXX	Dimmer/Slider handling must be here for the moment. Every slider is "static" and belongs to
+				//		and is declared for a specific device
+				//		Move to doc ready section as soon as possible 
+
+				// eventhandler for the slider. Use a div and id to make distict sliders
+				// This function works only if the handler is put AFTER the sliders generated
+				// NOTE:: The handler is asynchronous, you never know when it is called
+				// and it's context at that moment is unknown wrt variables in this function
+				if (jqmobile==1) 
+				{ 					// THERMOSTAT SLIDER FOR MOBILE
+				  $(function() 
+				  {
+					var val = load_device(room_id, device_id);
+					if (val == 'F0') { val = 0; }
+					$( slidid ).slider
+					({
+					 	stop: function( event, ui ) {
+							// This is where it happens for the value of the action
+							var id = $(event.target).attr('id');
+							var val = $(event.target).val();
+							//var val2 = ui.value;
+		
+							// For slider==0 a special case. We want to switch OFF the device
+							// As the dimmer command only accepts values 1-32, for value 0 we
+							// make a special case and set the value of button OFF to be pressed.
+							if ( val == 0 ) { 								
+								// strip id and change val "D1Fd"+"P0" ==>> "D1"+"F0"
+								handle_device( id.slice(0,-2), "F" + val );		 
+								// Remove hover from "ON" and put the hover on the OFF button
+								$("#"+id.slice(0,-2)+"F1").removeClass( 'hover' );
+								$("#"+id.slice(0,-2)+"F0").addClass( 'hover' );
+							} 
+							else { 
+								handle_device( id, "P" + val );				// id ="D1Fd", value = "P31"
+								$("#"+id.slice(0,-2)+"F0").removeClass( 'hover' );
+								$("#"+id.slice(0,-2)+"F1").addClass( 'hover' );
+							}
+							store_device(s_room_id, id.slice(0,-2), val);
+						}
+					});
+					$( slidid ).slider("refresh");
+				  });
+				}
+				else			// REGULAR THERMOSTAT SLIDER, 
+				$(function() 
+				{
+					// Load database value
+					var val = load_device(room_id, device_id);
+					// If the OFF buton is pressed, put the slider to lowest position
+  					$( slidid ).slider
+					({
+						range: "max",
+						main: 1,
+						min: 15,
+						max: 25,
+						value: val,
+						slide: function( event, ui ) {
+							// This is where it happens for the label
+							// Problem is we need to update the correct label
+							var id = $(event.target).attr('id');
+							// strip last character of id of slider object
+							// and replace with a l for the label object
+							// For more than 9 devices, may be 4! chars eg. string ="D10F"							
+							var lid = '#' + id.slice(0,-1) + 'l';
+
+							$( lid ).val (ui.value);
+						},
+						stop: function( event, ui ) {
+							// This is where it happens for the value of the action
+							var id = $(event.target).attr('id');
+							var val = ui.value;
+							handle_device( id, "P" + val );				// id ="D1Fd", value = "P31"
+							store_device(s_room_id, id.slice(0,-2), val);
+						}
+					});
+					// Initial value of the slider at time of definition
+					$( label ).val( val );
+  				}); // Slider Function
+			break;
+			
 			default:
 					alert("lamp_button, type: "+device_type+" unknown");
 			} // switch	
 				
 		}// room
-       };//for		
+	};//for		
 					
-		s_room_id = new_room_id;				
+	s_room_id = new_room_id;				
 				
 		// Listen to ALL (class) buttons for #gui_devices which is subclass of DIV #gui_content
-		$( "#gui_devices" ).on("click", ".dbuttons" ,function(e) 
-		{
+	$( "#gui_devices" ).on("click", ".dbuttons" ,function(e) 
+	{
 			e.preventDefault();
 //			e.stopPropagation();
 
@@ -3174,7 +3329,7 @@ function activate_room(new_room_id, selectable)
 			{
 			// ROOM ADD BUTTON (Adds a DEVICE to a ROOM)
 			case "Ra":
-				if (debug>2) alert("Room Add Button: "+but_id);
+				if (debug>2) alert("activate_room:: Add Device Button: "+but_id);
 				// Find an empty device['id'] for this room, and if none left, create a new one
 				// at the end of the devices array, provided we do not have more than 16 devices
 				// for this room. We could make this a function...
@@ -3206,7 +3361,7 @@ function activate_room(new_room_id, selectable)
 				for (var i=0; i<brands.length; i++) {
 					str += '<option>' + brands[i]['name'] + '</option>';
 				}
-				str += '</select>';
+				str += '</select><br />';
 				
 				// Generate the complete form for adding a device
 				// XXX Need to improve and add field for address for example
@@ -3216,16 +3371,32 @@ function activate_room(new_room_id, selectable)
 				askForm('<form id="addRoomForm"><fieldset>'
 					+ '<p>You have created a new device, please give it a name and specify its type and brand. '
 					+ 'Optionally, the group address can be set if this device address is different from the room address</p>'
+					
 					+ '<label for="val_1">Name: </label>'
 					+ '<input type="text" name="val_1" id="val_1" value="" class="text ui-widget-content ui-corner-all" />'
 					+ '<br />'
+					
 					+ '<label for="val_2">Type: </label>'
 					+ '<select id="val_2" value="switch" ><option selected="selected">switch</option>'
-					+ '<option>dimmer</option></select><br />'
+					+ '<option>dimmer</option><br /><option>thermostat</option></select>'
+					+ '<br />'
+					
 					+ str
+					
 					+ '<label for="val_4">Group addr: </label>'
 					+ '<input type="text" name="val_4" id="val_4" value="'+ gaddr+'" class="text ui-widget-content ui-corner-all" />'
+					+ '<br />'
+					
+					+ '<label for="val_5">Unit addr: </label>'
+					+ '<input type="text" name="val_5" id="val_5" value="'+ ind +'" class="text ui-widget-content ui-corner-all" />'
 					+ '</fieldset></form>'
+					
+					// Return Values in ret[]:
+					//	0: Name
+					//	1: Type (devices[xxx]['type]'
+					//	2: Brand (in str)
+					//	3: Group
+					//	4: Unit device[xxx]['unit'] device address (can be different from the LamPI devices[xxx]['id'] )
 					
 					// Create
 					,function (ret) {
@@ -3245,10 +3416,15 @@ function activate_room(new_room_id, selectable)
 						
 						// Validate response. Dimmer type is not always allowed. For the moment we trust the user 
 						// more or less
-						if ((ret[1]=="dimmer") && (brnd_nm != "kaku")) {
+						if ((ret[1]=="dimmer") &&  ((brnd_nm != "kaku")||(brnd_nm != "zwave")) ) {
 							alert("Type dimmer is not supported for brand "+brnd_nm);
 							return(1);
 						}
+						if ((ret[1]=="thermostat") && (brnd_nm != "zwave")) {
+							alert("Type thermostat is not supported for brand "+brnd_nm);
+							return(1);
+						}
+						
 						// All OK? Make a new device in the room
 						var newdev = {
 							id: "D"+ind,
@@ -3256,13 +3432,14 @@ function activate_room(new_room_id, selectable)
 							gaddr: ret[3],					// Initial Value, is room_id + 99
 							name:  ret[0],
 							type:  ret[1],
+							unit: ret[4],
 							val: "0",
 							lastval: "0", 
 							brand: brnd_id
 						}
 						devices.push(newdev);			// Add record newdev to devices array
 						console.log(newdev);
-						send_2_dbase("add_device", newdev);
+						send2dbase("add_device", newdev);
 						// And add the line to the #gui_devices section
 						activate_room(s_room_id);
 						return(1);	//return(1);
@@ -3294,17 +3471,15 @@ function activate_room(new_room_id, selectable)
 			// All OFF in room works; command is sent to daemon who updates the database too.
 			case "Fa":
 				
-				// Could use group function of remote, but that will NOT work accross brands
-				// All OFF Pressed, No room specified!!
+				// Send the All Off message to the daemon (or handle with Ajax)
 				handle_device( "", "Fa" );
-				// for every device in this room set memory value to off
+				// for every device in this room set memory value to off, exception for thermostats
 				for (var j=0; j< devices.length; j++) {
-					if (devices[j]['room'] == s_room_id ) {
+					if ((devices[j]['room'] == s_room_id ) && (devices[j]['type'] != "thermostat" )) {
 						//
-						// store_device should have a local function of storing to devices object
-						// Syncing to databases (based on value of persist) is a function of the daemon
-						// XXX Need to relax the timer for SQL to 10 secs or so, or do group update (better);
+						// store_device updates the devices[][] array
 						store_device(s_room_id, devices[j]['id'], "OFF"); // Was F0
+						console.log("activate_room:: All Off command for device: "+devices[j]['unit']);
 					}
 				}
 				// And update the page, or update row. Given that all devices are
@@ -3337,7 +3512,7 @@ function activate_room(new_room_id, selectable)
 						var removed = devices.splice(dev_index ,1);
 						if ( persist > 0 ) {
 							console.log(removed[0]);
-							send_2_dbase("delete_device", removed[0]);
+							send2dbase("delete_device", removed[0]);
 							if (debug>1)
 								alert("Removed from dbase:: id: " + removed[0]['id'] + " , name: " + removed[0]['name']);
 								//alert (JSON.stringify(removed));
@@ -3433,21 +3608,21 @@ function activate_room(new_room_id, selectable)
 			// This is a regular button. if there are special commands for this situation they go here
 
 			}
-		}); // End of button Handler
+	}); // End of button Handler
 		
-		// SORTABLE
+	// SORTABLE
 		// Make the table sortable. It allows us to define a table with buttons above that are 
 		// Not sortable but still look quite the same as these ... And for button handling it does
 		// not see the difference.
-		if (jqmobile == 1) {								// For jqmobile make a different sortable (later)
+	if(jqmobile == 1) {								// For jqmobile make a different sortable (later)
 		
-			// *** NOT IMPLEMENTED YET FOR MOBILE ***
+			// *** SORTABLE NOT IMPLEMENTED YET FOR MOBILE ***
 		
-		}
-		else
-		{// Sortable works different for mobile and webbased
-			var start_pos;
-			$("#gui_devices tbody").last().sortable({
+	}
+	else
+	{// Sortable works different for mobile and webbased
+		var start_pos;
+		$("#gui_devices tbody").last().sortable({
 
 			start: function (event, ui) {
             	$(ui.item).data("startindex", ui.item.index());
@@ -3460,10 +3635,8 @@ function activate_room(new_room_id, selectable)
 				var stop_pos = ui.item.index();
 				var stop_index;
 				var start_index;
-				//console.log( "Start pos: " + start_pos );
-				//console.log( "Stop pos: " + stop_pos  );
 				
-				console.log( "start_pos: "+start_pos+", stop_pos: "+stop_pos);
+				console.log( "sortable:: start_pos: "+start_pos+", stop_pos: "+stop_pos);
             	//self.sendUpdatedIndex(ui.item);
 				j=0;
 				for (var i=0; i<devices.length; i++) {
@@ -3473,23 +3646,43 @@ function activate_room(new_room_id, selectable)
 						if (j==start_pos) { 
 							start_index = i;
 						}
-						else if (j== stop_pos) {
+						else if (j==stop_pos) {
 							stop_index = i;
 						}
 						j++;
 				}//for
-				console.log( "room: "+s_room_id+",start_index: "+start_index+", stop_pos: "+stop_index);
-				// start_index en stop_index contain idexs of the elements
+				console.log( "room: "+s_room_id+",start_index: "+start_index+", stop_index: "+stop_index);
+				console.log( "room: "+s_room_id+",start_pos:   "+start_pos+", stop_pos:     "+stop_pos);
+				
+				// start_index en stop_index contain indexes of the elements
 				// that will be involved in the move !!
 				var removed = devices.splice(start_index,1);
-				console.log( "name removed: "+removed[0]['name']);
 				var effe = devices.splice(stop_index,0,removed[0]);
+				
+				console.log( "name of device moved: "+removed[0]['name']);
+				
+				// Need to update the database (ever) for every stop event!
+				var j=1
+				for (var i=0; i<devices.length; i++) {
+					if (devices[i]['room'] != s_room_id) {		// Find next device in THIS room
+							continue;
+					}
+					// Might have to remove teh old content of the database table first
+					// After all, when removing devices there might be holes in the index table.
+					// send2dbase("delete_device", devices[i]);
+					// Then add the correct values
+					devices[i]['id']="D"+j;
+					console.log( "storing device: id: "+devices[i]['id']+", name: "+devices[i]['name']);
+					send2dbase("store_device", devices[i]);
+					
+					j++;
+				}
 				
         	}// stop 
 		}).disableSelection();
 		// Sorting done, updated the devices array to reflect the changes, 
 		
-		// Need to update the database (ever)!
+		
 		
 	}//else
 } // activate_room
@@ -3606,7 +3799,7 @@ function activate_scene(scn)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("store_scene", scenes[j]);
+				send2dbase("store_scene", scenes[j]);
 				message("Device command added to the scene");
 				
 			} // if recording
@@ -3651,7 +3844,7 @@ function activate_scene(scn)
 						
 						// alert("Fe Storing scene:: "+scene_cmd+", length: "+scene['seq'].length);
 						// Send to database and update the current scene record
-						send_2_dbase("store_scene", scene);
+						send2dbase("store_scene", scene);
 					break;
 						
 					// DELETE scene action, ONE of the actions in the seq!!!
@@ -4156,8 +4349,8 @@ function activate_timer(tim)
 						+ ", months: " + timer['months'] + "\n"
 						+ ", skip: " + timer['skip'] + "\n"				// Skip one time
 						;
-						// alert(str);
-						send_2_dbase( "store_timer", timer); 
+						if (debug >=1) console.log("store_timer"+str);
+						send2dbase( "store_timer", timer); 
 						
 						// XXX Need to fix this for ICS-1000. At the moment we optimized so much for
 						// Raspberry that these functions are gone for ICS
@@ -4178,7 +4371,7 @@ function activate_timer(tim)
 					//		  );
 					//	message_device("timer", timer_cmd);
 					//	XXX Still need to delete something....
-					//	send_2_dbase( "delete_timer", timer);
+					//	send2dbase( "delete_timer", timer);
 					
 						myConfirm('You are about to cancel this timer. If you continue, the system ' 
 							+ 'will for one time skip this timer action', 
@@ -4198,7 +4391,7 @@ function activate_timer(tim)
 						);
 						timer['skip']="1";
 						set_timer(s_timer_id,timer);
-						send_2_dbase( "store_timer", timer);
+						send2dbase( "store_timer", timer);
 						$('#Fx').removeClass( 'hover' );
 					break;//Cancel
 					
@@ -4529,7 +4722,7 @@ function activate_handset(hset)
 				
 				
 				// If this is the first line in the scene database
-				send_2_dbase("store_handset", handsets[j]);
+				send2dbase("store_handset", handsets[j]);
 				message("Device command added to the handsets",1);
 				
 			} // if recording
@@ -4587,7 +4780,7 @@ function activate_handset(hset)
 					if (handsets[j]['id'] == s_handset_id) {
 						console.log("Fe Storing handset:: "+handset_name+":"+handsets[j]['unit']+":"+handsets[j]['val'] );
 						// Send to database and update the current scene record
-						send_2_dbase("store_handset", handsets[j]);
+						send2dbase("store_handset", handsets[j]);
 					}
 				}
 				// Not Applicable for the ICS-1000 controller
@@ -5505,7 +5698,7 @@ function activate_setting(sid)
 				if (persist>0) {
 						// Write the settings to database
 						if (debug>0) myAlert("Set : " + settings[0]['name']+' to '+settings[0]['val'],"DEBUG LEVEL");
-						send_2_dbase("store_setting", settings[0]);
+						send2dbase("store_setting", settings[0]);
 				}
 				message("debug level set to "+ debug);
 			})
@@ -5574,7 +5767,7 @@ function activate_setting(sid)
 					settings[1]['val'] = cntrl;
 					if (persist>0) {
 						// Write the settings to database
-						send_2_dbase("store_setting", settings[1]);
+						send2dbase("store_setting", settings[1]);
 					}
 				});
 			}
@@ -5599,7 +5792,7 @@ function activate_setting(sid)
 					if (persist > 0) {
 						// Write the settings to database
 						if (debug>1) alert("Set : "+settings[1]['name']+' to '+settings[1]['val']);
-						send_2_dbase("store_setting", settings[1]);
+						send2dbase("store_setting", settings[1]);
 					}
 				})	
 			}
@@ -5647,7 +5840,7 @@ function activate_setting(sid)
 					if (persist > 0) {
 						// Write the settings to database
 						if (debug > 0) alert("Set : " + settings[2]['name'] + ' to ' + settings[2]['val']);
-						send_2_dbase("store_setting", settings[2]);
+						send2dbase("store_setting", settings[2]);
 					}
 					message("MySQL value set to "+ mysql);
 			})		
@@ -5703,7 +5896,7 @@ function activate_setting(sid)
 					if (persist >= 0) {
 						// Write the settings to database
 						if (debug > 0) alert("Set : " + settings[3]['name'] + ' to ' + settings[3]['val']);
-						send_2_dbase("store_setting", settings[3]);
+						send2dbase("store_setting", settings[3]);
 					}
 			});
 			// Init the current value of the button
@@ -5773,7 +5966,7 @@ function activate_setting(sid)
 						$("link[href^='styles']").attr("href", skin_file);
 						settings[4]['val']=skin_file;
 						//alert("Settings 4: "+ settings[4]['val']);
-						send_2_dbase("store_setting", settings[4]);
+						send2dbase("store_setting", settings[4]);
 					break;
 						
 					default:
@@ -5910,6 +6103,7 @@ function activate_setting(sid)
 				but += '<input type="submit" id="Cc" value="Connected Clients" class="dbuttons" >';
 				but += '<input type="submit" id="Cs" value="Sunrise Sunset" class="dbuttons" >';
 				but += '<input type="submit" id="Cl" value="Daemon log" class="dbuttons" >';
+				but += '<input type="submit" id="Cz" value="Zway log" class="dbuttons" >';
 				but += '<input type="submit" id="Cr" value="Daemon Restart" class="dbuttons" >';
 				but += '</td>';
 			}
@@ -5952,7 +6146,21 @@ function activate_setting(sid)
 						message("Console Log request sent to server",1);
 						w_sock.send(JSON.stringify(client_msg));	
 					break;
-						
+					
+					case "Cz": 
+						//alert("Activate_settings:: console - Zway Log pressed" );
+						var client_msg = {
+							tcnt: ++w_tcnt%1000,
+							action: 'console',
+							request: 'zlogs'
+						}
+						console.log(client_msg);
+									
+						// Send the password back to the daemon
+						message("Console ZLog request sent to server",1);
+						w_sock.send(JSON.stringify(client_msg));	
+					break;
+					
 					case "Cs":
 						var client_msg = {
 							tcnt: ++w_tcnt%1000,
@@ -6102,9 +6310,10 @@ function setting_button(id, val, hover)
 // ------------------------------------- DEVICES -----------------------------------------
 //
 // STORE_DEVICE
+//
 // Store the value of the device_id in the GUI back in the devices object 
 // Local on the client. The daemon will as of release 1.4 take care of syncing the value
-// to the dtabase (should that be necessary based on persist)
+// to the database (should that be necessary based on persist)
 //
 // Inputs:
 //	room: The room id of the object in the devices array (is a number)
@@ -6144,26 +6353,19 @@ function store_device(room, dev_id, val)
 				devices[j]['val'] = val ;  
 				devices[j]['lastval'] = val;
 			}
-
-			// If we are here, there is a match with room_ and dev_id found
-			// in the database, and the client-side has been updated.
-			
-			// XXX We can now also update the server side!
-			// Just to test the function!!
-			// send_2_dbase can handle several "command", "message" combinations
-			// Only store if the persist mode is NOT easy == 0
 			
 			//if (persist > 0)
-			//	send_2_dbase("store_device", devices[j]);
+			//	send2dbase("store_device", devices[j]);
 			
 			return(1)								// Stop loop
 		}
-	}
+	}// for
 	return(1);	
 }
 
 //
 // Find the device in the devices array and return the array index
+// based on the id as used in the GUI
 //
 function find_device(rm_id, dev_id)
 {
@@ -6174,12 +6376,28 @@ function find_device(rm_id, dev_id)
 			
        	if (( room_id == rm_id ) && ( device_id == dev_id ))
 		{
-			return( j );
+			return(j);
 		}
 	}
 	return(-1);		
 }
 
+// Find the unit addr which is used on a physical level
+//
+function lookup_uaddr(rm_id, dev_id)
+{
+	for (var j = 0; j<devices.length; j++ )
+	{
+  		var device_id = devices[j]['unit'];
+		var room_id = devices[j]['room'];
+			
+       	if (( room_id == rm_id ) && ( device_id == dev_id ))
+		{
+			return(j);
+		}
+	}
+	return(-1);		
+}
 
 // --------------------- LOAD DEVICE ------------------------------------
 // Load the value of a device from the gui variable
@@ -6294,97 +6512,6 @@ function set_timer(tim_id,timer)
 	return(-1);		
 }
 
-// -------------------------------------------------------------------------------------------------------------
-//	Handle incoming device requests, translate to a standard message and send to device by AJAX
-//
-//	Input: The id of the calling button (!). Which for ICS in general is the same id as the real device name
-//			in the ICS appliance. 
-// 			The Value of the button pressed
-//
-//	Maybe we do not really need this function, but it's there to make translations
-//	between the gui id's and the real device id's simpler, and allows commands for
-//	other devices than just the ICS-1000 (we need to add a devicetype parameter)
-//
-// XXX We will standardize in the client application on the messaging format that is used by KlikAanKlikUit.
-// However, onze received by the backend these messages may either be forwarded to the ICS or
-// translated to another controller so that it operates independent from the 
-// device controller used. 
-
-// The choice for the ICS-1000 initially is OK, but we should expect other
-// controllers as well, and for that matter other destinations to send the message to might pop-up...
-//
-function handle_device(id,val) 
-{
-	// We know the current room s_room_id
-	// and the current device_id is passed by the handler to this function
-	// NOTE: This function now ONLY works correct for the ICS-1000 device. If we like
-	// to work with other technologies such as Zwave we need a translation between buttons and device codes
-	// specific for such a device.
-	var str = "!R" + s_room_id + id;	// str bcomes something like: !R1D2"
-											// val is like "F1" "ON" "OFF"
-	if ( debug>2 ) 
-			alert ("handle_device:: \nstr: " + str + "\nval: " + val );
-	switch (val) {
-		case "Fo":
-			str = str + "Fo";
-		break;
-			// For type dimmer/slider we  have set the behaviour so that
-			// pressing the ON button twice will not start dimming up/down, but
-			// only restore to last light setting
-		case "ON":
-		case "F1":
-			//console.log("handle_device:: F1 recognized");
-			for (var i=0; i< devices.length; i++) {
-				if(( devices[i]['id'] == id) && (devices[i]['room'] == s_room_id)){
-					if (devices[i]['type'] == "dimmer") {
-						//alert ("handle_device:: dimmer translate");
-						// translate F1 into 
-						str = str + "FdP" + devices[i]['lastval'];
-						// update of value done by database handler
-						break;
-					}
-					else {
-						str = str + "F1";
-						break;
-					}
-				}
-			}
-		break;
-			
-		case "OFF":
-		case "F0":
-				str = str + "F0";
-		break;
-			
-		case "DUP":
-				str = str + "S1";
-		break;
-			
-		case "D":
-				alert("handle_device:: " + val + " command not recognized");
-		break;
-			
-		default:
-			// must be dimmer, val is P0 through P32
-			// Need to have better pasing of the arguments
-			str = str + val;
-		}	
-		// str is now complete. Next we need to find out where to send the command string to.
-		var brand = "";
-		for (var i=0; i< devices.length; i++) {
-			if (( devices[i]['id'] == id.substr(0,2) ) && ( devices[i]['room'] == s_room_id )) {
-				
-				var brand_id = devices[i]['brand'];
-				brand = brands[brand_id]['fname'];
-				break;
-			}
-		}
-		console.log("handle_device:: lamp code is: "+str);
-		//alert("handle_device:: brand: "+brand+", str:"+str);
-		message_device(brand,str);	
-}
-
-
 // ---------------------------------------------------------------------------------------
 // Decode a timers scene 'seq' command string in ICS format back to human readable form so that we can build 
 // a scene listing 
@@ -6441,7 +6568,7 @@ function decode_scene_string (str)
 				pos1+=2; }
 		
 			for (var i=0; i < devices.length; i++ ) {
-				if ((devices[i]['id'] == 'D'+dev ) && (devices[i]['room'] == room )) { 
+				if ((devices[i]['unit'] == dev ) && (devices[i]['room'] == room )) { 
 					res += devices[i]['name'] 
 					switch (devices[i]['type'])
 					{
@@ -6508,72 +6635,14 @@ function decode_scene_string (str)
 	return (res);
 }
 
-// ---------------------------------------------------------------------------------------
-// SEND2DAEMON
-//
-// Universal function for sending buffers to the daemon
-// action: "gui","dbase","login"
-//
-function send2daemon(action,cmd,message)
-{
-	//
-	if (debug>=1) console.log("send2daemon: action: "+action+", cmd: "+cmd);
-	// Make the buffer we'll transmit. As you see, the message(s) are really simple
-	// and be same as ICS-1000, and will not be full-blown json.
-	var data = {
-		tcnt: ++w_tcnt%1000+"",
-		type: "raw",
-		action: action,				// actually the class of the action
-		cmd: cmd,					// The command for that class
-		message: message			// Message contains the parameter(s) necessary
-	};
-	//if (debug>=1) console.log("send2daemon:: jSon: "+JSON.stringify(data));
-		
-	// Now check the state of the socket. This could take forever, have to build a limit ...
-	// In practice, this sending part will likely NOT find out that the connection is lost,
-	// but the registered receiver handler (somewhere around line 1800) will.
-	
-	for (var i=0; i<4; i++) {				
-		switch (w_sock.readyState) {
-		// 0: Not yet ready, wait for connect
-		case 0:
-			console.log("send2daemon:: readystate not ready: "+w_sock.readyState);
-			setTimeout( function() { console.log("send2daemon:: socket not ready: "+w_sock.readyState); }, 1000);
-		break;
-		// 1: socket is ready, send the data
-		case 1: 
-			if (debug>=1) console.log("send2daemon:: sending: "+JSON.stringify(data));
-			w_sock.send(JSON.stringify(data));
-			return(0);
-		break;
-		// 2: close in progress
-		// Must wait the disconnect out?
-		case 2:
-			console.log("send2daemon:: readystate close in progress: "+w_sock.readyState);
-		break;
-		// 3: closed
-		// if closed, reopen the socket again
-		case 3:
-			console.log("send2daemon:: readystate closed: "+w_sock.readyState);
-			// wait with execution for 500 mSec
-			//setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
-			//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
-		break;
-	
-		default:
-			console.log("send2daemon:: readystate not defined: "+w_sock.readyState);
-		}
-	}// for
-	console.log("send2daemon:: unable to transmit message 4 times: "+w_sock.readyState);
-	return(-1);
-}
-
 
 // ---------------------------------------------------------------------------------------
 //	Function database inits all communication with the database backend
 //
 //  This is the only AJAX function in the file that is sort of synchronous.
 //	This because we need the values before we can setup rooms, devices, debug etc settings
+//
+//  This function is available as AJAX function and support for websockets is in beta.
 //
 function load_database(dbase_cmd) 
 {
@@ -6666,16 +6735,177 @@ function load_database(dbase_cmd)
 }
 
 
+// -------------------------------------------------------------------------------------------------------------
+//	Handle incoming device requests, translate to a standard message and send to device 
+// This function translate the id's used by the LamPI GUI to the device unit addresses
+//
+//	Input: The id of the calling button (!). Which for ICS in general is the same id as the real device name
+//			in the ICS appliance. 
+// 			The Value of the button pressed
+//
+// The choice for the ICS-1000 initially is OK, but we should expect other
+// controllers as well, and for that matter other destinations to send the message to might pop-up...
+//
+// In order to be independent of id's used by this LamPI gui, we translate its id's to "unit" addresses that will
+// be used by the physical devices.
+//
+function handle_device(id,val) 
+{
+	// We know the current room s_room_id
+	// and the current device_id is passed by the handler to this function
+	// NOTE: This function now ONLY works correct for the ICS-1000 device. If we like
+	// to work with other technologies such as Zwave we need a translation between buttons and device codes
+	// specific for such a device.
+	var str = "";
+	var action = "";
+	var cmdString = "";	
+
+	// Decode val and validate/correct its value
+	if ( debug>=3 ) alert ("handle_device:: \nid: " + id + "\nval: " + val );
+	
+	switch (val) {
+		case "Fo":
+			str = str + "Fo";
+		break;
+		// For type dimmer/slider we  have set the behaviour so that
+		// pressing the ON button twice will not start dimming up/down, but
+		// only restore to last light setting
+		case "ON":
+		case "F1":
+			//console.log("handle_device:: F1 recognized");
+			for (var i=0; i< devices.length; i++) {
+				if (( devices[i]['id'] == id) && (devices[i]['room'] == s_room_id)) {
+					if (devices[i]['type'] == "dimmer") {
+						//alert ("handle_device:: dimmer translate");
+						// translate F1 into 
+						str = str + "FdP" + devices[i]['lastval'];
+						// update of value done by database handler
+						break;
+					}
+					else {
+						str = str + "F1";
+						break;
+					}
+				}
+			}
+		break;
+		// Switch OFF command
+		case "OFF":
+		case "F0":
+			str = str + "F0";
+		break;
+		case "DUP":
+			str = str + "S1";
+		break;
+		case "D":
+			alert("handle_device:: " + val + " command not recognized");
+		break;
+		// All Off command
+		case "Fa":
+			cmdString = "!R" + s_room_id + "Fa";
+			message_device(action,cmdString);
+			return(1);
+		break;
+		// If not a switch, it must be a dimmer (or thermostat)
+		default:
+			// must be dimmer, val is P0 through P32
+			// Need to have better pasing of the arguments
+			str = str + "Fd" + val;
+	}	
+	// str is now complete. Next we need to find out where to send the command string to.
+
+	for (var i=0; i< devices.length; i++) {
+		if (( devices[i]['id'] == id.substr(0,2) ) && ( devices[i]['room'] == s_room_id )) {
+			
+			var unit = devices[i]['unit'];
+			var brand_id = devices[i]['brand'];
+			// The message_device() function will use the brand name as the action description
+			action = brands[brand_id]['fname'];
+			// str bcomes something like: !R1D2FdP16"
+			cmdString = "!R" + s_room_id + "D" + unit + str;
+			break;
+		}
+	}
+	console.log("handle_device:: action is: "+action+", lamp command code is: "+cmdString);
+		
+	//alert("handle_device:: brand: "+action+", cmdString:"+cmdString);
+	message_device(action,cmdString);	
+}
+
+
+// ---------------------------------------------------------------------------------------
+// SEND2DAEMON
+//
+// Universal function for sending buffers to the daemon for websockets only.
+// action: "gui","dbase","login"
+// This function is called by function message_device()
+//
+function send2daemon(action,cmd,message)
+{
+	//
+	if (debug>=1) console.log("send2daemon: action: "+action+", cmd: "+cmd);
+	// Make the buffer we'll transmit. As you see, the message(s) are really simple
+	// and be same as ICS-1000, and will not be full-blown json.
+	var data = {
+		tcnt: ++w_tcnt%1000+"",
+		type: "raw",
+		action: action,				// actually the class of the action
+		cmd: cmd,					// The command for that class (gui dbase login).
+		message: message			// Message contains the parameter(s) necessary
+	};
+	//if (debug>=1) console.log("send2daemon:: jSon: "+JSON.stringify(data));
+		
+	// Now check the state of the socket. This could take forever, have to build a limit ...
+	// In practice, this sending part will likely NOT find out that the connection is lost,
+	// but the registered receiver handler (somewhere around line 1800) will.
+	
+	for (var i=0; i<4; i++) {				
+		switch (w_sock.readyState) {
+		// 0: Not yet ready, wait for connect
+		case 0:
+			console.log("send2daemon:: readystate not ready: "+w_sock.readyState);
+			setTimeout( function() { console.log("send2daemon:: socket not ready: "+w_sock.readyState); }, 1000);
+		break;
+		// 1: socket is ready, send the data
+		case 1: 
+			if (debug>=1) console.log("send2daemon:: sending: "+JSON.stringify(data));
+			w_sock.send(JSON.stringify(data));
+			return(0);
+		break;
+		// 2: close in progress
+		// Must wait the disconnect out?
+		case 2:
+			console.log("send2daemon:: readystate close in progress: "+w_sock.readyState);
+		break;
+		// 3: closed
+		// if closed, reopen the socket again
+		case 3:
+			console.log("send2daemon:: readystate closed: "+w_sock.readyState);
+			// wait with execution for 500 mSec
+			//setTimeout( function() { w_sock = WebSocket(w_uri); }, 1500);
+			//console.log("Websocket:: socket re-opened: "+w_sock.readyState);
+		break;
+	
+		default:
+			console.log("send2daemon:: readystate not defined: "+w_sock.readyState);
+		}
+	}// for
+	console.log("send2daemon:: unable to transmit message 4 times: "+w_sock.readyState);
+	return(-1);
+}
+
+
+
 // -----------------------------------------------------------------------------------	
 //	This is a universal piece of code for sending commands to lamp devices
-//  The function only knows about lamp id's. Commands for switching on/off
+//  The function only knows about devices "id" 's. Commands for switching on/off
 //  are based on those buttons
 //
 //	The backend function will take care of the command interpretation, at this
 // moment the ICS command structure serves as a universal piece of code
 //
 // input : STRING action setting "device", "scene", "timer" makes easier for backend
-// input : STRING controller_cmd (only ics) in the form of "!R1D2F1"
+// input : STRING controller_cmd (only ics) in the form of "!R1D2F1" or "!R1D2FdP15" for dimmers
 //
 function message_device(action, controller_cmd) 
 {
@@ -6688,7 +6918,7 @@ function message_device(action, controller_cmd)
 	}
 	//
 	// WEBSOCKETS
-	// if not using phonegap, and controller == raspberry, use websockets 
+	// if not using phonegap, and controller == raspberry, use websockets
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
 		if (debug>=2) console.log("message_device:: Calling send2daemon with gui, set, "+controller_cmd);
@@ -6697,7 +6927,7 @@ function message_device(action, controller_cmd)
 		send2daemon("gui","set",controller_cmd);
 	}
 	
-	// AJAX used
+	// else if AJAX used
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
 		$.ajax({
@@ -6767,16 +6997,17 @@ function message_device(action, controller_cmd)
 //
 //	We want to store the data to the other side and there they need to sort whether that is in files or SQL
 //
-function send_2_dbase(dbase_cmd, dbase_arg) 
+function send2dbase(dbase_cmd, dbase_arg) 
 {
 	// WEBSOCKETS
 	if (( phonegap != 1 ) && (settings[1]['val'] == 1 ))
 	{
-		console.log("send_2_dbase:: Receiving websocket command "+dbase_cmd+", dbase_arg: <"+dbase_arg+">");
+		console.log("send2dbase:: Receiving websocket command "+dbase_cmd+", dbase_arg: <"+dbase_arg+">");
 		// Make the buffer we'll transmit. As you see, the GUI messages are really simple
 		// and be same as ICS-1000, and will not be full-blown json.
 		send2daemon("dbase",dbase_cmd,dbase_arg);
 	}
+	
 	// AJAX
 	else if (( phonegap == 1 ) || (settings[1]['val'] == 0 ))
 	{
@@ -6798,7 +7029,7 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 					
 			// Send debug message if desired
 			if (debug > 1) {							// Show result with alert		
-          			alert('Ajax call send_2_dbase: ' + dbase_cmd + ' success: \n' 
+          			alert('Ajax call send2dbase: ' + dbase_cmd + ' success: \n' 
 				  	+ ',\nStatus: ' + data.status 
 					+ '.\nApp Msg: ' + data.appmsg 
 					+ '.\nApp Err: ' + data.apperr 
@@ -6809,29 +7040,33 @@ function send_2_dbase(dbase_cmd, dbase_arg)
 		error: function(jqXHR, textStatus, errorThrown)
 		{
 			// data.responseText is what you want to display, that's your error.
-			alert("send_2_dbase:: request failed "
+			alert("send2dbase:: request failed "
 			+ "\nError: " + jqXHR.responseText
 			+ "\nTextStatus: "+ textStatus
 			+ "\nerrorThrown: "+ errorThrown
-			+ "\n\nFunction send_2_dbase will finish now!" );
+			+ "\n\nFunction send2dbase will finish now!" );
 			return(-1);
 		}
 		});
 	}
 	else {
-		message("send_2_dbase:: Error database message");
+		message("send2dbase:: Error database message");
 	}
 };
 
 // --------------------------------------------------------------------------------------
-// Send_2_set: Send commands to the backend PHP system, mainly for changing LamPI settings. 
+// Send_2_set: 
+// Send setting commands to the backend PHP system, mainly for changing LamPI settings. 
+//
 // These commands are used for retrieving skins, settings and other stuff
 // supporting the GUI program.
 // As we need the results of this call for our program, we need SYNC call, so
 // we can wait for the results in our program.
 //
 // NOTE: We call init functions SYNCHRONOUS, as it modifies the app under our hands
-// This may be the only function therefore that we keep separate from the daemon.
+// This may be the function therefore that we keep separate from the daemon.
+// Reason is because changing settings is often GUI related and not daemon.
+// When necessary the daemon is synchronized through the database.
 //
 function send_2_set(command, parameter)
 {

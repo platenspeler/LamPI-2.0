@@ -17,6 +17,9 @@
 // Version 1.9, Mar 10, 2014, Support for wired sensors and logging
 // Version 2.0, Jun 15, 2014, Support for Z-Wave
 // Version 2.1, Jun 31, 2014, rrdtool support, bug fixes
+// Version 2.1, Jul 31, 2014 Smart Meter support
+// Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
+// Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 // #gui_header: Here are the buttons for selecting the active rooms 
@@ -36,14 +39,14 @@
 //
 -->
 
-	<title>LamPI 2.1</title>  
-      
-    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.3/jquery.mobile-1.4.3.min.css" />
+	<title>LamPI 2.4</title>  
+
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
     <link rel="stylesheet" href="http://mobipick.sustainablepace.net/css/mobipick.css" />
-    <link rel="stylesheet" href="styles/phone.css">
+	<link rel="stylesheet" href="styles/android-vertical.css">
     
 	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-    <script src="http://code.jquery.com/mobile/1.4.3/jquery.mobile-1.4.3.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
     <script src="steel/tween-min.js"></script>
     
 	<script src="http://mobipick.sustainablepace.net/external/xdate.js"></script>    
@@ -52,7 +55,7 @@
     
     <script src="LamPI-2.0.min.js"></script> 
 
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.8, maximum-scale=1.2 user-scalable=no ">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=0.8, maximum-scale=1.2 user-scalable=yes">
     
 <style type="text/css">	
 	/* Moved to a dedicated .css file */

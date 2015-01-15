@@ -628,7 +628,7 @@ function make_graphs(gcmd,gtype,gperiod,gsensors)
 			action: gcmd,						// "graph"
 			gtype: gtype,						// "T", "H", "P"
 			gperiod: gperiod,					// "1d" "1w" "1m" "1y"
-			gsensors: gsensors	// { 'temperature': {}, 'humidity': {} }
+			gsensors: gsensors					// { 'temperature': {}, 'humidity': {} }
 		},
 		timeout: 10000,
         success: function( data )

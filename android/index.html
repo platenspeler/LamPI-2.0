@@ -1,4 +1,6 @@
 <html>
+<head>
+    <meta charset="utf-8">
 <!--			******** VERSION FOR PHONEGAP/ANDROID ***************
 //
 // Author: M. Westenberg (mw12554 @ hotmail.com)
@@ -55,15 +57,14 @@
 // Unknown why the viewport is made smaller that th e actual pixels for the display (480 * 640).
 //
 -->
-<head>
-    <meta charset="utf-8">
+
 	<title>LamPI Controller</title>
-    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css" />
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
     <link rel="stylesheet" href="http://mobipick.sustainablepace.net/css/mobipick.css" />
     <link rel="stylesheet" href="styles/phone.css"> 
     
-	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
-	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
     <script src="steel/tween-min.js"></script>
     
     <script src="http://mobipick.sustainablepace.net/external/xdate.js"></script>    
@@ -90,11 +91,12 @@
 <body>       
 <script type="text/javascript">
 
-jqmobile=1;									// Use the jQueryMobile libraries
-phonegap=1;									// PhoneGap application. NOTE:: Only use for Phonegap
+jqmobile=0;									// Use the jQueryMobile libraries
+phonegap=0;									// PhoneGap application. NOTE:: Only use for Phonegap
 fake=0;										// We do not fake communication
 debug=1;									// Init debug 
-dynamicIP=0;
+dynamicIP=0;								// ==1: If IP not known, ask user for IP. 
+											// ==0: Use fixed IP in murl
 
 murl='http://192.168.2.53/'; 				// XXX Normally we could assume this to be the webaddress, but not for phonegap
 s_controller = murl + 'backend_rasp.php';

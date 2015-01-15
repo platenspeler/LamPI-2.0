@@ -17,23 +17,26 @@
 // Version 1.8, Jan 20, 2014. Sork on wired sensors support
 // Version 1.9, Mar 10, 2014. Sensor support and logging
 // Version 2.0, Jun 15, 2014. Support for Z-Wave added
+// Version 2.1, Jul 31, 2014 Smart Meter support
+// Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
+// Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 //
-// This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
+// This is the code to animate the front-end of the application. The main screen is divided in 4 regions:
 // #gui_header: Here are the buttons for selecting the active rooms 
 // #gui_content: The main screen where user can change the values of the active devices for the curently
 //		active room. For the moment, the devices can have 2 types: switches and dimmers (see below)
 // #gui_mssages: This is the area where the function message("text") will output its messages
 // #gui_menu: This is the right side of the screen where we have the main menu where user can select the 
-//		main activities: <home> <rooms> <scenes> <timers> <settings>
+//		main activities
 
 -->
 
-	<title>LamPI 2.1</title>
-	<link href="/jquery-ui-1.10.4.custom/css/smoothness/jquery-ui-1.10.4.custom.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles/classic-grey.css">
-    
+	<title>LamPI 2.5</title>
+	<link href="/jquery-ui-1.11.2/jquery-ui.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/blackngrey.css">
+    <link rel="icon" type="image/png" href="favicon.png">
 	<script src="/jquery-1.11.1.min.js"></script>
-	<script src="/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.js"></script>
+	<script src="/jquery-ui-1.11.2/jquery-ui.js"></script>
     <script src="steel/tween-min.js"></script>
     <script src="LamPI-2.0.min.js"></script> 
 
@@ -45,24 +48,20 @@
 <body>       
 <script type="text/javascript">
 
-console.log("Starting LamPI 2.1");
+console.log("Starting LamPI 2.5");
 start_LAMP();											// START THE MAIN PROGRAM 
 
 </script>	
         
-<div id="wrapper">
+	<div id="wrapper">
 <!-- This is the top area with the room tabs --> 
-      
          <div id="gui_header"></div>
-         <div id="gui_menu"></div>
-       
+<!-- This is main menu area: rooms, scenes, timers, energy selection  --> 
+         <div id="gui_menu"></div>      
 <!-- This is where the buttons for the lamps/dimmers go -->
-		<div id="gui_content">
-        </div>        
+		<div id="gui_content"></div>        
 <!-- This is the message/comment area -->                         
         <div id="gui_messages"></div>
-        
-
- </div> <!-- wrapper -->    
+	</div> <!-- wrapper -->    
 </body>
 </html>
