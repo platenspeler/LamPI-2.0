@@ -1,15 +1,24 @@
-/* SCSS Document for making generic LamPI .css files */
-/* Author: M. Westenberg (mw12554@hotmail.com) */
+/* ------------------------------------------------------------------------------------ */
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* This SCSS file is for charcoal classic-black											*/
 /* ----------------------- SCCS variable definitions -----------------------------------*/
 /* Background color of the wrapper */
-/* The main background color used for this Loof and Feel */
+/* The main background color used for this Look and Feel */
 /* Background color for the buttons */
 /* How does the color of a button change if it is hovered */
 /* Foreground color for button when hovered */
 /* When a button is active it has this color */
+/* Color of the dimmer slider */
+/* Color of the dimmer handler */
 /* Color of the thermo slider */
 /* Color of the thermo handler */
-/* ------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------ */
+/* Import the generic template															*/
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
+/* ------------------------------------------------------------------------------------ */
 /* CORE HTML CSS */
 body {
   font-family: comic sans ms;
@@ -60,6 +69,7 @@ input#lbl {
   margin-top: 5px;
   border: 1px solid black;
   background-color: #222;
+  background-image: "";
 }
 
 /* The header header section defined */
@@ -119,7 +129,9 @@ input#lbl {
   margin-top: 5px;
   height: 445px;
   border: 1px solid black;
+  text-align: center;
   background-color: #333;
+  color: #eee;
   vertical-align: top;
 }
 
@@ -348,21 +360,19 @@ input#lbl {
 /* Devices definitions */
 /* This dlabels descripts the text label left of a switch/dimmer device */
 .dlabels {
-  color: #00F;
   width: 120px;
   height: 30px;
   border-radius: 3px;
   margin-left: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
-  background-color: #AAA;
-  /* Grey */
+  color: black;
+  background-color: #eee;
 }
 
 /* buttons used in a dimmer/slider element . dbuttons are shared with scenes too*/
 .dbuttons {
   padding-right: 5px;
-  color: #00F;
   min-height: 30px;
   width: auto;
   border-radius: 15px;
@@ -370,8 +380,8 @@ input#lbl {
   margin-right: 2px;
   margin-top: 5px;
   margin-bottom: 5px;
-  background-color: #AAA;
-  /* Light Grey */
+  color: black;
+  background-color: #eee;
 }
 
 .dbuttons:hover {
@@ -391,16 +401,23 @@ input#lbl {
 
 .devrow:nth-child(odd) {
   background-color: #444;
-  /* Dark Grey */
 }
 
 /* This is the dimmer object consisting of dlabel, dbutton */
 .dimrow {
+  background-color: #333;
+}
+
+.dimrow:nth-child(odd) {
   background-color: #444;
 }
 
 /* A switch element, so just ON/OFF button */
 .switch {
+  background-color: #333;
+}
+
+.switch:nth-child(odd) {
   background-color: #444;
 }
 
@@ -506,6 +523,15 @@ input#lbl {
   position: absolute;
   top: -10px;
   border-style: none;
+}
+
+/* Dimmer specific definitions */
+.slider-dimmer .ui-slider-range {
+  background: #d2abfc;
+}
+
+.slider-dimmer .ui-slider-handle {
+  border-color: #ef2929;
 }
 
 /* Specific thermo definitions */

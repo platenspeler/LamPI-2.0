@@ -1,194 +1,172 @@
-/* SCSS Document for making generic LamPI .css files */
-/* Author: M. Westenberg (mw12554@hotmail.com) */
-
 @charset "utf-8";
 
-/* ----------------------- SCCS variable definitions -----------------------------------*/
-$wrapper_bg_color: #222;			/* Background color of the wrapper */
+/* ------------------------------------------------------------------------------------ */
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
+/* ------------------------------------------------------------------------------------ */
 
-$main_bg_color: #333;				/* The main background color used for this Look and Feel */
-$main_nth_color: #444;
-$main_msg_color: #eee;
-
-$content_background: $main_bg_color;
-$message_background: $main_bg_color;
-$header_background: $main_bg_color;
-$menu_background: $main_bg_color;
-
-$row_bg_color: $main_bg_color;
-$row_nth_color: $main_nth_color;
-
-$button_fg_color: #fff;
-$button_bg_color: #222;				/* Background color for the buttons */
-$button_hover_bg_color: #FF9;		/* How does the color of a button change if it is hovered */
-$button_hover_fg_color: #111;		/* Foreground color for button when hovered */
-$button_active_fg_color: yellow;	/* When a button is active it has this color */
-$button_active_bg_color: #000;
-
-$thermo_background: #F66;			/* Color of the thermo slider */
-$thermo_handle: #ef2929;			/* Color of the thermo handler */
-
-$dialog_fg_color: #eee;
-$dialog_bg_color: #222;
-/* ------------------------------------------------------------------------------------- */
+/* SCSS Document */
 		
 /* CORE HTML CSS */
-	body {
-		font-family: comic sans ms; 
-		background:$main_bg_color;
-		color:$dialog_fg_color;
- 	}
+		body {
+			font-family	: comic sans ms; 
+			background: #030;
+			color: #eee;
+ 		}
 		
-	table {
-		width: 100%;
-		height:auto;
-	}
+		table {
+			width: 100%;
+			height:auto;
+		}
 		
-	tr {
-;		width: 600px;
-	}
+		tr {
+			/* width: 600px; */
+		}
 
-	td {
-/*		height: 38px; */
-	}
+		td {
+/*			height: 38px; */
+		}
 		
-	p {
- 		font-family:"Times New Roman";
- 		font-size:20px;
- 	}
+		p {
+ 			font-family:"Times New Roman";
+ 			font-size:20px;
+ 		}
 		
-	input#lbl {
-		width: 20px;
-	}
+		input#lbl {
+			width: 20px;
+		}
 		
-	.button {
-	}
+		.button {
+		}
 		
-	/* Prevent the field to get wider when hovering */
-	.button:hover, input[type="submit"]:hover, .button:active, input[type="submit"]:active, input[type="input"]:hover
-	{
-		font-weight: normal;
-		text-decoration: underline;
-	}
+		/* Prevent the field to get wider when hovering */
+		.button:hover, input[type="submit"]:hover, .button:active, input[type="submit"]:active, input[type="input"]:hover
+		{
+			font-weight: normal;
+			text-decoration: underline;
+		}
+		
 
-/* ------------------------------------------------------------------------	*/	
-/* The DIV define the main sections of the LamPI application.				*/
-/* location and colors of the header, context, menu parts 					*/
-/* DIVS are defined once in the document									*/
-/* ------------------------------------------------------------------------	*/
-
-	#wrapper {
-		position: relative;
-		top: 5px;
-		width: 952px;
-		height: 602px;
-		margin: auto;
-		padding: 5px;
-		margin-top: 5px;
-		border: 1px solid black;
+/* DIVS for just one element, each DIV has a unique id staring with # */
+		#wrapper {
+			position: relative;
+			top: 5px;
+			width: 952px;
+			height: 602px;
+			margin: auto;
+			padding: 5px;
+			margin-top: 5px;
+			border: 1px solid black;
 		background-color:$wrapper_bg_color;
-	}
+		background-image:$wrapper_bg_picture;
+		}
 		
 /* The header header section defined */
  
-	#gui_header {
-		position: absolute;
-		top: 5px;
-		width: 940px;
-		height: 80px;
-		margin: auto;
-		padding: 5px;
-		margin-top: 0px;
-		border: 1px solid black;
-		text-align: center;
-		background-color: $main_bg_color;
-	}
+		#gui_header {
+			position: absolute;
+			top: 5px;
+			width: 940px;
+			height: 80px;
+			margin: auto;
+			padding: 5px;
+			margin-top: 0px;
+			border: 1px solid black;
+			text-align: center;
+		background-color: $header_background;
+		}
 
-	#gui_header_controls {
-		position: inherit;
-		top: 0px;
-		left: 830px;
-		width: 105px;
-	}
-
-	#gui_header_content {
-		position: inherit;
-		top: 0px;
-		left: 0px;
-		width: 820px;
-	}
-	
-	/* This is the area where all the devices in the active room have their 
-		controls (switches and dimmers) defined
-	*/
-	#gui_content {
-		position: absolute;
-		top: 95px;
-		width: 815px;
-		height: 445px;
-		margin-left: 1px;
-		left: 3px;
-		margin: auto;
-		padding: 5px;
-		margin-top: 5px;
-		border: 1px solid black;
-		text-align: center;
-		background-color:$main_bg_color;
+		
+		#gui_header_controls {
+			position: inherit;
+			top: 0px;
+			left: 0px;
+			width: 105px;
+		}
+			
+		#gui_header_content {
+			position: inherit;
+			top: 0px;
+			left: 120px;
+			width: 805px;
+		}
+		
+		/* This is the area where all the devices in the active room have their 
+			controls (switches and dimmers) defined
+		*/
+		#gui_content {
+			position: absolute;
+			left: 140px;
+			top: 95px;
+			width: 815px;
+			height: 445px;
+			margin-left: 1px;
+			left: 130px;
+			margin: auto;
+			padding: 5px;
+			margin-top: 5px;
+			border: 1px solid black;
+			text-align: center;
+		background-color:$content_background;
 		color:$dialog_fg_color;
-		overflow:hidden;
-	}
+			overflow: hidden;
+		}
 				
-	#gui_menu {
-		position: absolute;
-		left: 835px;
-		top: 95px;
-		width: 110px;
-		padding: 5px;
-		margin-top: 5px;
-		height: 445px;
-		border: 1px solid black;
-		background-color:$main_bg_color;
-		vertical-align: top;
-	}
-		
-	/* This is the area on the bottom where the user/program messages are displayed */
-	#gui_messages {
-		position: absolute;
-		top: 550px;
-		width: 930px;
-		height: 25px;
-		margin: auto;
-		padding: 10px;
-		margin-top: 10px;
-		border: 1px solid black;
-		text-align: center;
-		font-size: 14px;
-		background-color:$main_bg_color;
+		#gui_menu {
+			position: absolute;
+			left: 5px;
+			top: 95px;
+			width: 105px;
+			padding: 5px;
+			margin: auto;
+			height: 445px;
+			margin-top: 5px;
+			border: 1px solid black;
+		background-color:$menu_background;
 		color:$dialog_fg_color;
-	}
-
-	#addRoomForm {
-		background-color: $main_bg_color;
-    	color:$dialog_fg_color;							/* ddeff1 */
-    	font-weight:bold;
-    	margin: 23px auto 0 auto;
-    	border-radius:10px;
-   		/* width: 500px; */
-		width: auto;
-    	box-shadow:  0 0 2px 2px #d9d9d9;
-	}
-	#addRoomForm label {
-		padding-left:20px;
-		width:150px;
-		/* text-transform: uppercase; */
-		display:inline-block;
-	}
+			vertical-align: top;
+		}
 		
-	#addRoomForm input[type=text], 
-	#addRoomForm input[type=file],
-	#addRoomForm textarea {
-    	width: auto;
-	}
+		/* This is the area on the bottom where the user/program messages are displayed */
+		#gui_messages {
+			position: absolute;
+			top: 550px;
+			width: 930px;
+			height: 25px;
+			margin: auto;
+			padding: 10px;
+			margin-top: 10px;
+			border: 1px solid black;
+			text-align: center;
+			font-size: 14px;
+		background-color:$message_background;
+		color:$dialog_fg_color;
+		}
+
+		#addRoomForm {
+			background-color: #060;
+    		color: #eee;							/* ddeff1 */
+    		font-weight:bold;
+    		margin: 23px auto 0 auto;
+    		border-radius: 10px;
+   			/* width: 500px; */
+			width: auto;
+    		box-shadow:  0 0 2px 2px #d9d9d9;
+		}
+		#addRoomForm label {
+		    padding-left:20px;
+		    width:150px;
+		    /* text-transform: uppercase; */
+		    display:inline-block;
+		}
+		
+		#addRoomForm input[type=text], 
+		#addRoomForm input[type=file],
+		#addRoomForm textarea {
+    		width: auto;
+		}
+		
 		
 /* ------------------------------------------------------------------------	*/	
 /* The CLASSES define the behaviour of buttons, fields, sliders in the 		*/
@@ -369,20 +347,19 @@ $dialog_bg_color: #222;
 	
 	/* This dlabels descripts the text label left of a switch/dimmer device */
 	.dlabels {
-		color: #00F;						/* Black */
 		width: 120px;
 		height: 30px;
 		border-radius:3px;
 		margin-left: 5px;
 		margin-top: 5px;
 		margin-bottom: 5px;
-		background-color:#AAA;				/* Grey */
+		color: $dlabel_fg_color;
+		background-color:$dlabel_bg_color;
 	}
 
 	/* buttons used in a dimmer/slider element . dbuttons are shared with scenes too*/
 	.dbuttons {
 		padding-right: 5px;
-		color: #00F;						/* Black */
 		min-height:30px;
 		width: auto;
 		border-radius: 15px;
@@ -390,7 +367,8 @@ $dialog_bg_color: #222;
 		margin-right: 2px;
 		margin-top: 5px;
 		margin-bottom: 5px;
-		background-color:#AAA;				/* Light Grey */
+		color: $dbutton_fg_color;
+		background-color:$dbutton_bg_color;
 	}
 		
 	.dbuttons:hover {
@@ -403,22 +381,27 @@ $dialog_bg_color: #222;
 		background-color:$button_active_bg_color;
 	} 
 		
-	.devrow {								/* device row */
+	.devrow {											/* device row */
 		background-color:$row_bg_color;
 	}
-
 	.devrow:nth-child(odd) {
-		background-color:$row_nth_color;				/* Dark Grey */
+		background-color:$row_nth_color;
 	}
 		
 	/* This is the dimmer object consisting of dlabel, dbutton */
 	.dimrow {
+		background-color:$row_bg_color;
+	}
+	.dimrow:nth-child(odd) {
 		background-color:$row_nth_color;
 	}
 	
 	/* A switch element, so just ON/OFF button */
 	.switch {
-		background-color:#444;
+		background-color:$row_bg_color;
+	}
+	.switch:nth-child(odd) {
+		background-color:$row_nth_color;
 	}
 
 	
@@ -513,11 +496,19 @@ $dialog_bg_color: #222;
 	.ui-slider .ui-slider-handle {
     	width:50px; 
     	height:50px; 
-    	background:url(./slider3.png) no-repeat; 
+    	background:url(./green_slider_point_3.png) no-repeat; 
 		overflow:hidden; 
     	position:absolute;
     	top: -10px;
     	border-style:none; 
+	}
+	
+	/* Dimmer specific definitions */
+	.slider-dimmer .ui-slider-range {
+		background: $dimmer_background;
+	}
+	.slider-dimmer .ui-slider-handle {
+		border-color: $dimmer_handle; 
 	}
 	
 	/* Specific thermo definitions */
@@ -537,4 +528,3 @@ $dialog_bg_color: #222;
 		height: 30px;
 		margin-left: 10%;
 	}
-

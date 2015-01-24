@@ -1,9 +1,24 @@
-/* SCSS Document */
+/* SCSS Document for making generic LamPI .css files */
+/* Author: M. Westenberg (mw12554@hotmail.com) */
+/* ----------------------- SCCS variable definitions -----------------------------------*/
+/* No background color used in image background */
+/* When a button is active it has this color */
+/* Also used in normal body text */
+/* Color of the dimmer slider */
+/* Color of the dimmer handler */
+/* Color of the thermo slider */
+/* Color of the thermo handler */
+/* ------------------------------------------------------------------------------------ */
+/* Import the generic template															*/
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
+/* ------------------------------------------------------------------------------------- */
 /* CORE HTML CSS */
 body {
   font-family: comic sans ms;
-  background: #030;
-  color: #eee;
+  background: #ddd913;
+  color: #453202;
 }
 
 table {
@@ -12,11 +27,11 @@ table {
 }
 
 tr {
-  /* width: 600px; */
+  width: 600px;
 }
 
 td {
-  /*			height: 38px; */
+  /*		height: 38px; */
 }
 
 p {
@@ -34,7 +49,11 @@ input#lbl {
   text-decoration: underline;
 }
 
-/* DIVS for just one element, each DIV has a unique id staring with # */
+/* ------------------------------------------------------------------------	*/
+/* The DIV define the main sections of the LamPI application.				*/
+/* location and colors of the header, context, menu parts 					*/
+/* DIVS are defined once in the document									*/
+/* ------------------------------------------------------------------------	*/
 #wrapper {
   position: relative;
   top: 5px;
@@ -43,8 +62,9 @@ input#lbl {
   margin: auto;
   padding: 5px;
   margin-top: 5px;
-  border: 1px solid black;
-  background-color: #002A00;
+  border: 2px solid black;
+  background-color: #ddd913;
+  background-image: url("wood_1.jpg");
 }
 
 /* The header header section defined */
@@ -56,23 +76,23 @@ input#lbl {
   margin: auto;
   padding: 5px;
   margin-top: 0px;
-  border: 1px solid black;
+  border: 2px solid black;
   text-align: center;
-  background-color: #030;
+  background-color: "";
 }
 
 #gui_header_controls {
   position: inherit;
   top: 0px;
-  left: 0px;
+  left: 830px;
   width: 105px;
 }
 
 #gui_header_content {
   position: inherit;
   top: 0px;
-  left: 120px;
-  width: 805px;
+  left: 0px;
+  width: 820px;
 }
 
 /* This is the area where all the devices in the active room have their 
@@ -80,33 +100,33 @@ input#lbl {
 */
 #gui_content {
   position: absolute;
-  left: 140px;
   top: 95px;
   width: 815px;
   height: 445px;
   margin-left: 1px;
-  left: 130px;
+  left: 3px;
   margin: auto;
   padding: 5px;
   margin-top: 5px;
-  border: 1px solid black;
+  border: 2px solid black;
   text-align: center;
-  background-color: #030;
-  color: #eee;
+  background-color: "";
+  color: #453202;
   overflow: hidden;
 }
 
 #gui_menu {
   position: absolute;
-  left: 5px;
+  left: 835px;
   top: 95px;
-  width: 105px;
+  width: 110px;
   padding: 5px;
-  margin: auto;
-  height: 445px;
   margin-top: 5px;
-  border: 1px solid black;
-  background-color: #030;
+  height: 445px;
+  border: 2px solid black;
+  text-align: center;
+  background-color: "";
+  color: #453202;
   vertical-align: top;
 }
 
@@ -119,17 +139,16 @@ input#lbl {
   margin: auto;
   padding: 10px;
   margin-top: 10px;
-  border: 1px solid black;
+  border: 2px solid black;
   text-align: center;
   font-size: 14px;
-  background-color: #030;
-  color: #eee;
+  background-color: "";
+  color: #453202;
 }
 
 #addRoomForm {
-  background-color: #060;
-  color: #eee;
-  /* ddeff1 */
+  background-color: #ddd913;
+  color: #453202;
   font-weight: bold;
   margin: 23px auto 0 auto;
   border-radius: 10px;
@@ -151,6 +170,11 @@ input#lbl {
   width: auto;
 }
 
+/* ------------------------------------------------------------------------	*/
+/* The CLASSES define the behaviour of buttons, fields, sliders in the 		*/
+/* LamPI application.														*/
+/* For elements one can define colors, margins, widt and height for example	*/
+/* ------------------------------------------------------------------------	*/
 /* CLASSES are for multiple elements */
 /* Header buttons. */
 /* Room header */
@@ -158,21 +182,17 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 6px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
-  background-color: #060;
-  color: #0F0;
-  border-top-color: #040;
-  border-left-color: #040;
-  border-bottom-color: #020;
-  border-right-color: #020;
+  background-color: #705B22;
+  color: #F7E3AB;
 }
 
 /* Indicating a mouse over for a room button */
 .hr_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #FFF;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* XXX needs reviewing */
@@ -186,16 +206,16 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 5px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
-  background-color: #060;
-  color: #fff;
+  background-color: #705B22;
+  color: #F7E3AB;
 }
 
 .hs_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #111;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* Header Timer definitions */
@@ -203,16 +223,16 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 5px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
-  background-color: #060;
-  color: #eee;
+  background-color: #705B22;
+  color: #F7E3AB;
 }
 
 .ht_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #111;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* Header Handset definitions */
@@ -220,16 +240,16 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 5px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
-  background-color: #060;
-  color: #eee;
+  background-color: #705B22;
+  color: #F7E3AB;
 }
 
 .hh_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #111;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* Header Weather definitions */
@@ -237,16 +257,16 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 5px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
-  background-color: #060;
-  color: #eee;
+  background-color: #705B22;
+  color: #F7E3AB;
 }
 
 .hw_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #111;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* Header Menu area definitions */
@@ -255,19 +275,15 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 6px;
+  background-color: #705B22;
+  color: #F7E3AB;
   vertical-align: top;
-  background-color: #060;
-  color: #0F0;
-  border-top-color: #040;
-  border-left-color: #040;
-  border-bottom-color: #020;
-  border-right-color: #020;
 }
 
 .hm_button:hover {
   font-weight: bold;
-  background-color: #0E0;
-  color: #111;
+  background-color: #0A0A0A;
+  color: #F7B707;
 }
 
 /* Header Configuration definitions */
@@ -275,19 +291,18 @@ input#lbl {
   width: 100px;
   height: 35px;
   border-radius: 5px;
-  margin-top: 2px;
+  margin-top: 3px;
   margin-bottom: 2px;
+  background-color: #705B22;
+  color: #F7E3AB;
   align: center;
-  background-color: #060;
 }
 
 .hc_button:hover {
   font-weight: bold;
-  background-color: #0E0;
+  background-color: #0A0A0A;
 }
 
-/* We might combine the 6 buttons types below, as they all refer to the command buttons */
-/* on the header row. which are: New, Delete, Help buttons */
 /* Command Room button */
 .cr_button {
   height: 35px;
@@ -336,7 +351,7 @@ input#lbl {
   margin: 1px;
 }
 
-/* Devices definitions. Define all elements that are used in the devices form in #gui_content */
+/* Devices definitions */
 /* This dlabels descripts the text label left of a switch/dimmer device */
 .dlabels {
   width: 120px;
@@ -345,12 +360,8 @@ input#lbl {
   margin-left: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
-  color: #0F0;
-  background-color: #060;
-  border-top-color: #040;
-  border-left-color: #040;
-  border-bottom-color: #020;
-  border-right-color: #020;
+  color: #F7E3AB;
+  background-color: #957a0f;
 }
 
 /* buttons used in a dimmer/slider element . dbuttons are shared with scenes too*/
@@ -363,38 +374,48 @@ input#lbl {
   margin-right: 2px;
   margin-top: 5px;
   margin-bottom: 5px;
-  color: #0F0;
-  background-color: #060;
-  border-color: #020;
+  color: #F7E3AB;
+  background-color: #957a0f;
 }
 
 .dbuttons:hover {
   font-weight: bold;
-  background-color: #0A0;
+  background-color: #0A0A0A;
 }
 
 .dbuttons:active {
-  color: #0A0;
+  color: yellow;
+  background-color: #111;
 }
 
 .devrow {
   /* device row */
-  background-color: #030;
+  background-color: #ddd913;
 }
 
 .devrow:nth-child(odd) {
-  background-color: #040;
+  background-color: #bab712;
+  /* Dark Grey */
 }
 
 /* This is the dimmer object consisting of dlabel, dbutton */
 .dimrow {
-  background-color: #030;
+  background-color: #ddd913;
+}
+
+.dimrow:nth-child(odd) {
+  background-color: #bab712;
+  /* Dark Grey */
 }
 
 /* A switch element, so just ON/OFF button */
-/* XXX This element also color the bar above the room/device screen */
 .switch {
-  background-color: #030;
+  background-color: #ddd913;
+}
+
+.switch:nth-child(odd) {
+  background-color: #bab712;
+  /* Dark Grey */
 }
 
 /* Scene definitions */
@@ -408,66 +429,119 @@ input#lbl {
 
 /* A row of scene */
 .scene {
-  background-color: #030;
-  color: #0F0;
+  background-color: #ddd913;
+  color: #F7E3AB;
 }
 
 .scene:nth-child(odd) {
-  background-color: #040;
+  background-color: #AD820C;
 }
 
 /* Handset Definitions */
 /* A row of handset */
 .handset {
-  background-color: #030;
+  background-color: #ddd913;
 }
 
 .handset:nth-child(odd) {
-  background-color: #040;
+  background-color: #AD820C;
 }
 
 /* Buttons for adding, removing and help */
 .new_button {
-  color: #000;
-  background-color: #0F0;
+  background-color: #6F6;
+  /* Green */
   min-height: 30px;
   width: 30px;
 }
 
 .del_button {
-  color: #000;
   background-color: #F66;
+  /* Red */
   min-height: 30px;
   width: 30px;
 }
 
 .help_button {
   background-color: #09F;
+  /* Dark Blue */
   min-height: 30px;
   width: 30px;
 }
 
 .play_button {
-  color: #000;
   background-color: #0FF;
+  /* Blue */
   min-height: 30px;
   min-width: 60px;
 }
 
 .stop_button {
   background-color: #F66;
+  /* Red */
   min-height: 30px;
   min-width: 60px;
 }
 
 /* General Definitions */
+.filler {
+  width: 300px;
+}
+
+/* This element in the slider button is used to mark the selected button once pressed */
+.hover {
+  background-color: #0A0A0A;
+  color: #F7B707;
+}
+
+.dragger {
+  text-shadow: #C00;
+  background-color: #FF6;
+}
+
+.ui_dialog {
+  background-color: #997309;
+  color: #453202;
+}
+
 /* The element making up the slider. The jquery definition is even much more complex*/
 .slider {
   margin-left: 20px;
   margin-right: 25px;
   border-radius: 5px;
   width: 350px;
-  background-color: #00F;
+}
+
+.ui-slider .ui-slider-handle {
+  width: 50px;
+  height: 50px;
+  background: url(./slider3.png) no-repeat;
+  overflow: hidden;
+  position: absolute;
+  top: -10px;
+  border-style: none;
+}
+
+/* Dimmer specific definitions */
+.slider-dimmer .ui-slider-range {
+  background: #d2abfc;
+}
+
+.slider-dimmer .ui-slider-handle {
+  border-color: #ef2929;
+}
+
+/* Specific thermo definitions */
+.slider-thermo {
+  float: left;
+}
+
+.slider-thermo .ui-slider-range {
+  background: #F66;
+}
+
+.slider-thermo .ui-slider-handle {
+  border-color: #ef2929;
 }
 
 /* The value of a slider in an input field */
@@ -475,34 +549,4 @@ input#lbl {
   width: 30px;
   height: 30px;
   margin-left: 10%;
-}
-
-.ui-slider .ui-slider-handle {
-  width: 50px;
-  height: 50px;
-  background: url(green_slider_point_1.png) no-repeat;
-  overflow: hidden;
-  position: absolute;
-  top: -10px;
-  border-style: none;
-}
-
-.filler {
-  width: 300px;
-}
-
-/* This element in the slider button is used to mark the selected button once pressed */
-.hover {
-  background-color: #060;
-  color: #F00;
-}
-
-.dragger {
-  text-shadow: #C00;
-  background-color: #060;
-}
-
-.ui_dialog {
-  background-color: #040;
-  color: #0D0;
 }

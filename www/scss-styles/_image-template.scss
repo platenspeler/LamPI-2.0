@@ -1,37 +1,8 @@
-/* SCSS Document for making generic LamPI .css files */
-/* Author: M. Westenberg (mw12554@hotmail.com) */
-
-@charset "utf-8";
-
-/* ----------------------- SCCS variable definitions -----------------------------------*/
-$wrapper_bg_color: #222;			/* Background color of the wrapper */
-
-$main_bg_color: #333;				/* The main background color used for this Look and Feel */
-$main_nth_color: #444;
-$main_msg_color: #eee;
-
-$content_background: $main_bg_color;
-$message_background: $main_bg_color;
-$header_background: $main_bg_color;
-$menu_background: $main_bg_color;
-
-$row_bg_color: $main_bg_color;
-$row_nth_color: $main_nth_color;
-
-$button_fg_color: #fff;
-$button_bg_color: #222;				/* Background color for the buttons */
-$button_hover_bg_color: #FF9;		/* How does the color of a button change if it is hovered */
-$button_hover_fg_color: #111;		/* Foreground color for button when hovered */
-$button_active_fg_color: yellow;	/* When a button is active it has this color */
-$button_active_bg_color: #000;
-
-$thermo_background: #F66;			/* Color of the thermo slider */
-$thermo_handle: #ef2929;			/* Color of the thermo handler */
-
-$dialog_fg_color: #eee;
-$dialog_bg_color: #222;
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
 /* ------------------------------------------------------------------------------------- */
-		
+
 /* CORE HTML CSS */
 	body {
 		font-family: comic sans ms; 
@@ -45,7 +16,7 @@ $dialog_bg_color: #222;
 	}
 		
 	tr {
-;		width: 600px;
+		width: 600px;
 	}
 
 	td {
@@ -85,8 +56,9 @@ $dialog_bg_color: #222;
 		margin: auto;
 		padding: 5px;
 		margin-top: 5px;
-		border: 1px solid black;
+		border: 2px solid black;
 		background-color:$wrapper_bg_color;
+		background-image:$wrapper_bg_picture;
 	}
 		
 /* The header header section defined */
@@ -99,9 +71,9 @@ $dialog_bg_color: #222;
 		margin: auto;
 		padding: 5px;
 		margin-top: 0px;
-		border: 1px solid black;
+		border: 2px solid black;
 		text-align: center;
-		background-color: $main_bg_color;
+		background-color: $header_background;
 	}
 
 	#gui_header_controls {
@@ -131,9 +103,9 @@ $dialog_bg_color: #222;
 		margin: auto;
 		padding: 5px;
 		margin-top: 5px;
-		border: 1px solid black;
+		border: 2px solid black;
 		text-align: center;
-		background-color:$main_bg_color;
+		background-color:$content_background;
 		color:$dialog_fg_color;
 		overflow:hidden;
 	}
@@ -146,8 +118,10 @@ $dialog_bg_color: #222;
 		padding: 5px;
 		margin-top: 5px;
 		height: 445px;
-		border: 1px solid black;
-		background-color:$main_bg_color;
+		border: 2px solid black;
+		text-align: center;
+		background-color:$menu_background;
+		color:$dialog_fg_color;
 		vertical-align: top;
 	}
 		
@@ -160,16 +134,16 @@ $dialog_bg_color: #222;
 		margin: auto;
 		padding: 10px;
 		margin-top: 10px;
-		border: 1px solid black;
+		border: 2px solid black;
 		text-align: center;
 		font-size: 14px;
-		background-color:$main_bg_color;
+		background-color:$message_background;
 		color:$dialog_fg_color;
 	}
 
 	#addRoomForm {
 		background-color: $main_bg_color;
-    	color:$dialog_fg_color;							/* ddeff1 */
+    	color:$dialog_fg_color;
     	font-weight:bold;
     	margin: 23px auto 0 auto;
     	border-radius:10px;
@@ -369,20 +343,19 @@ $dialog_bg_color: #222;
 	
 	/* This dlabels descripts the text label left of a switch/dimmer device */
 	.dlabels {
-		color: #00F;						/* Black */
 		width: 120px;
 		height: 30px;
 		border-radius:3px;
 		margin-left: 5px;
 		margin-top: 5px;
 		margin-bottom: 5px;
-		background-color:#AAA;				/* Grey */
+		color: $dlabel_fg_color;						
+		background-color:$dlabel_bg_color;				
 	}
 
 	/* buttons used in a dimmer/slider element . dbuttons are shared with scenes too*/
 	.dbuttons {
 		padding-right: 5px;
-		color: #00F;						/* Black */
 		min-height:30px;
 		width: auto;
 		border-radius: 15px;
@@ -390,7 +363,8 @@ $dialog_bg_color: #222;
 		margin-right: 2px;
 		margin-top: 5px;
 		margin-bottom: 5px;
-		background-color:#AAA;				/* Light Grey */
+		color: $dbutton_fg_color;
+		background-color:$dbutton_bg_color;
 	}
 		
 	.dbuttons:hover {
@@ -403,22 +377,27 @@ $dialog_bg_color: #222;
 		background-color:$button_active_bg_color;
 	} 
 		
-	.devrow {								/* device row */
+	.devrow {											/* device row */
 		background-color:$row_bg_color;
 	}
-
 	.devrow:nth-child(odd) {
 		background-color:$row_nth_color;				/* Dark Grey */
 	}
 		
 	/* This is the dimmer object consisting of dlabel, dbutton */
 	.dimrow {
-		background-color:$row_nth_color;
+		background-color:$row_bg_color;
+	}
+	.dimrow:nth-child(odd) {
+		background-color:$row_nth_color;				/* Dark Grey */
 	}
 	
 	/* A switch element, so just ON/OFF button */
 	.switch {
-		background-color:#444;
+		background-color:$row_bg_color;
+	}
+	.switch:nth-child(odd) {
+		background-color:$row_nth_color;				/* Dark Grey */
 	}
 
 	
@@ -520,6 +499,14 @@ $dialog_bg_color: #222;
     	border-style:none; 
 	}
 	
+	/* Dimmer specific definitions */
+	.slider-dimmer .ui-slider-range {
+		background: $dimmer_background;
+	}
+	.slider-dimmer .ui-slider-handle {
+		border-color: $dimmer_handle; 
+	}
+		
 	/* Specific thermo definitions */
 	.slider-thermo {
 		float:left;
@@ -537,4 +524,3 @@ $dialog_bg_color: #222;
 		height: 30px;
 		margin-left: 10%;
 	}
-
