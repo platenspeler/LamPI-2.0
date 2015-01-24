@@ -35,61 +35,67 @@
 <p>In the sections below the messages are explained in more detail.</p>
 <h2>1. ack</h2>
 <p>Acknowledge message, telling connected clients that the LamPI-daemon as received its message OK.</p>
-<p>var message = {</p>
-<p> rcv.tcnt; 				// message transaction counter<br>
+<p><code>var message = {</code></p>
+<p><code>rcv.tcnt; 				// message transaction counter<br>
   rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action == &quot;ack&quot;; </p>
-<p>}</p>
+  rcv.action == &quot;ack&quot;; </code></p>
+<p><code>}</code></p>
 <h2>alert</h2>
-<p>var message = {</p>
-<p> tcnt   = rcv.tcnt; 				// message transaction counter<br>
-  type   = rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action == &quot;alert&quot;; </p>
-<p>}</p>
+<p><code>var message = {</code></p>
+<blockquote>
+  <p> <code>tcnt   = rcv.tcnt; 				// message transaction counter<br>
+    type   = rcv.type;				// type of content part, eg raw or json<br>
+    rcv.action == &quot;alert&quot;; </code></p>
+</blockquote>
+<p><code>}</code></p>
 <h2>2. ping</h2>
-<p>The LamPI-daemon received PING messages from some of its connected clients to tell that they are still alive. This messaging might disappear in later releases of the software as during normal operations it does not add value. It does however for maintenance and debugging purposes.</p>
-<p>var message = {</p>
-<p> tcnt   = rcv.tcnt; 				// message transaction counter<br>
-  type   = rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action == &quot;ping&quot;; </p>
-<p>}</p>
+<p>The LamPI-daemon received PING messages from some of its connected clients to tell that they are still alive. This messaging might disappear in future releases of the software as during normal operations it does not add value. It does however for maintenance and debugging purposes.</p>
+<p><code>var message = {</code></p>
+<blockquote>
+  <p><code> tcnt   = rcv.tcnt; 				// message transaction counter<br>
+    type   = rcv.type;				// type of content part, eg raw or json<br>
+    rcv.action == &quot;ping&quot;; </code></p>
+</blockquote>
+<p><code>}</code></p>
 <p>&nbsp;</p>
 <h2>3. gui (=upd)</h2>
 <p>Let's start with the messages between the GUI and the LamPI daemon. The GUI connects to the LamPI-daemon either through Ajax calls (Old way) or over a websocket connection. Wesbockets use the jSon message format and therefore a range of messages is used to get messages accross to the LamPI-daemon. The content of these messages are in the standard ICS-1000 message format which is a simple ASCII coding. However, since the LamPI system supports more devices than the ICS-1000 some additional messages are defined.</p>
-<p>var message = {</p>
+<p><code>var message = {</code></p>
 <blockquote>
-  <p>	 rcv.tcnt; 				// message transaction counter<br>
+  <p><code>	 rcv.tcnt; 				// message transaction counter<br>
     rcv.type == &quot;raw&quot;;				// type of content part, eg raw or json<br>
     rcv.action == &quot;gui&quot;; <br>
-    rcv.message: STRING of ICS command. e.g. &quot;!R3D2FdP16&quot;</p>
+    rcv.message: STRING of ICS command. e.g. &quot;!R3D2FdP16&quot;</code></p>
 </blockquote>
-<p>}</p>
-<p>var message = {</p>
+<p><code>}</code></p>
+<p><code>var message = {</code></p>
 <blockquote>
-  <p> rcv.tcnt; 				// message transaction counter<br>
+  <p><code> rcv.tcnt; 				// message transaction counter<br>
     rcv.type == &quot;json&quot;;				// type of content part, eg raw or json<br>
     rcv.action == &quot;gui&quot;; <br>
-  </p>
-  <p> rcv.gaddr;				// Group address of the receiver<br>
+  </code></p>
+  <p><code> rcv.gaddr;				// Group address of the receiver<br>
     rcv.uaddr;				// Unit address of the receiver device<br>
     rcv.val; // Device value e.g. for switch On, Off and for dimmer 0-31<br>
-    rcv.brand;				// Brand of the receiver device</p>
+    rcv.brand;				// Brand of the receiver device</code></p>
 </blockquote>
-<p>}</p>
+<p><code>}</code></p>
 <p>&nbsp;</p>
 <h2>4. handset</h2>
 <p>Handsets from klikaanklikuit, Action or other handsets that are defined and recognized can send information about buttons pressed to the LamPI-daemon process.</p>
-<p>var rcv = {</p>
-<p> rcv.tcnt; 				// message transaction counter<br>
-  rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action; </p>
-<p>}</p>
+<p><code>var rcv = {</code></p>
+<blockquote>
+  <p><code> rcv.tcnt; 				// message transaction counter<br>
+    rcv.type;				// type of content part, eg raw or json<br>
+    rcv.action; </code></p>
+</blockquote>
+<p><code>}</code></p>
 <h2>5. weather</h2>
 <p>Messages received from the LamPI_receiver or any other sensor control program might contain the weather action, which will be interpreted by the LamPI_daemon and its values forwarded to the connected GUI clients.</p>
 <p>var rcv = {</p>
-<p> rcv.tcnt; 				// message transaction counter<br>
+<code>	rcv.tcnt; 				// message transaction counter<br>
   rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action == &quot;weather&quot;; <br>
+  rcv.action = &quot;weather&quot;; <br>
   rcv.address <br>
   rcv.channel <br>
   rcv.temperature;<br>
@@ -97,37 +103,41 @@
   rcv.airpressure;<br>
   rcv.windspeed;<br>
   rcv.winddirection;<br>
-  rcv.rainfall; <br>
-</p>
+  rcv.rainfall; </code><br>
+
 <p>}</p>
 <h2>6. energy</h2>
 <p>var rcv = {</p>
-<p> rcv.tcnt; 				// message transaction counter<br>
+<p> <code>rcv.tcnt; 				// message transaction counter<br>
   rcv.type;				// type of content part, eg raw or json<br>
-  rcv.action == &quot;energy&quot;; <br>
+rcv.action = &quot;energy&quot;; </code></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><br>
   TBD
 </p>
 <p>}</p>
 <h2>7. Sensor-Daemon Message Format</h2>
 <p>The second important message format is between sensors and the LamPI-daemon. Sensors connect to the LamPI-daemon through there own piece of code which will read the sensor value, open a socket connection to the daemon and send the value in a jSon encoded format.</p>
-<p>var sensor = {</p>
-<p>sensor.tcnt; // transaction count for reference by transmitter and daemon</p>
-<p>}<br>
+<p><code>var sensor = {</code></p>
+<p><code>	sensor.tcnt; // transaction count for reference by transmitter and daemon</code></p>
+<p><code>}</code><br>
 </p>
 <h2>8. load_database</h2>
-<p>This is the message that will reset the Mysql database and re-load the database.cfg file into the system</p>
+<p>This is the message that will reset the Mysql database and re-load the <code>~/www/config/database.cfg</code> file into the system</p>
 <p>&nbsp;</p>
 <h2>9. login</h2>
 <p>This message is used to tell the GUI that the LamPI-daemon does or does not trust the client, based on its IP address.</p>
 <p>&nbsp;</p>
 <h2>10. console</h2>
 <p>The console message is used to receive and send messages to the GUI client that contain console/management - like information about the system. Examples are: Connected clients to the LamPI-deamon, last 20 lines of the log/LamPI_daemon.log file and restarting the daemon itself.</p>
-<p>var rcv = {</p>
-<p> rcv.tcnt; 				// message transaction counter<br>
+<p><code>var rcv = {</code></p>
+<p><code> rcv.tcnt; 				// message transaction counter<br>
   rcv.type;				// type of content part, eg raw or json<br>
   rcv.action == &quot;console&quot;; <br>
-  TBD </p>
-<p>}</p>
+  TBD </code></p>
+<p><code>}</code></p>
 <p>&nbsp;</p>
 <h1>Z-wave Connect</h1>
 <p>The Z-Wave messaging format is described on the separate Z-Wave page. Reason is that this is not so much a programming interface but communication takes place as a URL string that is executed by &quot;curl&quot; in the LamPI-daemon. At the moment the communication is therefore initiated by the LamPI-daemon only.</p>

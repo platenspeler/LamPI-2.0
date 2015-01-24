@@ -10,7 +10,7 @@
 <p>This page contains a short introducton of LamPI, the table of contents for ALL LamPI documentation is &lt;<a href="LamPI_ToC.html"><strong>Here</strong></a>&gt;. Please start reading on that page when you finished reading this page<br>
 </p>
 <p>You can find its GIT repository on <a href="https://github.com/platenspeler">https://github.com/platenspeler</a>, and the documentation on <a href="http://platenspeler.github.io">http://platenspeler.github.io</a></p>
-<p>LamPI is a Home Automation project for switching equipment in your house over 434 MHz transmitters/receivers on a RaspberryPI. As of release 2.0 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is implemented with a separate Raspberry bridge computer using the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave.html">Here</a>&gt;</p>
+<p>LamPI is a Home Automation project for switching equipment in your house over 434 MHz transmitters/receivers on a RaspberryPI. As of release 2.0 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is implemented with a separate Raspberry bridge computer using the Razberry board. Please read more on Z-Wave support &lt;<a href="zwave/RazBerry/zwave_gateway.html">Here</a>&gt;</p>
 <h2>Control your lights and switches</h2>
 <p>This is where I initially developed LamPI for. It will control your light switches and your dimmers and your other switches as well (if you want it can switch your stereo or microwave too). </p>
 <p><img src="UserGuide/screenshots/room_screen_grey.JPG" width="962" height="637" /></p>
@@ -62,14 +62,14 @@
   <li>Blokker (not tested, software is installed)</li>
   <li>Klikaanklikuit (old model with two wheels at the back, not tested)</li>
 </ul>
-<h3>Handsets and Remote Controls (433 MHz)</h3>
+<h3>Handsets and Remote Controls (433MHz)</h3>
 <ul>
   <li>Klikaanklikuit remotes</li>
   <li>Livolo 4-button keychain</li>
   <li>Kopou 4-button keychain</li>
   <li>Pulse (Action) Remotes</li>
 </ul>
-<h3>433MHz Temperature Sensors</h3>
+<h3>Temperature Sensors (433MHz)</h3>
 <ul>
   <li>WT-440H, made by UPM/Esic (The weather menu button will only show if a weather sensor is defined in the database.cfg file)</li>
 </ul>
@@ -82,6 +82,8 @@
 <h3>Zwave 868MHz devices</h3>
 <ul>
   <li>Fibaro FGD-211 Dimmer </li>
+  <li>Sensor</li>
+  <li>Danfoss Living Connect</li>
 </ul>
 <h1>What Platform(s) does LamPI run on?</h1>
 <ul>
@@ -102,9 +104,13 @@
 <h1>Architectural Considerations</h1>
 <p>I did make an architecture document for LamPI which can be found &lt;<a href="Architecture Guide/architecture.html">HERE</a>&gt;.</p>
 <p>&nbsp;</p>
+<h1>Change Log</h1>
+<p>Click <a href="changelog.html">&lt;HERE&gt;</a> for a list of changes made in a certain release.</p>
+<p>&nbsp;</p>
 <h1>Planned Functions</h1>
 <p>Of course I'm always thinking about new functions, as long as I do not have to put the current system up-side-down too much. After all, I do have other day-time work to do and it has to make sense for me to spend additional time. Therefore, you are welcome to ask for new functions, but if it will cost me days to implement them and I will not benefit from them in any way I will probably give priority to other changes.</p>
 <ul>
+  <li>Need to use cookies to store the user preferences such as preferred skin. For security reasons all users should login and credentials should be stored in cookies.</li>
   <li>Add support for Android phones. This is in beta at the moment and I use PhoneGap technology of Adobe to make such version. All Javascript/jQueryMobile code is already in the LamPI-x.y.js file, the index.html file will determine what libraries to load. I will probably publish a separate branch for Android with the same version number as its web equivalent.</li>
   <li>Adding new handsets at this moment still requires manual editing of the database.cfg file. I like to add more options to the OPTIONS screen for setup of new switch types and handset types, so that adding such switches and handsets at runtime is a lot easier.</li>
   <li>Add full support for Z-Wave or Zigbee. As the LamPI-daemon is quite universal in its setup adding transmitter/receivers for these technologies is relatively easy. At the moment ZWave support is implemented through a Z-Way gateway running on a dedicated RaspberryPI</li>
