@@ -712,10 +712,7 @@ class Device {
 		if (!is_resource($this->mysqli)) {
             $this->sql_open();
         }
-		//$dev_id = "D".$dev_nr;		old method based on id
-		$log->lwrite("get:: room: ".$room_id.", dev: ".$dev_id,2);
 		
-		//$sqlCommand = "SELECT * FROM devices WHERE id='$dev_id' AND room='$room_id'";
 		$sqlCommand = "SELECT * FROM devices WHERE unit='$unit_nr' AND room='$room_id'";
 		$query = mysqli_query($this->mysqli, $sqlCommand) or die (mysqli_error());
 		while ($row = mysqli_fetch_assoc($query)) { 
@@ -1052,8 +1049,8 @@ function message_parse($cmd) {
 			
 			for ($i=0; $i< count($splits); $i+=2) {
 				// $cmd = $splits[$i];
-				// If $cmd is a ALL OFF command, we need to substitue the command wit
-				// a string of device commands that need to be switche off.....
+				// If $cmd is a ALL OFF command, we need to substitue the command with
+				// a string of device commands that need to be switched off.....
 				
 				$log->lwrite("cmd  : " . $i . "=>" . $splits[$i],2);
 				$log->lwrite("timer: " . $i . "=>" . $splits[$i+1],2);
@@ -1101,7 +1098,7 @@ function message_parse($cmd) {
 		if ($debug>1) $log->lwrite("parse:: Room: ".$room.", Value: ".$value);
 		if (substr($value,0,1) == "a") {
 			// All OFF
-			$log->lwrite("parse:: All OFF:: Room: ".$room.", Name: ".$devices[$i]['name'].", Type: ".$devices[$i]['type'].", Val: ".$value,1);
+			$log->lwrite("parse:: All OFF:: Room: ".$room,1);
 			for ($i=0; $i< count($devices); $i++) {
 				// Make sure that only switch and dimmers are part of ALL OFF command
 				if (($devices[$i]['room'] == $room ) && ($devices[$i]['type'] != "thermostat" )) {
@@ -1112,7 +1109,7 @@ function message_parse($cmd) {
 					$item = array(
     					'scene' => "",
 						'action' => "gui",
-    					'cmd'   => "!R".$room.$devices[$i]['id']."F0",
+    					'cmd'   => "!R".$room."D".$devices[$i]['unit']."F0",
 						'secs'  => time()
    					);
 					$queue->q_insert($item);
@@ -1969,16 +1966,18 @@ while (true):
 					if (substr($items[$i]['cmd'],-2,2) == "Fa") {
 						list( $room, $value ) = sscanf ($items[$i]['cmd'], "!R%dF%s" );
 						for ($j=0; $j<count($devices);$j++) {
+							
 							if (($devices[$j]['room']==$room) && ($devices[$j]['type'] != "thermostat")) {
-								$log->lwrite("ALL OFF adding device: ".$devices[$j]['name'].", type: ".$devices[$j]['type'],1);
+								$log->lwrite("ALL OFF queueing device: ".$devices[$j]['name'].", type: ".$devices[$j]['type'],1);
 								// add to the items array 
 								$item = array(
     							'scene' => $items[$i]['scene'],
 								'action' => $items[$i]['action'],
-    							'cmd'   => "!R".$room . $devices[$j]['id']."F0",
+    							'cmd'   => "!R".$room . $devices[$j]['unit']."F0",
 								'secs'  => $items[$i]['secs']
    				 				);
 								$items[] = $item;					// Add this item to end of array
+								$log->lwrite("main: Queue: cmd: ".$item['cmd'],1);
 							}
 						}
 						continue;									// End this iteration of the loop
@@ -1994,7 +1993,7 @@ while (true):
 					// If we have all devices, $devices contains list of devices
 					// It is possible to look the device up through room and device combination!!
 					list( $room, $dev, $value ) = sscanf ($items[$i]['cmd'], "!R%dD%dF%s\n" );
-					$log->lwrite("room: ".$room." ,device: ".$dev." value: ".$value,2);
+					$log->lwrite("main:: room: ".$room." ,device: ".$dev." value: ".$value,1);
 					
 					// Search the correct unit in the room. Thus dev is here the unit number
 					$device = $dlist->get($room, $dev);
@@ -2021,7 +2020,7 @@ while (true):
 					}
 					
 					$log->lwrite("sql device upd: ".$device['name'].", id: "
-							.$device['id'].", room: ".$device['room'].", val: ".$device['val'],2);
+							.$device['id'].", unit: ".$device['unit'].", room: ".$device['room'].", val: ".$device['val'],1);
 					$dlist->upd($device);							// Write new value to database
 					
 					$brand = $brands[$device['brand']]['fname'];	// if is index for array (so be careful)
@@ -2205,7 +2204,7 @@ while (true):
 				
 			if ($time_last_run > $secs_today ) {
 				// We have already started at least one loop before
-				$log->lwrite("Timer ". $timers[$i]['name']."  planned at: ".date('l jS \of F Y h:i:s A',$secs_today)." started already before ".date('l jS \of F Y h:i:s A',$time_last_run)."\n",2);
+				$log->lwrite("Timer ". $timers[$i]['name']."  planned at: ".date('l jS \of F Y h:i:s A',$secs_today)." started already before ".date('l jS \of F Y h:i:s A',$time_last_run)."\n",3);
 			}
 			// Need to make sure ONLY when time > timer sttime
 			// Need to push skip value back to database so next time we tun again !!!

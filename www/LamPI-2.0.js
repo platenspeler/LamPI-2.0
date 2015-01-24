@@ -13,6 +13,7 @@
 // Version 2.1, Jul 31, 2014 Smart Meter support
 // Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
 // Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
+// Version 2.5, Jan 15, 2015 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -1197,9 +1198,7 @@ function start_LAMP(){
 			$( this ).addClass ( 'hover' );
 			//activate_weather(id);
 			//alert("Clicked Weather Button, id: "+id+", value: "+value);
-			
-			// Based on the row that is clicked, we should be able to determine the
-			// right type of 
+
 			var win=window.open('graphs/weather.html', '_parent');
 			
 			$( this ).removeClass( 'hover' );
@@ -1552,6 +1551,211 @@ function start_LAMP(){
 		} // switch
 		
 	});	// CC Config Handler
+
+
+// -------------------------------------------------------------------------------
+// SCENE We have to setup an event handler for this screen.
+// After all, the user might like to change things and press some buttons
+// NOTE::: This handler runs asynchronous! So after click we need to sort out for which scene :-)
+// Therefore, collect all scene data again in this handler.
+//
+	$( "#gui_content" ).on("click", ".scene_button" ,function(e) 
+	{
+		e.preventDefault();
+		e.stopPropagation();
+		value=$(this).val();									// Value of the button pressed (eg its label)
+		var but_id = $(e.target).attr('id');					// id of button
+		// var scene_id = $(e.target).attr('id').substr(2,1);	// XXX Assuming scene Id is one digit
+		// but also s_scene_id tells us which scene is active
+				
+		var scene = get_scene(s_scene_id);
+		// alert("s_scene_id: "+s_scene_id+", scene[id]: "+scene['id']);
+				
+		var scene_name = scene['name'];
+		var scene_seq = scene['seq'];
+		var scene_split = scene_seq.split(',');					// Do in handler
+		console.log("scene handler:: scene_name: "+scene_name);
+		// May have to add: Cancel All timers and Delete All timers
+		switch (but_id.substr(0,2))
+		{
+			// START button, queue scene
+			case "Fq":
+						// Send to the device message_device
+						var scene_cmd = '!FqP"' + scene['name'] + '"';
+						// Send to device. In case of a Raspberry, we'll use the backend_rasp
+						// to lookup the command string from the database
+						message_device("scene", scene_cmd );
+
+			break;
+					
+			// STORE button
+			case "Fe":
+						var scene_cmd = '!FeP"' + scene['name'] + '"=' + scene['seq'];
+						
+						// alert("Fe Storing scene:: "+scene_cmd+", length: "+scene['seq'].length);
+						// Send to database and update the current scene record
+						send2dbase("store_scene", scene);
+			break;
+						
+			// DELETE scene action, ONE of the actions in the seq!!!
+			case "Fx":
+						if (debug > 2) alert("Activate_screen:: Delete Fx button pressed");
+						
+						var msg = "Deleted actions ";
+						// Go over each TR element with id="scene" and record the id
+						// We need to go reverse, as removing will mess up higher indexes above,
+						// this will not matter if we work down the array
+						$($( "#gui_scenes .scene" ).get().reverse()).each(function( index ) {
+																
+							var id = 	$(this ).children().children('.dlabels').attr('id');		
+							var ind = parse_int(id)[1];			// id contains two numbers in id, we need 2nd
+						
+							if ( $(this ).children().children('input[type="checkbox"]').is(':checked') ) {
+
+								if (debug > 1) alert ("delete scene id: "+id+", index: "+ind+" selected");
+								var removed = scene_split.splice(2*(ind-1),2);
+								ind --;							// After deleting from scene_split, adjust the indexes for
+																// rest of the array	
+								if (debug > 1) alert("removed:"+removed[0]+ "," +removed[1]+": from seq: "+scene_split );
+								msg += ind + " : " + decode_scene_string( removed[0] ) + "; " ;
+							}
+						});
+						message(msg);
+						// We need to find the index of array scenes to update. As we are in a handler
+						// we cannot rely on the j above but need to find the index from 'id' field in scenes
+						
+						for (var j=0; j<scenes.length; j++) {
+							if (scenes[j]['id'] == s_scene_id ) {
+								// Now concatenate all actions and timers again for the scene_split
+								if (typeof(scene_split) == "undefined") {
+									if (debug>2) alert("activate_scene:: case FX: scene_split undefined");
+								}
+								else {
+									scenes[j]['seq']=scene_split.join();
+									if (debug>2) alert("seq: " + scenes[j]['seq']);
+								}
+								break;
+							}
+						}
+								
+						// We will NOT store to the dabase unless the user stores the sequence by pressing the STORE button
+						activate_scene(s_scene_id);							
+			break;
+
+			// CANCEL scene button
+			case "Fc":
+					// Do we want confirmation?
+						var scene_cmd = '!FcP"' + scene['name'] + '"';
+						alert("Cancel current Sequence: " + scene['name']
+							+ "\nScene cmd: " + scene_cmd
+							);
+						message_device("scene", scene_cmd);
+			break;
+					
+			// Recording
+			case "Fr":
+						if (debug > 2) alert("Activate_screen:: Add Fr button pressed, start recording ...");
+						myConfirm('You are about to add a new action to the scene. If you continue, the system ' 
+						+ 'will be in recording mode until you have selected a device action. Then you are returned '
+						+ 'to this scene screen again. Please confirm if you want to add a device. ', 
+						// Confirm
+						function () {
+							// DO nothing....
+							// Maybe make the background red during device selection or blink or so
+							// with recording in the message area ...
+							message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
+						
+							// Cancel	
+  							}, function () {
+								s_recording = 0;
+								return(1); // Avoid further actions for these radio buttons 
+  							},
+  							'Adding a Device action?'
+						);
+						s_recording = 1;							// Set the recording flag on!
+						s_recorder = "";							// Empty the recorder
+						init_rooms("init");
+			break;
+					
+					// Change a timer value in the scene screen
+			case "Ft":
+	// XXX MMM In LamPI, Scene id can be higher than 9, thus 2 chars (make function read_int(s,i) )
+						var val= $(e.target).val();
+						//alert("scene current time val is: "+val);
+						
+						var hh=""; for(var i=0;i<24;i++) {
+							if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
+						}
+						var mm=""; for(var i=0;i<60;i++) {
+							if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+							else mm +='<option>'+("00"+i).slice(-2)+'</option>';
+						}
+						var ss=""; for(var i=0;i<60;i++) {
+							if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
+							else ss +='<option>'+("00"+i).slice(-2)+'</option>';
+						}
+						var ret;
+						var frm = '<form id="addRoomForm"><fieldset>'
+							+ '<p>You can change the timer settings for this action. Please use hh:mm:ss</p>'
+							+ '<br />'
+							+ '<label style="width:50px;" for="val_1">hrs: </label>'
+							+ '<select id="val_1" value="'+val.substr(0,2)+'" >' + hh +'</select>'
+							+ '<label style="width:50px;" for="val_2">mins: </label>'
+							+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
+							+ '<label style="width:50px;" for="val_3">secs: </label>'
+							+ '<select id="val_3" selectedIndex="10" value="'+ val.substr(6,2)+'">' + ss +'</select>'
+							+ '</fieldset></form>'
+							;	
+						askForm(
+							frm,
+							function(ret){
+							// OK Func, need to get the value of the parameters
+							// Add the device to the array
+							// SO what are the variables returned by the function???
+							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
+						
+							// Value of the button pressed (eg its label)
+							var laval = ret[0]+":"+ret[1]+":"+ret[2];
+							$(e.target).val(laval);
+							if (debug>2) alert("Timer changed from "+ val+" to: "+ $(e.target).val() );
+						
+						// Now change its value in the sequence string of timers also
+						// use but_id= $(e.target).attr('id') to get the index number ...							
+							var ids = parse_int(but_id);					// Second number is gid, first scene_id
+							var gid = ids[1];
+							scene_split [((gid-1)*2) + 1] = laval;
+							
+							var my_list = '';
+							// Go over each element and assemble the list again.
+							$( "#gui_scenes .scene" ).each(function( index ) {
+								var id = 	$(this ).children().children('.dbuttons').attr('id');	
+								// parse_int can handle multi-digit numbers in id's!!
+								var ind = parse_int(id)[1];
+								console.log( "scn: " + scn + " html index: " + index + " scene ind: " + ind );
+								my_list += scene_split [(ind-1)*2] + ',' + scene_split [((ind-1)*2) + 1] + ',' ;
+							});
+							// Now we need to remove the last ","
+							console.log("my_list :" + my_list);
+							my_list = my_list.slice(0,-1);
+							console.log("scene: " + s_scene_id + ", " + scenes[s_scene_id-1]['name'] + ", my_list: " + my_list );
+							// XXX OOPS, not nice, should look up the index, not assume ind[id==1] is same as array index 0
+							scenes[s_scene_id-1]['seq'] =  my_list;
+							if (debug>2) alert("new scene_list:: "+my_list);
+							return (0);	
+  						},
+						function () {
+							return(1); // Avoid further actions for these radio buttons 
+  						},
+  						'Confirm Change'
+					); // askForm
+			break;
+					
+			default:
+				alert("Sequence action unknown: " + but_id.substr(-2) );
+		}
+	});
+
 
 
 	// ----------------------------------------------------------------------------------------
@@ -2763,33 +2967,6 @@ function init_energy(cmd)
 		var but = '';
 		$("#gui_header_content").append(but);
 		
-		//if (s_weather_id == "") { 
-		//	s_weather_id = weather[0]['location']; 
-		//	//alert("init_weather:: loc id: "+s_weather_id);
-		//}
-		
-		//var weather_list=[];
-		//for (var j = 0; j<weather.length; j++ ){
-		//	// Create only unique buttons
-  		//	if ( $.inArray(weather[j]['location'],weather_list) == -1) {
-		//		//alert("adding id: "+j);
-		//		var weather_id = weather[j]['id'];
-		//		var location = weather[j]['location'];
-		//		var temperature = weather[j]['temperature'];
-		//		
-		//		msg += j + ', ';
-		//		if ( location == s_weather_id ) {
-		//			//but +=  weather_button(weather_id, location, "hover");
-		//			but +=  weather_button(location, location, "hover");
-		//		}
-		//		else
-		//		{
-		//			//but +=  weather_button(weather_id, location);
-		//			but +=  weather_button(location, location);
-		//		}
-		//		weather_list[weather_list.length]= weather[j]['location'];
-		//	}
-		//}
 		if (debug>1) message(msg);
 		but= '';
 		//but += '<input type="submit" id="Add" value= "+" class="cw_button new_button">';
@@ -2811,7 +2988,6 @@ function init_settings(cmd)
 		$("#gui_header").append(html_msg);
 		
 		var msg = 'Init Config, config read: ';	
-		// XXX rroom??
 		var but = '';
 		for (var j = 0; j<settings.length; j++ ){
   
@@ -2870,23 +3046,23 @@ function init_menu(cmd)
 	}
 	else {
 		var but =  ''	
-		+ '<tr class="switch"><td><input type="submit" id="M1" value= "Rooms" class="hm_button hover"></td>' 
-		+ '<tr class="switch"><td><input type="submit" id="M2" value= "Scenes" class="hm_button"></td>'
-		+ '<tr class="switch"><td><input type="submit" id="M3" value= "Timers" class="hm_button"></td>'
-		+ '<tr class="switch"><td><input type="submit" id="M4" value= "Handsets" class="hm_button"></td>'
+		+ '<tr><td><input type="submit" id="M1" value= "Rooms" class="hm_button hover"></td>' 
+		+ '<tr><td><input type="submit" id="M2" value= "Scenes" class="hm_button"></td>'
+		+ '<tr><td><input type="submit" id="M3" value= "Timers" class="hm_button"></td>'
+		+ '<tr><td><input type="submit" id="M4" value= "Handsets" class="hm_button"></td>'
 		;
 		// Do we have weather definitions in database.cfg file?
 		if (weather.length > 0) {
-			but += '<tr class="switch"><td><input type="submit" id="M6" value= "Weather" class="hm_button"></td>'
+			but += '<tr><td><input type="submit" id="M6" value= "Weather" class="hm_button"></td>'
 		}
 		// Do we have energy definitions in database.cfg file?
 		if (use_energy > 0) {
-			but += '<tr class="switch"><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
+			but += '<tr><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
 		}
 
 		but += '<tr><td></td>'
 		+ '<tr><td></td>'
-		+ '<tr class="switch"><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
+		+ '<tr><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
 		+ '</table>'
 		;
 		$(table).append(but);
@@ -2974,7 +3150,7 @@ function activate_room(new_room_id, selectable)
 	$( "#gui_devices" ).append( html_msg );
 	var table = $( "#gui_devices" ).children();		// to add to the table tree in DOM	
 	
-	var but = '<thead><tr class="switch">' ;
+	var but = '<thead><tr class="headrow switch">' ;
 	if (selectable == "Del") { but+= '<td colspan="2">' ; }
 		else {but += '<td>' };
 	// class dbuttons belongs to device screen and defines round corners etc.
@@ -3033,11 +3209,9 @@ function activate_room(new_room_id, selectable)
 					but += '<td colspan="2"><input type="text" id="'+device_id+'" value="'+device_name+'" class="dlabels"></td>';
 
 					but += '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons'+offbut+'">';
-					but += '<input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons'+onbut+'"></td>'
-//					+ '</tr>' 
-//					+ '</div>'
-					;
-				}		// NOT jqmobile, but browser
+					but += '<input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons'+onbut+'"></td>';
+				}		
+				// NOT jqmobile, but browser
 				else {
 					var but =  '<tr class="devrow switch">' ;
 					if (selectable == "Del") 
@@ -3048,7 +3222,7 @@ function activate_room(new_room_id, selectable)
 					but += '<td><input type="submit" id="'+device_id+'F1'+'" value= "'+"ON" +'" class="dbuttons'+onbut+'"></td>';
 				}
 				$(table).append(but);
-					// Set the value read from load_device in the corresponding button
+				// Set the value read from load_device in the corresponding button
 			break;
 			
 			case "dimmer":	
@@ -3070,7 +3244,7 @@ function activate_room(new_room_id, selectable)
 						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';
 					slid += '<td><input type="submit" id="' +device_id 
 						+ '" value= "'+device_name + '" class="dlabels"></td>'
-						+ '<td><div id="' +device_id + 'Fd" class="slider"></div></td>'	
+						+ '<td><div id="' +device_id + 'Fd" class="slider slider-dimmer"></div></td>'	
 						+ '<td><input type="text" id="' +device_id+'Fl" class="slidval"></td>'
 						// On/Off buttons
 						+ '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons'+offbut+'"></td>'
@@ -3316,7 +3490,7 @@ function activate_room(new_room_id, selectable)
 					
 	s_room_id = new_room_id;				
 				
-		// Listen to ALL (class) buttons for #gui_devices which is subclass of DIV #gui_content
+	// Listen to ALL (class) buttons for #gui_devices which is subclass of DIV #gui_content
 	$( "#gui_devices" ).on("click", ".dbuttons" ,function(e) 
 	{
 			e.preventDefault();
@@ -3690,7 +3864,7 @@ function activate_room(new_room_id, selectable)
 
 // ---------------------------------------------------------------------------------------
 //
-// Change a scene based on the index of the menu button pressen on top of page
+// Change a scene based on the index of the menu button pressed on top of page
 // For each secen we record a set of user actions.
 // For the moment we can show the complete sequence, delete it and/or record a new sequence
 //
@@ -3722,14 +3896,14 @@ function activate_scene(scn)
 			var but =  '<thead>'	
 					+ '<tr class="switch">'
 					+ '<td colspan="2">'
-					+ '<input type="submit" id="Fx'+scene_id+'" value="X" class="dbuttons del_button">'
-					+ '<input type="submit" id="Fr'+scene_id+'" value="+" class="dbuttons new_button">'
+					+ '<input type="submit" id="Fx'+scene_id+'" value="X" class="dbuttons scene_button del_button">'
+					+ '<input type="submit" id="Fr'+scene_id+'" value="+" class="dbuttons scene_button new_button">'
 					+ '</td>'
 					+ '<td colspan="2"><input type="input"  id="Fl'+scene_id+'" value= "'+scene_name+'" class="dlabels"></td>' 
 					
-					+ '<td><input type="submit" id="Fc'+scene_id+'" value="STOP" class="dbuttons">'
-					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons">'
-					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons play_button">'
+					+ '<td><input type="submit" id="Fc'+scene_id+'" value="STOP" class="dbuttons scene_button">'
+					+ '<input type="submit" id="Fe'+scene_id+'" value="Store" class="dbuttons scene_button">'
+					+ '<input type="submit" id="Fq'+scene_id+'" value=">" class="dbuttons scene_button play_button">'
 					+ '</td></thead>'
 					;
 			$(table).append(but);
@@ -3749,7 +3923,7 @@ function activate_scene(scn)
 					+ '<td><input type="checkbox" id="s'+scene_id+'c" name="cb'+ind+'" value="yes"></td>'
 					+ '<td> ' + ind
 					+ '<td><input type="input" id="Fs'+scene_id+'i'+ind+'" value= "'+scene_split[k]+'" class="dlabels sval"></td>'
-					+ '<td><input type="text" id="Ft'+scene_id+'t'+ind+'" value= "'+scene_split[k+1]+'" class="dbuttons sval"></td>'
+					+ '<td><input type="text" id="Ft'+scene_id+'t'+ind+'" value= "'+scene_split[k+1]+'" class="dbuttons scene_button sval"></td>'
 					+ '<td>' + scmd 
 					;
 				$(table).append(but);
@@ -3777,7 +3951,7 @@ function activate_scene(scn)
 					+ '<td><input type="checkbox" id="s'+scene_id+ 'c" name="cb' + ind +'" value="yes"></td>'
 					+ '<td>' + ind
 					+ '<td><input type="input" id="Fs'+scene_id+'i'+ind+'" value= "'+s_recorder+'" class="dlabels sval"></td>'
-					+ '<td><input type="text" id="Ft'+scene_id+'t'+ind+'" value= "'+"00:00:10"+'" class="dbuttons sval"></td>'
+					+ '<td><input type="text" id="Ft'+scene_id+'t'+ind+'" value= "'+"00:00:10"+'" class="dbuttons scene_button sval"></td>'
 					+ '<td colspan="2">' + scmd 
 					;
 				$(table).append(but);
@@ -3803,210 +3977,8 @@ function activate_scene(scn)
 				message("Device command added to the scene");
 				
 			} // if recording
-
-			// We have to setup an event handler for this screen.
-			// After all, the user might like to change things and press some buttons
-			// NOTE::: This handler runs asynchronous! So after click we need to sort out for which scene :-)
-			// Therefore, collect all scene data again in this handler.
-			//
-			$( "#gui_scenes" ).on("click", ".dbuttons" ,function(e) 
-			{
-				e.preventDefault();
-//				e.stopPropagation();
-				value=$(this).val();									// Value of the button pressed (eg its label)
-				var but_id = $(e.target).attr('id');					// id of button
-				// var scene_id = $(e.target).attr('id').substr(2,1);	// XXX Assuming scene Id is one digit
-				// but also s_scene_id tells us which scene is active
-				
-				var scene = get_scene(s_scene_id);
-				//alert("s_scene_id: "+s_scene_id+", scene[id]: "+scene['id']);
-				
-				var scene_name = scene['name'];
-				var scene_seq = scene['seq'];
-				var scene_split = scene_seq.split(',');					// Do in handler
 			
-			// May have to add: Cancel All timers and Delete All timers
-				switch (but_id.substr(0,2))
-				{
-					// START button, queue scene
-					case "Fq":
-						// Send to the device message_device
-						var scene_cmd = '!FqP"' + scene['name'] + '"';
-						// Send to device. In case of a Raspberry, we'll use the backend_rasp
-						// to lookup the command string from the database
-						message_device("scene", scene_cmd );
-
-					break;
-					
-					// STORE button
-					case "Fe":
-						var scene_cmd = '!FeP"' + scene['name'] + '"=' + scene['seq'];
-						
-						// alert("Fe Storing scene:: "+scene_cmd+", length: "+scene['seq'].length);
-						// Send to database and update the current scene record
-						send2dbase("store_scene", scene);
-					break;
-						
-					// DELETE scene action, ONE of the actions in the seq!!!
-					case "Fx":
-						if (debug > 2) alert("Activate_screen:: Delete Fx button pressed");
-						
-						var msg = "Deleted actions ";
-						// Go over each TR element with id="scene" and record the id
-						// We need to go reverse, as removing will mess up higher indexes above,
-						// this will not matter if we work down the array
-						$($( "#gui_scenes .scene" ).get().reverse()).each(function( index ) {
-																
-							var id = 	$(this ).children().children('.dlabels').attr('id');		
-							var ind = parse_int(id)[1];			// id contains two numbers in id, we need 2nd
-						
-							if ( $(this ).children().children('input[type="checkbox"]').is(':checked') ) {
-
-								if (debug > 1) alert ("delete scene id: "+id+", index: "+ind+" selected");
-								var removed = scene_split.splice(2*(ind-1),2);
-								ind --;							// After deleting from scene_split, adjust the indexes for
-																// rest of the array	
-								if (debug > 1) alert("removed:"+removed[0]+ "," +removed[1]+": from seq: "+scene_split );
-								msg += ind + " : " + decode_scene_string( removed[0] ) + "; " ;
-							}
-						});
-						message(msg);
-						// We need to find the index of array scenes to update. As we are in a handler
-						// we cannot rely on the j above but need to find the index from 'id' field in scenes
-						
-						for (var j=0; j<scenes.length; j++) {
-							if (scenes[j]['id'] == s_scene_id ) {
-								// Now concatenate all actions and timers again for the scene_split
-								if (typeof(scene_split) == "undefined") {
-									if (debug>2) alert("activate_scene:: case FX: scene_split undefined");
-								}
-								else {
-									scenes[j]['seq']=scene_split.join();
-									if (debug>2) alert("seq: " + scenes[j]['seq']);
-								}
-								break;
-							}
-						}
-								
-						// We will NOT store to the dabase unless the user stores the sequence by pressing the STORE button
-						activate_scene(s_scene_id);
-												
-					break;
-
-					// CANCEL scene button
-					case "Fc":
-					// Do we want confirmation?
-						var scene_cmd = '!FcP"' + scene['name'] + '"';
-						alert("Cancel current Sequence: " + scene['name']
-							+ "\nScene cmd: " + scene_cmd
-							);
-						message_device("scene", scene_cmd);
-					break;
-					
-					// Recording
-					case "Fr":
-						if (debug > 2) alert("Activate_screen:: Add Fr button pressed, start recording ...");
-						myConfirm('You are about to add a new action to the scene. If you continue, the system ' 
-						+ 'will be in recording mode until you have selected a device action. Then you are returned '
-						+ 'to this scene screen again. Please confirm if you want to add a device. ', 
-						// Confirm
-						function () {
-							// DO nothing....
-							// Maybe make the background red during device selection or blink or so
-							// with recording in the message area ...
-							message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
-						
-							// Cancel	
-  							}, function () {
-								s_recording = 0;
-								return(1); // Avoid further actions for these radio buttons 
-  							},
-  							'Adding a Device action?'
-						);
-						s_recording = 1;							// Set the recording flag on!
-						s_recorder = "";							// Empty the recorder
-						init_rooms("init");
-					break;
-					
-					// Change a timer value in the scene screen
-					case "Ft":
-	// XXX MMM In LamPI, Scene id can be higher than 9, thus 2 chars (make function read_int(s,i) )
-						var val= $(e.target).val();
-						//alert("scene current time val is: "+val);
-						
-						var hh=""; for(var i=0;i<24;i++) {
-							if (i==val.substr(0,2)) hh +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-							else hh +='<option>'+("00"+i).slice(-2)+'</option>';
-						}
-						var mm=""; for(var i=0;i<60;i++) {
-							if (i==val.substr(3,2)) mm +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-							else mm +='<option>'+("00"+i).slice(-2)+'</option>';
-						}
-						var ss=""; for(var i=0;i<60;i++) {
-							if (i==val.substr(6,2)) ss +='<option selected="selected">'+("00"+i).slice(-2)+'</option>';
-							else ss +='<option>'+("00"+i).slice(-2)+'</option>';
-						}
-						var ret;
-						var frm = '<form id="addRoomForm"><fieldset>'
-							+ '<p>You can change the timer settings for this action. Please use hh:mm:ss</p>'
-							+ '<br />'
-							+ '<label style="width:50px;" for="val_1">hrs: </label>'
-							+ '<select id="val_1" value="'+val.substr(0,2)+'" >' + hh +'</select>'
-							+ '<label style="width:50px;" for="val_2">mins: </label>'
-							+ '<select id="val_2" value="' + val.substr(3,2)+ '">' + mm +'</select>'
-							+ '<label style="width:50px;" for="val_3">secs: </label>'
-							+ '<select id="val_3" selectedIndex="10" value="'+ val.substr(6,2)+'">' + ss +'</select>'
-							+ '</fieldset></form>'
-							;	
-						askForm(
-							frm,
-							function(ret){
-							// OK Func, need to get the value of the parameters
-							// Add the device to the array
-							// SO what are the variables returned by the function???
-							if (debug > 2) alert(" Dialog returned val_1,val_2,val_3: " + ret);
-						
-							// Value of the button pressed (eg its label)
-							var laval = ret[0]+":"+ret[1]+":"+ret[2];
-							$(e.target).val(laval);
-							if (debug>2) alert("Timer changed from "+ val+" to: "+ $(e.target).val() );
-						
-						// Now change its value in the sequence string of timers also
-						// use but_id= $(e.target).attr('id') to get the index number ...							
-							var ids = parse_int(but_id);					// Second number is gid, first scene_id
-							var gid = ids[1];
-							scene_split [((gid-1)*2) + 1] = laval;
-							
-							var my_list = '';
-							// Go over each element and assemble the list again.
-							$( "#gui_scenes .scene" ).each(function( index ) {
-								var id = 	$(this ).children().children('.dbuttons').attr('id');	
-								// parse_int can handle multi-digit numbers in id's!!
-								var ind = parse_int(id)[1];
-								console.log( "scn: " + scn + " html index: " + index + " scene ind: " + ind );
-								my_list += scene_split [(ind-1)*2] + ',' + scene_split [((ind-1)*2) + 1] + ',' ;
-							});
-							// Now we need to remove the last ","
-							console.log("my_list :" + my_list);
-							my_list = my_list.slice(0,-1);
-							console.log("scene: " + s_scene_id + ", " + scenes[s_scene_id-1]['name'] + ", my_list: " + my_list );
-							// XXX OOPS, not nice, should look up the index, not assume ind[id==1] is same as array index 0
-							scenes[s_scene_id-1]['seq'] =  my_list;
-							if (debug>2) alert("new scene_list:: "+my_list);
-							return (0);	
-  						},
-						function () {
-							return(1); // Avoid further actions for these radio buttons 
-  						},
-  						'Confirm Change'
-					); // askForm
-					break;
-					
-					default:
-						alert("Sequence action unknown: " + but_id.substr(-2) );
-				}
-			})
-		}
+		}// if
 	}
 	// ------SORTABLE---REQUIRES MORE WORK -------
 	// Sortable put at the end of the function
@@ -4405,7 +4377,7 @@ function activate_timer(tim)
 							// DO nothing....
 							// Maybe make the background red during device selection or blink or so
 							// with recording in the message area ...
-							message('<p style="textdecoration: blink; background-color:red; color:white;">RECORDING</p>');
+							message('<p style="textdecoration:blink; background-color:red; color:white;">RECORDING</p>');
 						
 							// Cancel	
   							}, function () {
@@ -5935,7 +5907,7 @@ function activate_setting(sid)
 			var str = '<fieldset><label for="load_skin">Select File: </label>'
 						+ '<select id="load_skin" value="styles/classic-blue.css" style="width:200px;" class="dlabels">' ; 
 			var files = {};
-			files = send_2_set("list_skin","*css");
+			files = send2set("list_skin","*css");
 			//str += '<option>' + '   ' + '</option>';
 			for (var i=0; i<files.length; i++) {
 					str += '<option>' + files[i] + '</option>';
@@ -5952,7 +5924,8 @@ function activate_setting(sid)
 					+ '</form>'
 					+ '</td></tr>'
 					;
-			$(table).append(but);	
+			$(table).append(but);
+			
 			// Handle the content of the Backup/Restore screen
 			$( "#gui_skin" ).on("click", ".dbuttons" ,function(e) 
 			{
@@ -6018,7 +5991,7 @@ function activate_setting(sid)
 			var str = '<fieldset><label for="load_config">Select File: </label>'
 						+ '<select id="load_config" value="load" class="dlabels" style="width:200px;">' ;   // onchange="choice()"
 			var files = {};
-			files = send_2_set("list_config","*cfg");
+			files = send2set("list_config","*cfg");
 			str += '<option>' + '   ' + '</option>';
 			for (var i=0; i<files.length; i++) {
 					str += '<option>' + files[i] + '</option>';
@@ -6053,14 +6026,14 @@ function activate_setting(sid)
 					case "store":
 						var config_file = $( "#store_config").val();
 						if (config_file.substr(-4) != ".cfg") config_file += ".cfg" ;
-						send_2_set("store_config",config_file);
+						send2set("store_config",config_file);
 						if (debug>0) myAlert("Backup: "+ config_file);
 					break;
 						
 					case "load":
 						var config_file = $( "#load_config").val();
 						//alert("config_file: "+config_file);
-						send_2_set("load_config",config_file);
+						send2set("load_config",config_file);
 						if (debug>0) myAlert("The configuration file is now set to: "+config_file,"CONFIGURATION");
 						else message("Configuration file loaded "+config_file)
 					break;
@@ -6399,7 +6372,7 @@ function lookup_uaddr(rm_id, dev_id)
 	return(-1);		
 }
 
-// --------------------- LOAD DEVICE ------------------------------------
+// -------------------------------------------------------------------------
 // Load the value of a device from the gui variable
 // Inputs:
 //			rm_id: The index for the room to load (probably the active room)
@@ -6427,7 +6400,7 @@ function load_device(rm_id, dev_id)
 	return(1);		
 }
 
-// ---------------------------------- GET SCENE ------------------------------------
+// ---------------------------------- SCENES ------------------------------------
 
 // This function takes the id of a scene ( index 0-31 in the array, id 1-32 in the database )
 // and returns the corresponding scene in the database
@@ -6446,6 +6419,7 @@ function get_scene(scn_id)
 	return(1);		
 }
 
+// ---------------------------------- HANDSETS -------------------------------------
 //
 // Same function but now for handset
 //
@@ -6461,6 +6435,7 @@ function get_handset(hs_id)
 	return(1);		
 }
 
+// ---------------------------------------------------------------------------------
 //
 // Get Handset Record
 //
@@ -7055,7 +7030,7 @@ function send2dbase(dbase_cmd, dbase_arg)
 };
 
 // --------------------------------------------------------------------------------------
-// Send_2_set: 
+// send2set: 
 // Send setting commands to the backend PHP system, mainly for changing LamPI settings. 
 //
 // These commands are used for retrieving skins, settings and other stuff
@@ -7068,7 +7043,7 @@ function send2dbase(dbase_cmd, dbase_arg)
 // Reason is because changing settings is often GUI related and not daemon.
 // When necessary the daemon is synchronized through the database.
 //
-function send_2_set(command, parameter)
+function send2set(command, parameter)
 {
 	var result = {};
 	$.ajax({
@@ -7085,11 +7060,11 @@ function send_2_set(command, parameter)
     	success: function( data )
 		{
 			// Make room 1 default
-			if (debug>0) message("send_2_set:: Success");
+			if (debug>0) message("send2set:: Success");
 					
 			// Send debug message if desired
 			if (debug>1) {								// Show result with alert	
-          		alert('Ajax call send_2_set success: \n' 
+          		alert('Ajax call send2set success: \n' 
 					+ ',\nStatus: ' + data.status
 					+ '.\nApp Msg: ' + data.appmsg
 					+ '.\nApp Err: ' + data.apperr
@@ -7102,14 +7077,14 @@ function send_2_set(command, parameter)
 		error: function(jqXHR, textStatus, errorThrown)
 		{
 			// data.responseText is what you want to display, that's your error.
-			alert("send_2_set:: command: " + command
+			alert("send2set:: command: " + command
 				+ "\nError:" + jqXHR
 				+ "\nTextStatus: "+ textStatus
 				+ "\nerrorThrown: "+ errorThrown
-				+ "\n\nFunction send_2_set will finish now!" );
+				+ "\n\nFunction send2set will finish now!" );
 			return(-1);
 		}
 	});
-	if (debug>2) alert("send_2_set:: returning"+ result);
+	if (debug>2) alert("send2set:: returning"+ result);
 	return (result);
 };
