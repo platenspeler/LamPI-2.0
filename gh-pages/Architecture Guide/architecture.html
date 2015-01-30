@@ -44,9 +44,24 @@
 <p>&nbsp;</p>
 <h1><a name="lampigui"></a>The LamPI.js GUI</h1>
 <p>The LamPI-x.y.js file contains (most of) the front end of the LamPI application. It contains Javascript code in combination with a lot of jQuery functions that will shield the complex Ajax functions from the user and expands the code with useful widgets and buttons. The LamPI GUI system is written in Javascript, with libraries jQuery, and some functions of jQuery-Mobile and jQuery-UI.</p>
-<p>The LamPI Javascript program with with regular browser programs in which it will make use of jQuery UI function. Alternatively, when using the mobile clients such as Android client, the program will make use of jQuery Mobile libraries that are optimized for use in mobile devices such as Android clients.</p>
-<p>Javascript is an interpreted language, so it cannot really be compiled. However, Adobe provides a &quot;Closure Compiler Service&quot; that will analyse your JavaScript code, remove all the comments and changes long identifier names to short ones if necessary. The result is a smaller javascript file which takes less time to interpret as well. Therefore we provide the original LamPI-x.x.js file for development and debugging and the smaller/faster LamPI-x.x.min.js file that is used by default for running LamPI.</p>
-<p>You can start the GUI by calling one of the main .html files. By default this is the ~/www/index.html file. The index.html will setup the libraries, css file and may override some standard settings in the LamPI-x.x.min.js file (if you choose to do so). For eample you can use this to make a dev.html file that uses other development libraries etc for testing, or a mobile.html file that calls LamPI-x.x.min.js with the mobile settings activated.</p>
+<p>The LamPI Javascript program with with regular browser programs in which it will make use of jQuery UI function. Alternatively, when using the mobile clients such as Android client, the program will make use of jQuery Mobile libraries that are optimized for use in mobile devices such as Android clients. Javascript is an interpreted language, so it cannot really be compiled. However, Adobe provides a &quot;Closure Compiler Service&quot; that will analyse your JavaScript code, remove all the comments and changes long identifier names to short ones if necessary. The result is a smaller javascript file which takes less time to interpret as well. Therefore we provide the original LamPI-x.x.js file for development and debugging and the smaller/faster LamPI-x.x.min.js file that is used by default for running LamPI.</p>
+<p>You can start the GUI by calling one of the main .html files. By default this is the ~/www/index.html file. The index.html will setup the libraries, css file and may override some standard settings in the LamPI-x.x.min.js file (if you choose to do so). For eample you can use this to make a dev.html file that uses other development libraries etc for testing, or a mobile.html file that calls LamPI-x.x.min.js with the mobile settings activated.<br>
+The startup html file calls LamPI-x.x.min.js which will perform the following initial actions:</p>
+<ul>
+  <li>It will initialize a set of handlers for Javascript events (such as key presses)</li>
+  <li>It will setup the websockets interface (for communication with LamPI-daemon.php)</li>
+  <li>It will call an Ajax script to get the content of the device and setting database</li>
+  <li>After the document.ready()) function has ended the GUI will be initialized and the first &quot;room&quot; screen is activated.</li>
+</ul>
+<p>The GUI has the following areas (pre-) defined:</p>
+<ul>
+  <li>#gui_header</li>
+  <li>#gui_menu</li>
+  <li>#gui_message</li>
+  <li>#gui_content</li>
+</ul>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 <h1><a name="lampidaemon"></a>Architecture of the LamPI-daemon</h1>
 <p>The LamPI-daemon can be found in the ~/daemon directory together with its supporting backend files. LamPI-daemon.php is written in php and is started automatically with a cron script every minute. This way we know that the systen will start even when it encountered a fatal error. Not that there are any known at the moment of writing, the daemon will run fine for weeks in a row, but just in case. Actuall, since we use the log aging system - every night at 02:00 hrs the log files are moved to a .log.x file - the daemon needs to be restarted so that it again writes to the new and correct ~/www/log/LamPI-daemon.log file</p>
 <p>The LamPI-daemon is a PHP program that will accept socket connections from clients and  transceivers. It will accept device commands from the front end and send back status changes of devices (for example from timers). On the &quot;other side&quot; it will messages from the transceiver with read sensor and handset information and may act upon those messages. LamPI-daemon will also initiate messages to the 433MHz devices based on either incoing commands from the client(s) or timers that expire for certain actions. The LamPI-daemon is implemented in PHP and is found in the exe directory (as we have to remove such a PHP function from the www directory so it cannot be called directly by a web client).</p>

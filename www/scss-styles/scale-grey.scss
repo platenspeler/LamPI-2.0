@@ -3,8 +3,8 @@
 /* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
-/* ----------------------- SCCS variable definitions -----------------------------------*/
 
+/* ----------------------- SCCS variable definitions -----------------------------------*/
 $wrapper_bg_color: #BBB;			/* Background color of the wrapper */
 $wrapper_bg_picture: "";
 
@@ -43,5 +43,4 @@ $dialog_bg_color: #DDD;
 
 /* ------------------------------------------------------------------------------------ */
 /* Import the generic template															*/
-
-@import '_classic-template';
+@import '_scale-menu-right-template';

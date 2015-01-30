@@ -5,8 +5,8 @@
 /* CORE HTML CSS */
 body {
   font-family: comic sans ms;
-  background: #003300;
-  color: #eeeeee;
+  background: #030;
+  color: #eee;
 }
 
 table {
@@ -47,7 +47,7 @@ input#lbl {
   padding: 5px;
   margin-top: 5px;
   border: 1px solid black;
-  background-color: #002a00;
+  background-color: #002A00;
 }
 
 /* The header header section defined */
@@ -61,7 +61,7 @@ input#lbl {
   margin-top: 0px;
   border: 1px solid black;
   text-align: center;
-  background-color: #003300;
+  background-color: #030;
 }
 
 #gui_header_controls {
@@ -93,8 +93,8 @@ input#lbl {
   margin-top: 5px;
   border: 1px solid black;
   text-align: center;
-  background-color: #003300;
-  color: #eeeeee;
+  background-color: #030;
+  color: #eee;
   overflow: hidden;
 }
 
@@ -108,7 +108,7 @@ input#lbl {
   height: 445px;
   margin-top: 5px;
   border: 1px solid black;
-  background-color: #003300;
+  background-color: #030;
   vertical-align: top;
 }
 
@@ -124,13 +124,13 @@ input#lbl {
   border: 1px solid black;
   text-align: center;
   font-size: 14px;
-  background-color: #003300;
-  color: #eeeeee;
+  background-color: #030;
+  color: #eee;
 }
 
 #addRoomForm {
-  background-color: #006600;
-  color: #eeeeee;
+  background-color: #060;
+  color: #eee;
   font-weight: bold;
   margin: 23px auto 0 auto;
   border-radius: 10px;
@@ -161,8 +161,8 @@ input#lbl {
   border-radius: 6px;
   margin-top: 2px;
   margin-bottom: 2px;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
   border-top-color: #040;
   border-left-color: #040;
   border-bottom-color: #020;
@@ -172,8 +172,8 @@ input#lbl {
 /* Indicating a mouse over for a room button */
 .hr_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* XXX needs reviewing */
@@ -189,14 +189,14 @@ input#lbl {
   border-radius: 5px;
   margin-top: 2px;
   margin-bottom: 2px;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
 }
 
 .hs_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* Header Timer definitions */
@@ -206,14 +206,14 @@ input#lbl {
   border-radius: 5px;
   margin-top: 2px;
   margin-bottom: 2px;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
 }
 
 .ht_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* Header Handset definitions */
@@ -223,14 +223,14 @@ input#lbl {
   border-radius: 5px;
   margin-top: 2px;
   margin-bottom: 2px;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
 }
 
 .hh_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* Header Weather definitions */
@@ -240,14 +240,14 @@ input#lbl {
   border-radius: 5px;
   margin-top: 2px;
   margin-bottom: 2px;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
 }
 
 .hw_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* Header Menu area definitions */
@@ -257,8 +257,8 @@ input#lbl {
   height: 35px;
   border-radius: 6px;
   vertical-align: top;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
   border-top-color: #040;
   border-left-color: #040;
   border-bottom-color: #020;
@@ -267,8 +267,8 @@ input#lbl {
 
 .hm_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* Header Configuration definitions */
@@ -279,14 +279,14 @@ input#lbl {
   margin-top: 2px;
   margin-bottom: 2px;
   align: center;
-  background-color: #006600;
-  color: #00ee00;
+  background-color: #060;
+  color: #0e0;
 }
 
 .hc_button:hover {
   font-weight: bold;
-  background-color: #00ee00;
-  color: #111111;
+  background-color: #0e0;
+  color: #111;
 }
 
 /* We might combine the 6 buttons types below, as they all refer to the command buttons */
@@ -348,8 +348,8 @@ input#lbl {
   margin-left: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
-  color: #00ee00;
-  background-color: #006600;
+  color: #0e0;
+  background-color: #060;
   border-top-color: #040;
   border-left-color: #040;
   border-bottom-color: #020;
@@ -366,8 +366,8 @@ input#lbl {
   margin-right: 2px;
   margin-top: 5px;
   margin-bottom: 5px;
-  color: #00ee00;
-  background-color: #006600;
+  color: #0e0;
+  background-color: #060;
   border-color: #020;
 }
 
@@ -382,22 +382,22 @@ input#lbl {
 
 .devrow {
   /* device row */
-  background-color: #003300;
+  background-color: #030;
 }
 
 .devrow:nth-child(odd) {
-  background-color: #004400;
+  background-color: #040;
 }
 
 /* This is the dimmer object consisting of dlabel, dbutton */
 .dimrow {
-  background-color: #003300;
+  background-color: #030;
 }
 
 /* A switch element, so just ON/OFF button */
 /* XXX This element also color the bar above the room/device screen */
 .switch {
-  background-color: #003300;
+  background-color: #030;
 }
 
 /* Scene definitions */
@@ -411,22 +411,22 @@ input#lbl {
 
 /* A row of scene */
 .scene {
-  background-color: #003300;
+  background-color: #030;
   color: #0F0;
 }
 
 .scene:nth-child(odd) {
-  background-color: #004400;
+  background-color: #040;
 }
 
 /* Handset Definitions */
 /* A row of handset */
 .handset {
-  background-color: #003300;
+  background-color: #030;
 }
 
 .handset:nth-child(odd) {
-  background-color: #004400;
+  background-color: #040;
 }
 
 /* Buttons for adding, removing and help */
@@ -504,23 +504,23 @@ input#lbl {
 
 /* This element in the slider button is used to mark the selected button once pressed */
 .hover {
-  background-color: #006600;
+  background-color: #060;
   color: #F00;
   /* Red */
 }
 
 .active {
-  background-color: #006600;
+  background-color: #060;
   color: #F00;
   /* Red */
 }
 
 .dragger {
   text-shadow: #C00;
-  background-color: #006600;
+  background-color: #060;
 }
 
 .ui_dialog {
-  background-color: #003300;
-  color: #00ee00;
+  background-color: #030;
+  color: #0e0;
 }

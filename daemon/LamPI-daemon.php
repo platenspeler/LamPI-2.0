@@ -1595,7 +1595,7 @@ while (true):
 				switch ($data['action']) 
 				{
 				case "ping":
-					$log->lwrite("main:: PING received",1);
+					$log->lwrite("main:: PING received",2);
 				break;
 				
 				case "gui":

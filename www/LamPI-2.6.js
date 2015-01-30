@@ -14,6 +14,7 @@
 // Version 2.2, Sep 15, 2014 Support for Z-Wave switches and dimmers
 // Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 // Version 2.5, Jan 15, 2015 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
+// Version 2.6, Jan 25, 2015 new .css template design, several bug fixes in LamPI-x.x.js
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -98,6 +99,8 @@ var cntrl = "1";										// ICS-1000== 0 and Raspberry == 1
 var use_weather = "0";
 var use_energy = "0";									// Initial value is 0
 var loginprocess=false;									// Is there a login process going on?
+var healthcount = 5;									// Needs to be above 0 to show activity
+var healthtime = 10000;									// milliseconds between activation of health pulse
 
 // ----------------------------------------------------------------------------
 // s_STATE variables. They keep track of current room, scene and setting
@@ -1815,6 +1818,7 @@ function start_LAMP(){
 		{
 			var ff = ev.data.substr(1);
 			//alert("Websocket:: Received a Message: "+ff);
+			if (healthcount < 10) healthcount++;
 			
 			
 			var rcv = JSON.parse(ev.data);		//PHP sends Json data
@@ -2006,7 +2010,7 @@ function start_LAMP(){
 						// alert("Support for localstorage");
 						uname= localStorage.getItem('uname');				// username
 						pword= localStorage.getItem('pword');				// pin
-						if (debug>=2) {
+						if (debug>=1) {
 							console.log("Support for localstorage, uname: "+uname);
 						}
 						if (uname == null) uname = "";
@@ -2014,7 +2018,7 @@ function start_LAMP(){
  					}
 					else {
   						// Sorry! No Web Storage support..
-						if (debug>=2) console.log("No local storage in browser");
+						if (debug>=1) console.log("No local storage in browser");
 						uname="login";
 						pword="****";
  					}
@@ -2052,8 +2056,9 @@ function start_LAMP(){
 						if(typeof(Storage)!=="undefined")
   						{
   							// Code for localStorage/sessionStorage.
-  							localStorage.setItem('uname',uname);
-							localStorage.setItem('pword',pword);
+  							localStorage.setItem('uname',ret[0]);
+							localStorage.setItem('pword',ret[1]);
+							console.log("localstorage:: uname: "+ret[0]);
  						}				
 						// Send the password back to the daemon
 						// message("Login and Password sent to server",1);
@@ -2279,6 +2284,7 @@ function start_LAMP(){
 		}
 	}
 
+
 }); // Doc Ready end
 
 } //start_LAMP() function end
@@ -2286,7 +2292,7 @@ function start_LAMP(){
 
 // ========================================================================================
 // Below this line, only functions are declared.
-// The only program started is either load_database
+// The only program started is found in the document.ready() function above
 
 
 
@@ -2340,6 +2346,17 @@ function init() {
 	use_weather = settings[7]['val'];						// Will we display weather info and buttons
 	use_energy = settings[8]['val'];						// Will we use energy display, only when P1-sensor is working
 	
+	// Set the interval so that every 10 seconds the system increases the healthcount variable
+	setInterval( function() { 
+			send2daemon("ping","","") ;
+			if (healthcount > 0) healthcount--;
+			console.log("healthcount:: "+healthcount);
+			$( "#health-slider" ).val( healthcount );
+			//$( "#health-slider" ).slider("refresh");
+			$( "#health-slider" ).slider("option", "value", healthcount );
+		}
+		, 10000);
+	
 	// XXX This type of init it not flexible.. Foryunately number and type of fields
 	// used for energy is fixed. All of these fields are present in a modern Energy P1 meter
 	energy['kw_hi_use'] = 0;
@@ -2352,6 +2369,17 @@ function init() {
 	energy['kw_ph1_use'] = 0;
 	energy['kw_ph2_use'] = 0;
 	energy['kw_ph3_use'] = 0;
+	
+	if(typeof(Storage)!=="undefined") {
+  		// Code for localStorage/sessionStorage.
+		// alert("Support for localstorage");
+		var uname= localStorage.getItem('uname');				// username
+		var pword= localStorage.getItem('pword');				// pin
+		console.log("init:: localStorage, uname: "+uname+", pword: "+pword);
+	}
+	else {
+		console.log("init:: No localStorage support");
+	}
 	
 	// Sort the devices array on the "id" field
 	//sort(devices);
@@ -2763,11 +2791,59 @@ function init_rooms(cmd)
 	}
 	$("#gui_header_content").append(but);
 
-	but  = '<input type="submit" id="Add"  value= "+"  class="cr_button new_button">'  ;
-	but += '<input type="submit" id="Del"  value= "X"  class="cr_button del_button">'  ;
-	but += '<input type="submit" id="Help" value= "?" class="cr_button help_button">'  ;
+	// Now do the buttons on the right: add, delete, help and the slider for the health indication
+	but  = '<input type="submit" id="Add"  value= "+"  class="cr_button new_button">' ;
+	but += '<input type="submit" id="Del"  value= "X"  class="cr_button del_button">' ;
+	but += '<input type="submit" id="Help" value= "?" class="cr_button help_button">' ;
 	$("#gui_header_controls").append(but);
-		
+	
+	//but  = '<div class="health_control"><p>health</p>' ;
+	but  = '';
+	//but  = '<div class="health_control" style="padding: 3px; width: 100px;" >' ;
+	but += '<div id="health-slider" class="slider-health" ></div>' ;
+	//but += '</div>' ;
+	$("#gui_header_controls").append(but);
+	
+	$(function() {
+		console.log("XXX Starting Slider function");
+		$( "#health-slider" ).slider({
+			range: "max",
+			min: 0,
+			max: 9,
+			value: healthcount,
+    		slide: function( event, ui ) {
+      			$( "#health-slider" ).val( ui.value );
+				// var x = $( "#health-slider" ).val();
+				var x = healthcount;
+				if (x <= 2) {
+					$(".slider-health").css("background", "#4ea6cf");
+				}
+				else if (x > 2 && x <= 3) {
+					$(".slider-health").css("background", "#5ac5cf");
+				}
+				else if (x > 3 && x <= 4) {
+					$(".slider-health").css("background", "#7dd7bf");
+				}
+				else if (x > 4 && x <= 5) {
+					$(".slider-health").css("background", "#b1cfa1");
+				}
+				else if (x > 5 && x <= 6) {
+					$(".slider-health").css("background", "#e5bf7c");
+				}
+				else if (x > 6 && x <= 7) {
+					$(".slider-health").css("background", "#d79168");
+				}
+				else if (x > 7 && x <= 8) {
+					$("#health-slider").css("background", "#cd7159");
+				}
+				else if (x > 8) {
+					$(".slider-health").css("background", "#c4463a");
+				};
+			}
+		});
+		//$( ".active" ).val( $( "#slider" ).slider( "value"));
+	});
+	
 	//	Display the devices for the room at the first time run
 	s_screen='room';
 	activate_room(s_room_id);		
@@ -3059,7 +3135,6 @@ function init_menu(cmd)
 		if (use_energy > 0) {
 			but += '<tr><td><input type="submit" id="M7" value= "Energy" class="hm_button"></td>'
 		}
-
 		but += '<tr><td></td>'
 		+ '<tr><td></td>'
 		+ '<tr><td><input type="submit" id="M5" value= "Config" class="hm_button"></td>'
@@ -3083,31 +3158,24 @@ function init_menu(cmd)
 			case "M1":
 				init_rooms ("init");
 			break;
-				
 			case "M2":
 				init_scenes(s_scene_id);
 			break;
-				
 			case "M3":
 				init_timers();
 			break;
-				
 			case "M4":
 				init_handsets();
 			break;
-				
 			case "M5":
 				init_settings();
 			break;
-				
 			case "M6":
 				init_weather();
 			break;
-			
 			case "M7":
 				init_energy();
 			break;
-				
 			default:
 				message('init_menu:: id: ' + id + ' not a valid menu option');
 		}
@@ -3160,11 +3228,11 @@ function activate_room(new_room_id, selectable)
 		;
 	but += '<td class="filler" align="center">'+room_name+'</td>';
 	if (jqmobile == 1) {
-		but += '<td><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+		but += '<td><input type="submit" id="Fa" value="ALL OFF" class="dbuttons all_off_button" ></td>';
 	}
 	else {
 		but +='<td></td>';					// Because in non jqmobile dimmers display value in this column
-		but += '<td colspan="2"><input type="submit" id="Fa" value="ALL OFF" class="dbuttons" ></td>';
+		but += '<td><input type="submit" id="Fa" value="ALL OFF" class="dbuttons all_off_button" ></td>';
 	}
 	$(table).append(but);
 	$(table).append('</tr>');
@@ -3208,18 +3276,18 @@ function activate_room(new_room_id, selectable)
 						but+= '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';
 					but += '<td colspan="2"><input type="text" id="'+device_id+'" value="'+device_name+'" class="dlabels"></td>';
 
-					but += '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons'+offbut+'">';
-					but += '<input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons'+onbut+'"></td>';
+					but += '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons off_button'+offbut+'">';
+					but += '<input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons on_button'+onbut+'"></td>';
 				}		
-				// NOT jqmobile, but browser
+				// NOT jqmobile, but BROWSER
 				else {
 					var but =  '<tr class="devrow switch">' ;
 					if (selectable == "Del") 
 						but+= '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';
 					but += '<td colspan="2"><input type="submit" id="'+device_id+'" value= "'+device_name+'" class="dlabels"></td>';
 					but += '<td></td>';	
-					but += '<td><input type="submit" id="'+device_id+'F0'+'" value= "'+"OFF" +'" class="dbuttons'+offbut+'"></td>';
-					but += '<td><input type="submit" id="'+device_id+'F1'+'" value= "'+"ON" +'" class="dbuttons'+onbut+'"></td>';
+					but += '<td><input type="submit" id="'+device_id+'F0'+'" value= "'+"OFF" +'" class="dbuttons off_button'+offbut+'">';
+					but += '    <input type="submit" id="'+device_id+'F1'+'" value= "'+"ON" +'" class="dbuttons on_button'+onbut+'"></td>';
 				}
 				$(table).append(but);
 				// Set the value read from load_device in the corresponding button
@@ -3233,8 +3301,8 @@ function activate_room(new_room_id, selectable)
 						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';	
 					slid += '<td colspan="2"><label for="'+device_id+'Fd">'+device_name+'</label>';
 					slid += '<input type="number" data-type="range" style="min-width:32px;" id="'+device_id+'Fd" name="'+device_id+'Fl" value="'+device_val+'" min=0 max=31 data-highlight="true" data-mini="false" data-theme="b" class="ddimmer"/></td>';
-					slid += '<td><input type="submit" id="'+device_id+'F0'+'" value= "OFF" class="dbuttons'+offbut+'" />';
-					slid += '<input type="submit" id="'+device_id+'F1'+'" value= "ON" class="dbuttons'+onbut+'" /></td>';
+					slid += '<td><input type="submit" id="'+device_id+'F0'+'" value= "OFF" class="dbuttons off_button'+offbut+'" />';
+					slid += '<input type="submit" id="'+device_id+'F1'+'" value= "ON" class="dbuttons on_button'+onbut+'" /></td>';
 					slid += '</tr>';
 				}
 				else // This is the jQuery UI normal
@@ -3242,13 +3310,12 @@ function activate_room(new_room_id, selectable)
 					var slid = '<tr class="devrow dimrow">' ;
 					if (selectable == "Del")
 						slid += '<td><input type="checkbox" id="'+device_id+'c" name="cb'+device_id+'" value="yes" class="dbuttons"></td>';
-					slid += '<td><input type="submit" id="' +device_id 
-						+ '" value= "'+device_name + '" class="dlabels"></td>'
+					slid += '<td><input type="submit" id="' +device_id+ '" value= "'+device_name+ '" class="dlabels"></td>'
 						+ '<td><div id="' +device_id + 'Fd" class="slider slider-dimmer"></div></td>'	
 						+ '<td><input type="text" id="' +device_id+'Fl" class="slidval"></td>'
 						// On/Off buttons
-						+ '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons'+offbut+'"></td>'
-						+ '<td><input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons'+onbut+'"></td>'
+						+ '<td><input type="submit" id="'+device_id+'F0'+'" value="OFF" class="dbuttons off_button'+offbut+'">'
+						+ '    <input type="submit" id="'+device_id+'F1'+'" value="ON" class="dbuttons on_button'+onbut+'"></td>'
 						+ '</tr>'
 						;
 				}
@@ -3387,7 +3454,7 @@ function activate_room(new_room_id, selectable)
 						+ '<td><input type="text" id="' +device_id+'Fl" class="slidval"></td>'
 						// On/Off buttons do not apply for thermostat
 						+ '<td></td>'
-						+ '<td></td>'
+						// + '<td></td>'
 						+ '</tr>'
 						;
 				}
@@ -3841,13 +3908,13 @@ function activate_room(new_room_id, selectable)
 					if (devices[i]['room'] != s_room_id) {		// Find next device in THIS room
 							continue;
 					}
-					// Might have to remove teh old content of the database table first
+					// Might have to remove the old content of the database table first
 					// After all, when removing devices there might be holes in the index table.
 					// send2dbase("delete_device", devices[i]);
 					// Then add the correct values
 					devices[i]['id']="D"+j;
 					console.log( "storing device: id: "+devices[i]['id']+", name: "+devices[i]['name']);
-					send2dbase("store_device", devices[i]);
+// XXX					send2dbase("store_device", devices[i]);
 					
 					j++;
 				}
@@ -5901,16 +5968,19 @@ function activate_setting(sid)
 			skin_help += "Note: Not supported on mobile devices!<br>";
 			skin_help += "Note: Better not choose a files for use on mobile devices ...<br><br>";
 			
-			$(table).append('<tr><td colspan="2"><span>' + skin_help + '</span>');		
-				
+			$(table).append('<tr><td colspan="2"><span>' + skin_help + '</span>');	
+			
+			$(table).append( '<tr><td colspan="2">current skin is: <a class="dlabels">' + settings[4]['val'] + '</a></td></tr><br><br><br>' );
+			
 			var list = [];
 			var str = '<fieldset><label for="load_skin">Select File: </label>'
-						+ '<select id="load_skin" value="styles/classic-blue.css" style="width:200px;" class="dlabels">' ; 
+						+ '<select id="load_skin" value="styles/classic-blue.css" style="width:300px;" class="select-file">'; 
 			var files = {};
 			files = send2set("list_skin","*css");
-			//str += '<option>' + '   ' + '</option>';
+
 			for (var i=0; i<files.length; i++) {
-					str += '<option>' + files[i] + '</option>';
+					if (files[i] == settings[4]['val']) str += '<option selected>' + files[i] + '</option>';
+					else str += '<option>' + files[i] + '</option>';
 			}
 			str += '</select>';
 			str += '</fieldset>';
