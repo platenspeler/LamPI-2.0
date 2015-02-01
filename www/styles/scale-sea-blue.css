@@ -1,7 +1,12 @@
 /* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* ------------------------------------------------------------------------------------ */
 /* ----------------------- SCCS variable definitions -----------------------------------*/
+/* Most important parameters can be set in this area									*/
+/* some, like setting picture buttons etc, and changing color of the add, help buttons	*/
+/* can be set by overriding the default skin _templates									*/
+/* ------------------------------------------------------------------------------------ */
 /* Background color of the wrapper */
 /* The main background color used for this Look and Feel */
 /* Almost Black */
@@ -16,6 +21,7 @@
 /* also text in the content area */
 /* ------------------------------------------------------------------------------------ */
 /* Import the generic template															*/
+/* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
 /* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
@@ -69,8 +75,8 @@ input#lbl {
   padding: 1px;
   /*		margin-top: 3px; */
   border: 1px solid black;
-  background-color: #BBB;
-  background-image: "";
+  background-color: #94B8FF;
+  background-image: url("pic_sea_1.jpg");
 }
 
 /* The header header section defined */
@@ -85,7 +91,7 @@ input#lbl {
   margin-top: 0px;
   border: 1px solid black;
   text-align: center;
-  background-color: #AAA;
+  background-color: "";
 }
 
 #gui_header_controls {
@@ -120,7 +126,7 @@ input#lbl {
   margin-top: 5px;
   border: 1px solid black;
   text-align: center;
-  background-color: #BBB;
+  background-color: "";
   color: #222;
   overflow: hidden;
 }
@@ -137,7 +143,7 @@ input#lbl {
   /*		height: 445px; */
   border: 1px solid black;
   text-align: center;
-  background-color: #AAA;
+  background-color: "";
   color: #222;
   vertical-align: top;
 }
@@ -155,7 +161,7 @@ input#lbl {
   border: 1px solid black;
   text-align: center;
   font-size: 14px;
-  background-color: #AAA;
+  background-color: "";
   color: #222;
 }
 
@@ -405,29 +411,29 @@ input#lbl {
 
 .devrow {
   /* device row */
-  background-color: #AAA;
+  background-color: #B4CDFF;
 }
 
 .devrow:nth-child(odd) {
-  background-color: #888;
+  background-color: #94B8FF;
 }
 
 /* This is the dimmer object consisting of dlabel, dbutton */
 .dimrow {
-  background-color: #AAA;
+  background-color: #B4CDFF;
 }
 
 .dimrow:nth-child(odd) {
-  background-color: #888;
+  background-color: #94B8FF;
 }
 
 /* A switch element, so just ON/OFF button */
 .switch {
-  background-color: #AAA;
+  background-color: #B4CDFF;
 }
 
 .switch:nth-child(odd) {
-  background-color: #888;
+  background-color: #94B8FF;
 }
 
 /* Scene definitions */
@@ -637,4 +643,14 @@ input#lbl {
   margin-bottom: 5px;
   color: black;
   background-color: #eee;
+}
+
+/* ------------------------------------------------------------------------------------	*/
+/* OVERRIDE AREA 																		*/
+/* If you want to change template settings for this specific skin you can do this here	*/
+/* ------------------------------------------------------------------------------------	*/
+/* Make sure that the timer screen has a uni background */
+#gui_timers {
+  background-color: #94B8FF;
+  background-image: '';
 }

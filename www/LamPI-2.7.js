@@ -15,6 +15,7 @@
 // Version 2.4, Oct 15, 2014 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 // Version 2.5, Jan 15, 2015 More .css work, Z-Wave daemon on the Z-Wave hub to read switch status
 // Version 2.6, Jan 25, 2015 new .css template design, several bug fixes in LamPI-x.x.js
+// Version 2.7, Jan 31, 2015 scalable skins, localStorage for skin storage
 //
 // This is the code to animate the front-end of the application. The main screen is divided in 3 regions:
 //
@@ -91,7 +92,7 @@ var murl='/';											// For Phonegap and Ajax usage, build a url. DO NOT CHAN
 // ----------------------------------------------------------------------------
 // 
 //
-var skin = "";
+var skin = "";											// settings[4]['val'] or localStorage get ('skin')
 var debug = "1";										// debug level. Higher values >0 means more debug
 var persist = "1";										// Set default to relaxed
 var mysql = "1";										// Default is using mySQL
@@ -1682,7 +1683,7 @@ function start_LAMP(){
 					
 					// Change a timer value in the scene screen
 			case "Ft":
-	// XXX MMM In LamPI, Scene id can be higher than 9, thus 2 chars (make function read_int(s,i) )
+	// XXX In LamPI, Scene id can be higher than 9, thus 2 chars (make function read_int(s,i) )
 						var val= $(e.target).val();
 						//alert("scene current time val is: "+val);
 						
@@ -1819,7 +1820,6 @@ function start_LAMP(){
 			var ff = ev.data.substr(1);
 			//alert("Websocket:: Received a Message: "+ff);
 			if (healthcount < 10) healthcount++;
-			
 			
 			var rcv = JSON.parse(ev.data);		//PHP sends Json data
 			if (debug >= 2) console.log("Websocket:: message action: "+rcv.action);
@@ -2338,11 +2338,21 @@ function init() {
 	}
 	mysql = settings[2]['val'];
 	persist = settings[3]['val'];
+	
 	// XXX Why we would this only for non-jqmobile use is not clear.
 	if (jqmobile != 1) { 
-		skin = settings[4]['val'];
+		if(typeof(Storage)!=="undefined") {
+  			// Code for localStorage/sessionStorage.
+			skin = localStorage.getItem('skin');				// Skin Setting
+			console.log("init:: localStorage, skin: "+skin);
+		}
+		else {
+			console.log("init:: No localStorage support for skin");
+		}
+		if (skin == null) skin = settings[4]['val'];
 		$("link[href^='styles']").attr("href", skin);
 	}
+
 	use_weather = settings[7]['val'];						// Will we display weather info and buttons
 	use_energy = settings[8]['val'];						// Will we use energy display, only when P1-sensor is working
 	
@@ -2350,7 +2360,7 @@ function init() {
 	setInterval( function() { 
 			send2daemon("ping","","") ;
 			if (healthcount > 0) healthcount--;
-			console.log("healthcount:: "+healthcount);
+			if (debug>=2) console.log("healthcount:: "+healthcount);
 			$( "#health-slider" ).val( healthcount );
 			//$( "#health-slider" ).slider("refresh");
 			$( "#health-slider" ).slider("option", "value", healthcount );
@@ -2393,10 +2403,11 @@ function init() {
 	}
 
 	devices.sort(idsort);
-	for (var i=0; i< devices.length; i++) {
-		console.log("devices i: "+i+", id: "+devices[i]['id']+", name: "+devices[i]['name']);
+	if (debug >= 2) {
+		for (var i=0; i< devices.length; i++) {
+			console.log("devices i: "+i+", id: "+devices[i]['id']+", name: "+devices[i]['name']);
+		}
 	}
-
 	init_rooms(s_room_id);										// Initial startup config
 	init_menu(s_setting_id);
 }		
@@ -5942,7 +5953,7 @@ function activate_setting(sid)
 			
 		break;
 		
-		// SKIN Since 1.4 we use it for skin/style selection
+		// SKIN Since 1.4 we use it for skin/style selection MMM
 		// 
 		case "4":
 			$( "#gui_content" ).empty();
@@ -6004,12 +6015,36 @@ function activate_setting(sid)
 				switch ( skin_val ) {
 						
 					case "load":
-						var skin_file = $( "#load_skin").val();
+						var skin_file = $( "#load_skin" ).val();
 						// Trick!! only replace hrefs that start with our styles directory!!!
 						$("link[href^='styles']").attr("href", skin_file);
-						settings[4]['val']=skin_file;
+						var old_val = settings[4]['val'];
+						settings[4]['val'] = skin_file;
 						//alert("Settings 4: "+ settings[4]['val']);
-						send2dbase("store_setting", settings[4]);
+						myConfirm('Do you want to set this Skin file as your default skin for users that start the application? ' +
+									  'Otherwise the existing default skin '+old_val+' will be used. ' +
+									  'Please note that if you press cancel this skin will still be used in your current browser sesssion until you load another skin',
+							// Confirm
+							function () {
+								// Update the database
+								message('Skipping');
+								send2dbase("store_setting", settings[4]);
+  							}, 
+							// Cancel	
+							function () {
+								message("Not updated");
+								return(0);
+  							},
+  							'Set Default?'
+						);
+						if(typeof(Storage)!=="undefined") {
+  							// Code for localStorage/sessionStorage.
+							// alert("Support for localstorage");
+							localStorage.setItem('skin', settings[4]['val']);				// Skin setting
+							if (debug>=1) {
+								console.log("Set localstorage skin: "+settings[4]['val']);
+							}
+ 						}
 					break;
 						
 					default:
@@ -7061,7 +7096,7 @@ function send2dbase(dbase_cmd, dbase_arg)
    		url: murl + 'frontend_sql.php',				   
 		type: "POST",
     	dataType: 'json',								// TO receive json ...
-		//contentType: 'application/json; charset=UTF-8',				// MMM To SEND(!) json???
+		//contentType: 'application/json; charset=UTF-8',				//  To SEND(!) json???
 		data: {
 			action: dbase_cmd,
 			message: dbase_arg							// Can be several command types !!
