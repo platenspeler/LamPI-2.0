@@ -70,8 +70,21 @@
 <p>Let's analyze the file. The first section contains variable settings that will be used later in the imported <code><em>_scale-menu-right-template</em></code> files. Please note that variables start with a &quot;$&quot; sign and every line needs to be terminated with a semicolon. </p>
 <p>The second section contains one or more files which will be imported at teh time of compilation at the exact location where the @import directive is. So if you want you could replace the @import line with all lines of the <code><em>_scale-menu-right-template</em></code>.css file and you would get the same result at compile time. Please note that in the imported file we will use the variables set above instead of real values. This way we can have one template file being used by several .scss skins.</p>
 <p>The third and last section is optional and will allow to overwrite (some) settings already made in the template, specific to this skin. In this case we would change the height of the health from 4px which is standard in the template to 8px, and we would change the color of the slider/meter</p>
-<h2>scss file processing</h2>
-<p>The free tool 'koala' is what I use to compile the .scss files in the scss-styles directory into .css files in the styles directory.</p>
+<h2>Koala, scss file processing</h2>
+<p>The free tool 'koala' is what I use to compile the .scss files in the scss-styles directory into .css files in the styles directory. Koala is intuitive and can be used in minutes. It's settings (especially configuring the standard output directory) and a little more difficult to master.</p>
+<p><img src="koala_screen_1_min.jpg" width="595" height="368"></p>
+<p>The picture above shows what you see if you refresh the tool (it will then look for scss files and include them in the list) and then select your .scss file. On the right column I always choose auto compile and the expanded output style. In the mid area it is shown that the output for the .scss files will be writte to the styles directory, please take notice of this as the default behaviour of Koala is to put the .css output file in the source directory,</p>
+<h2>Override Examples</h2>
+<p>Overrides only make sense if you need to make a small number of adjustments to an otherwise standard template. If you like to make several changes, maybe consider to make another template. I found that overrides make most sense when you use background pictures for certain sections on the screen and without modifying the .css definitions the text would not be readible.</p>
+<p><em><strong>/* Make sure that the timer screen has a uni background */<br>
+  #gui_timers {<br>
+background-color:$wrapper_bg_color;<br>
+background-image:'';<br>
+}</strong></em></p>
+<p>The example above would add a solid (single color) background to the content area when the timer screen is selected. As a result all timer text and buttons can be read much better.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 <p>&nbsp;</p>
 </body>
 </html>

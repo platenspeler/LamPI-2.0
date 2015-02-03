@@ -447,22 +447,22 @@ input#lbl {
 
 /* A row of scene */
 .scene {
-  background-color: #CCC;
+  background-color: #B4CDFF;
   color: #111;
 }
 
 .scene:nth-child(odd) {
-  background-color: #AAA;
+  background-color: #94B8FF;
 }
 
 /* Handset Definitions */
 /* A row of handset */
 .handset {
-  background-color: #CCC;
+  background-color: #B4CDFF;
 }
 
 .handset:nth-child(odd) {
-  background-color: #AAA;
+  background-color: #94B8FF;
 }
 
 /* Buttons for adding, removing and help */
@@ -527,7 +527,7 @@ input#lbl {
 }
 
 .ui_dialog {
-  background-color: #DDD;
+  background-color: #94B8FF;
   color: #222;
 }
 
@@ -643,6 +643,42 @@ input#lbl {
   margin-bottom: 5px;
   color: black;
   background-color: #eee;
+}
+
+/* Forms */
+.askform .ui-dialog-titlebar {
+  background: #94B8FF;
+}
+
+.askform .ui-widget-content {
+  background: #CCC;
+  color: #222;
+}
+
+.askform .ui_dialog {
+  background-color: #94B8FF;
+  color: #222;
+}
+
+/* ButtonSets */
+.buttonset .ui-btn-active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset .ui-radio .ui-radio-on {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:checked {
+  background-color: #111;
+  color: yellow;
 }
 
 /* ------------------------------------------------------------------------------------	*/

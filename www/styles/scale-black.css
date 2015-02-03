@@ -644,6 +644,42 @@ input#lbl {
   background-color: #eee;
 }
 
+/* Forms */
+.askform .ui-dialog-titlebar {
+  background: #222;
+}
+
+.askform .ui-widget-content {
+  background: #333;
+  color: #eee;
+}
+
+.askform .ui_dialog {
+  background-color: #222;
+  color: #eee;
+}
+
+/* ButtonSets */
+.buttonset .ui-btn-active {
+  background-color: #000;
+  color: yellow;
+}
+
+.buttonset .ui-radio .ui-radio-on {
+  background-color: #000;
+  color: yellow;
+}
+
+.buttonset:active {
+  background-color: #000;
+  color: yellow;
+}
+
+.buttonset:checked {
+  background-color: #000;
+  color: yellow;
+}
+
 /* ------------------------------------------------------------------------------------	*/
 /* OVERRIDE AREA 																		*/
 /* If you want to change template settings for this specific skin you can do this here	*/

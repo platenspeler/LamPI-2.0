@@ -2451,6 +2451,7 @@ function myAlert(msg, title) {
     width: 'auto',
     title: title || 'Confirm',
     minHeight: 75,
+	dialogClass: 'askform',
     buttons: {
       OK: function () {
         //if (typeof (okFunc) == 'function') {
@@ -2474,6 +2475,7 @@ function myConfirm(dialogText, okFunc, cancelFunc, dialogTitle) {
     width: 'auto',
     title: dialogTitle || 'Confirm',
     minHeight: 75,
+	dialogClass: 'askform',
     buttons: {
       OK: function () {
         if (typeof (okFunc) == 'function') {
@@ -2513,6 +2515,7 @@ function helpForm(dialogTitle, dialogText, moreFunc, doneFunc ) {
         	theme : "a",
         	overlayTheme : "a",
 			maxWidth : "400px",
+			dialogClass: 'askform',
         	transition : "pop"
 		}).bind("popupafterclose", function() {
 			//remove the popup when closing
@@ -2684,6 +2687,7 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 			overlayTheme : "a",
 			title: dialogTitle || 'Confirm',
 			maxWidth : "500px",
+			dialogClass: 'askform',
 			transition : "pop"
 		}).bind("popupafterclose", function() {
 			//remove the popup when closing
@@ -2742,6 +2746,7 @@ function askForm(dialogText, okFunc, cancelFunc, dialogTitle) {
 			width: 'auto',
 			title: dialogTitle || 'Confirm',
 			minHeight: 120,
+			dialogClass: 'askform',
 			buttons: {
 				OK: function () {
 					//var bValid = true;
@@ -5743,7 +5748,7 @@ function activate_setting(sid)
 			$('#d'+ debug).attr('checked',true).button('refresh');
 			$('#choice input[type=radio]').change(function() {
 				debug = this.value;
-				// XXX Ooops, should not update bsed on index but on id value
+				// XXX Ooops, should not update based on index but on id value
 				settings[0]['val'] = debug;
 				if (persist>0) {
 						// Write the settings to database
@@ -5963,6 +5968,10 @@ function activate_setting(sid)
 			html_msg = '<table border="0">';
 			$( "#gui_skin" ).append( html_msg );
 			
+			if(typeof(Storage)!=="undefined") {
+  				 var effe = localStorage.getItem('skin');				// Skin setting
+ 			}
+			
 			var table = $( "#gui_skin" ).children();		// to add to the table tree in DOM
 					
 			var but =  ''	
@@ -5981,7 +5990,7 @@ function activate_setting(sid)
 			
 			$(table).append('<tr><td colspan="2"><span>' + skin_help + '</span>');	
 			
-			$(table).append( '<tr><td colspan="2">current skin is: <a class="dlabels">' + settings[4]['val'] + '</a></td></tr><br><br><br>' );
+			$(table).append( '<tr><td colspan="2">current skin is: <a class="dlabels">' + skin + '</a></td></tr><br><br><br>' );
 			
 			var list = [];
 			var str = '<fieldset><label for="load_skin">Select File: </label>'
@@ -6015,19 +6024,17 @@ function activate_setting(sid)
 				switch ( skin_val ) {
 						
 					case "load":
-						var skin_file = $( "#load_skin" ).val();
+						skin = $( "#load_skin" ).val();
 						// Trick!! only replace hrefs that start with our styles directory!!!
-						$("link[href^='styles']").attr("href", skin_file);
-						var old_val = settings[4]['val'];
-						settings[4]['val'] = skin_file;
-						//alert("Settings 4: "+ settings[4]['val']);
-						myConfirm('Do you want to set this Skin file as your default skin for users that start the application? ' +
-									  'Otherwise the existing default skin '+old_val+' will be used. ' +
+						$("link[href^='styles']").attr("href", skin);
+						myConfirm('Do you want to set the '+skin+' Skin file as your default skin for users that start the application? ' +
+									  'Otherwise the existing default skin '+settings[4]['val']+' will be used. ' +
 									  'Please note that if you press cancel this skin will still be used in your current browser sesssion until you load another skin',
 							// Confirm
 							function () {
 								// Update the database
-								message('Skipping');
+								message('updating the database');
+								settings[4]['val'] = skin;
 								send2dbase("store_setting", settings[4]);
   							}, 
 							// Cancel	
@@ -6040,11 +6047,12 @@ function activate_setting(sid)
 						if(typeof(Storage)!=="undefined") {
   							// Code for localStorage/sessionStorage.
 							// alert("Support for localstorage");
-							localStorage.setItem('skin', settings[4]['val']);				// Skin setting
+							localStorage.setItem('skin', skin);				// Skin setting
 							if (debug>=1) {
-								console.log("Set localstorage skin: "+settings[4]['val']);
+								console.log("Set localstorage skin: "+skin);
 							}
  						}
+						activate_setting(4);
 					break;
 						
 					default:

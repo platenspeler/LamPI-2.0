@@ -1,6 +1,12 @@
-/* SCSS Document for making generic LamPI .css files */
-/* Author: M. Westenberg (mw12554@hotmail.com) */
+/* ------------------------------------------------------------------------------------ */
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* ------------------------------------------------------------------------------------ */
 /* ----------------------- SCCS variable definitions -----------------------------------*/
+/* Most important parameters can be set in this area									*/
+/* some, like setting picture buttons etc, and changing color of the add, help buttons	*/
+/* can be set by overriding the default skin _templates									*/
+/* ------------------------------------------------------------------------------------ */
 /* No background color used in image background */
 /* When a button is active it has this color */
 /* Also used in normal body text */
@@ -10,6 +16,7 @@
 /* Color of the thermo handler */
 /* ------------------------------------------------------------------------------------ */
 /* Import the generic template															*/
+/* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
 /* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
@@ -440,7 +447,7 @@ input#lbl {
 }
 
 .scene:nth-child(odd) {
-  background-color: #AD820C;
+  background-color: #bab712;
 }
 
 /* Handset Definitions */
@@ -450,7 +457,7 @@ input#lbl {
 }
 
 .handset:nth-child(odd) {
-  background-color: #AD820C;
+  background-color: #bab712;
 }
 
 /* Buttons for adding, removing and help */
@@ -631,4 +638,50 @@ input#lbl {
   margin-bottom: 5px;
   color: #F7E3AB;
   background-color: #957a0f;
+}
+
+/* Forms */
+.askform .ui-dialog-titlebar {
+  background: #ddd913;
+}
+
+.askform .ui-widget-content {
+  background: #ddd913;
+  color: #111111;
+}
+
+.askform .ui_dialog {
+  background-color: #997309;
+  color: #111111;
+}
+
+/* ButtonSets */
+.buttonset .ui-btn-active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset .ui-radio .ui-radio-on {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:checked {
+  background-color: #111;
+  color: yellow;
+}
+
+/* ------------------------------------------------------------------------------------	*/
+/* OVERRIDE AREA 																		*/
+/* If you want to change template settings for this specific skin you can do this here	*/
+/* ------------------------------------------------------------------------------------	*/
+/* Make sure that the timer screen has a uni background */
+#gui_timers {
+  background-color: #ddd913;
+  background-image: '';
 }

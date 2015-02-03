@@ -420,21 +420,21 @@
 	
 	/* A row of scene */
 	.scene {
-		background-color:$main_bg_color;
+		background-color:$row_bg_color;
 		color:$button_fg_color;
 	}	
 	.scene:nth-child(odd) {
-		background-color:$main_nth_color;
+		background-color:$row_nth_color;
 	}
 
 /* Handset Definitions */
 
 	/* A row of handset */
 	.handset {
-		background-color:$main_bg_color;	
+		background-color:$row_bg_color;	
 	}
 	.handset:nth-child(odd) {
-		background-color:$main_nth_color;
+		background-color:$row_nth_color;
 	}
 
 
@@ -605,4 +605,39 @@
 		margin-bottom: 5px;
 		color: $dlabel_fg_color;
 		background-color:$dlabel_bg_color;
+	}
+	
+/* Forms */
+
+	.askform {
+	}
+	.askform .ui-dialog-titlebar {
+          background:$wrapper_bg_color;
+    }
+	.askform .ui-widget-content {
+		background:$main_bg_color;
+		color:$dialog_fg_color;
+	}
+	.askform .ui_dialog {
+		background-color:$dialog_bg_color;
+		color:$dialog_fg_color;
+	}
+	
+/* ButtonSets */
+
+	.buttonset .ui-btn-active {
+		background-color:$button_active_bg_color; 
+		color:$button_active_fg_color;
+	}
+	.buttonset .ui-radio .ui-radio-on {
+		background-color:$button_active_bg_color; 
+		color:$button_active_fg_color;
+	}
+	.buttonset:active {
+		background-color:$button_active_bg_color; 
+		color:$button_active_fg_color;
+	}
+	.buttonset:checked {
+		background-color:$button_active_bg_color; 
+		color:$button_active_fg_color;
 	}

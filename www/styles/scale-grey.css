@@ -1,7 +1,9 @@
 /* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* ------------------------------------------------------------------------------------ */
 /* ----------------------- SCCS variable definitions -----------------------------------*/
+/* ------------------------------------------------------------------------------------ */
 /* Background color of the wrapper */
 /* The main background color used for this Look and Feel */
 /* Almost Black */
@@ -16,6 +18,7 @@
 /* also text in the content area */
 /* ------------------------------------------------------------------------------------ */
 /* Import the generic template															*/
+/* ------------------------------------------------------------------------------------ */
 /* SCSS Document for making generic LamPI .css files 									*/
 /* Author: M. Westenberg (mw12554@hotmail.com) 											*/
 /* This file contains a template for (most) if not all "classic_xxxxx.css" files		*/
@@ -441,22 +444,22 @@ input#lbl {
 
 /* A row of scene */
 .scene {
-  background-color: #CCC;
+  background-color: #AAA;
   color: #111;
 }
 
 .scene:nth-child(odd) {
-  background-color: #AAA;
+  background-color: #888;
 }
 
 /* Handset Definitions */
 /* A row of handset */
 .handset {
-  background-color: #CCC;
+  background-color: #AAA;
 }
 
 .handset:nth-child(odd) {
-  background-color: #AAA;
+  background-color: #888;
 }
 
 /* Buttons for adding, removing and help */
@@ -638,3 +641,44 @@ input#lbl {
   color: black;
   background-color: #eee;
 }
+
+/* Forms */
+.askform .ui-dialog-titlebar {
+  background: #BBB;
+}
+
+.askform .ui-widget-content {
+  background: #CCC;
+  color: #222;
+}
+
+.askform .ui_dialog {
+  background-color: #DDD;
+  color: #222;
+}
+
+/* ButtonSets */
+.buttonset .ui-btn-active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset .ui-radio .ui-radio-on {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:active {
+  background-color: #111;
+  color: yellow;
+}
+
+.buttonset:checked {
+  background-color: #111;
+  color: yellow;
+}
+
+/* ------------------------------------------------------------------------------------	*/
+/* OVERRIDE AREA 																		*/
+/* If you want to change template settings for this specific skin you can do this here	*/
+/* ------------------------------------------------------------------------------------	*/

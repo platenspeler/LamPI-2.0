@@ -1,7 +1,16 @@
-/* SCSS Document for making generic LamPI .css files */
-/* Author: M. Westenberg (mw12554@hotmail.com) */
+@charset "utf-8";
+
+/* ------------------------------------------------------------------------------------ */
+/* SCSS Document for making generic LamPI .css files 									*/
+/* Author: M. Westenberg (mw12554@hotmail.com) 											*/
+/* ------------------------------------------------------------------------------------ */
 
 /* ----------------------- SCCS variable definitions -----------------------------------*/
+/* Most important parameters can be set in this area									*/
+/* some, like setting picture buttons etc, and changing color of the add, help buttons	*/
+/* can be set by overriding the default skin _templates									*/
+/* ------------------------------------------------------------------------------------ */
+
 $wrapper_bg_color: #ddd913;
 $wrapper_bg_picture: url("pic_wood_2.jpg");
 
@@ -40,5 +49,17 @@ $thermo_handle: #ef2929;			/* Color of the thermo handler */
 
 /* ------------------------------------------------------------------------------------ */
 /* Import the generic template															*/
+/* ------------------------------------------------------------------------------------ */
 
 @import '_scale-menu-right-template';
+
+/* ------------------------------------------------------------------------------------	*/
+/* OVERRIDE AREA 																		*/
+/* If you want to change template settings for this specific skin you can do this here	*/
+/* ------------------------------------------------------------------------------------	*/
+
+/* Make sure that the timer screen has a uni background */
+#gui_timers {
+		background-color:$wrapper_bg_color;
+		background-image:'';
+}
