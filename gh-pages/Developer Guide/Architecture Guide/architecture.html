@@ -127,15 +127,15 @@ The startup html file calls LamPI-x.x.min.js which will perform the following in
 </ul>
 <p>The source code for the transmitter programs reside in dfferent sub-directories of ~/receivers: Some C++ code in the &quot;lights&quot; directory was ported from an existing Arduino library and contains support for multiple transmitters with same prototype definitions in C++. Some other code such as for Kopou, WT440H and Livolo was developed.</p>
 <h2>Receivers; LamPI-receiver</h2>
-<p>The way that the sniffer function works needs some explaining.</p>
+<p>The LamPI receiver is used to receive and recognize 440MHz pulses coming from remote sensors (such as temperature readers) and/or remote control units from klikaanklikuit or others. The way that the sniffer function works needs some explaining.</p>
 <h4>lampi_interrupt  (sniffer.c)</h4>
 <p>Core for this function is the handling of incoming pulses. Incoming pulses cause the pin of wiringPi library to change from low to high or vice-versa. Therefore we built an interrupt handler that is triggered by every change in the pin. As soon as an interrupt arrives, the function is executed and it does basically the following things:</p>
 <ul>
   <li>Store the time (in uSecs) that the function is called. </li>
-  <li>Compare the time with the time of the previous interrupt call and the difference is our pulse time. </li>
+  <li>Compare the time with the time of the previous interrupt call and the difference is then our calculated pulse time. </li>
   <li>The pulse time is stored in the global pulse-array, which is sufficiently large to store pulses for some time</li>
   <li>The global variable p_index is a pointer that keeps track of the position of the last pulse in the array</li>
-  <li>Note: The array is made a circular buffer. As soon as p_index becomes larger than the MAX_DATA_SIZE it is make 0 again.</li>
+  <li>Note: The array is made a circular buffer. As soon as p_index becomes larger than the MAX_DATA_SIZE it is made/reset 0 again.</li>
   <li>where the interrupt function is writing and the main program loop is reading (a little later). The global reader pointer is r_index.</li>
   <li>If the write pointer p_index risks to overwrite the r_index position (so we write far more than we read) we set a special variable stop_ints that will stop further writing to the array until we read up in the pulse_array buffer</li>
 </ul>
@@ -150,7 +150,8 @@ The startup html file calls LamPI-x.x.min.js which will perform the following in
 <p>The Z-Wavy messaging format is described on the separate Z-Wave page. Reason is that this is not so much a programming interface but communication takes place as a URL string that is executed by &quot;curl&quot; in the LamPI-daemon. At the moment the communication is therefore initiated by the LamPI-daemon only.</p>
 <p>The Z-Way software contains Javascript library functions to build actions and initiate communication from the Razberry device but this is not implemented (yet), and therefore for example administrative functions for adding Z-Wave devices must be done using the Razberry interface on that machine itself.</p>
 <p><strong><em>http://&lt;raspberry_ip_address&gt;:8083</em></strong></p>
-<p>Then choose the traditional blue expert interface and then &quot;network&quot; to setup your new Z-Wave device.</p>
+<p>Then choose the traditional blue expert interface and then &quot;network&quot; to setup your new Z-Wave device. The id that is given to the Z-Wave device must be used in the gateway and in the LamPI-daemon as the unit id to address the coreect device. So make sure that the dorrect id/unit values are present in the database (or in the 'database.cfg' file when starting the daemon the first time with the script command: </p>
+<p><em><strong>cd ~/scripts; ./PI-run -i</strong></em></p>
 <p></p>
 <p>&nbsp;</p>
 <h1><a name="android"></a>Android Clients</h1>
