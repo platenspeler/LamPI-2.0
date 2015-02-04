@@ -16,7 +16,7 @@ Please start reading on that page when you finished reading this page.</p>
 <p>LamPI is a Home Automation project for switching equipment in your house over 434 MHz transmitters/receivers on a RaspberryPI. As of release 2.0 LamPI offers (initial) support for Z-Wave devices. Support for Z-Wave 868MHz devices is implemented with a separate Raspberry bridge computer using the Razberry board. Please read more on Z-Wave support &lt;<a href="Zwave/RazBerry/zwave_gateway.html"><strong>Here</strong></a>&gt;</p>
 <h2>Control your lights and switches</h2>
 <p>This is where I initially developed LamPI for. It will control your light switches and your dimmers and your other switches as well (if you want it can switch your stereo or microwave too). </p>
-<p><img src="UserGuide/screenshots/room_screen_grey.JPG" width="962" height="637" /></p>
+<p><img src="UserGuide/screenshots/room_screen_grey.JPG" width="899" height="582" /></p>
 <p>The screen above is one of the main screens of LamPI, and should give you a taste of what LamPI is about. As you see, the GUI interface is designed to operate (and manage) all tasks for the connected devices and minimize the need for manual changing of configuration files etc. let alone making configuration changes at compile time.</p>
 <h2>Weather Sensors</h2>
 <p>Recently, support for weather sensors was added to LamPI. In principle the LamPI-receiver process can be taught to detect a wide variety of temperature, humidity, rain and wind sensors. For the weather gauge widgets I used existing libraries such as the &quot;steel&quot; library of Gerrit Grunwald and Mark Crossley. If the configuration file contains definitions for supported weather sensors, then the menu will automatically display an option to view/select weather info.</p>
@@ -29,16 +29,18 @@ Please start reading on that page when you finished reading this page.</p>
 <p>The goal of my project was to provide an easy interface to the family to control the lights in our house. We had klikaanklikuit.nl switches and we have an iPad (and some Android phones and Laptops) and want to control our light switches with an easy-to-use GUI interface. This meant that I needed at least 2 components: A component that would control transmitter and receiver and handle low-level device commands, and a GUI in JavaScript/jQuery that would handle the human interaction. In order to store configuration information and for timing commands and unattended use, we would also need a daemon process serving in the background as well as a database (written in MySQL) to store configuration information.</p>
 <p>Although I would expect that you like to use the complete package, it is quite good possible to only use the RaspberryPI transmitter and receiver shell executables (see below)</p>
 <p>&lt;<a href="DeveloperGuide/ArchitectureGuide/architecture.html">More information is available HERE</a>&gt;</p>
-<h1>LamPI GUI Functions</h1>
+<h1>LamPI User Manual</h1>
 <p>LamPI contains 6 main screens: Rooms, Scenes, Timers, Handsets, Weather and Config. For every screen I have assembled a few pages that contain instructions on common tasks you will perform. </p>
 <p>The documentation for the LamPI functions can be found on this site on the following pages.</p>
 <ul>
-  <li><a href="Installation_Manual/setup.html">Initial Setup</a></li>
+  <li><a href="Installation_Manual/setup.html">Initial LamPI Setup</a></li>
+  <li><a href="UserGuide/getting_started.html">Getting Started with the GUI</a></li>
   <li><a href="UserGuide/rooms.html">The Rooms Screen</a></li>
   <li><a href="UserGuide/scenes.html">The Scenes Screen</a></li>
   <li><a href="UserGuide/timers.html">The Timers Screen</a></li>
   <li><a href="UserGuide/handsets.html">The Handsets Screen</a></li>
   <li><a href="UserGuide/weather.html">The Weather screen (optional, depends whether you have weather sensors)</a></li>
+  <li><a href="UserGuide/energy.html">Energy Sensors Screen</a></li>
   <li><a href="UserGuide/config.html">The Config Screen</a></li>
 </ul>
 <p>&nbsp;</p>
@@ -114,6 +116,7 @@ Please start reading on that page when you finished reading this page.</p>
 <h1><a name="planned_functions"></a>Planned Functions</h1>
 <p>Of course I'm always thinking about new functions, as long as I do not have to put the current system up-side-down too much. After all, I do have other day-time work to do and it has to make sense for me to spend additional time. Therefore, you are welcome to ask for new functions, but if it will cost me days to implement them and I will not benefit from them in any way I will probably give priority to other changes.</p>
 <ul>
+  <li>Receive alarms from the LamPI-gate Z-Wave gateway and deal with them. At teh moment the gateway reports back changed device values to LamPI but we need to handle alarms and temperature sensors as well.</li>
   <li>Add support for Android phones. This is in beta at the moment and I use PhoneGap technology of Adobe to make such version. All Javascript/jQueryMobile code is already in the LamPI-x.y.js file, the index.html file will determine what libraries to load. I will probably publish a separate branch for Android with the same version number as its web equivalent.</li>
   <li>Add full support for Z-Wave or Zigbee. As the LamPI-daemon is quite universal in its setup adding transmitter/receivers for these technologies is relatively easy. At the moment ZWave support is implemented through a Z-Way gateway running on a dedicated RaspberryPI</li>
   <li>I like (at some time) be integrating my front-end with the new standards for Home Automation as soon as stacks become available for the Raspberry.</li>
@@ -123,15 +126,15 @@ Please start reading on that page when you finished reading this page.</p>
 <p>Both architectual and GUI related</p>
 <ul>
   <li>The scale- sccs templates should work on screens with different resolutions. However, need to have dynamic changes between sccs look-and-feel sets once the screen gets too narrow and we know we work with a mobile phone screen.</li>
-  <li>Sortable (shuffeling rows in room or scene view) works OK as far as GUI is concerned, but the background sync to mySql does not. Sortable is not 100% reliable.</li>
+  <li>Sortable (shuffling rows in room or scene view) works OK as far as GUI is concerned, but the background sync to mySql does not. Sortable is not 100% reliable.</li>
   <li>Sortable does not work for jqmobile yet, only for normal browser. Not sue if sorting rows makes sense for mobiles</li>
   <li>If possible we shoud merge jqmobile and jqueryUI so that all handling of screen buttons etc is uniform between the 2. Since mobile devices get a larger market share by the day, LamPI may shift to primary support for jqmobile in the future</li>
   <li>The current way of sending scene commands in LamPIxx.js is implemented as an ajax function message_device(&quot;scene&quot;,&quot;commandxxx). For ICS-1000 this is the only possibility, but for Raspberry we have implemented this function with webservices instead. As I stopped to use the ICS-1000 for some time ago, we must cleanup the code.</li>
   <li>As the backend server is running in batch, but not as a backend web server, we cannot ask the webserver to give us details about the IP address and many more $SERVER related parameters. This means that the client must know upfront to which server IP to connect. We can perhaps implement a UDP server that listens to client broadcasts coming in and responding with the IP address of the server. For GUI/Browser clients this not an issue since we must have an url to connect to anyway and for the moment we could assume that the webserver is running the daemon as well. However for commuication between sensors and the daemon it is necessary</li>
-  <li>The configuraton of the backend through the backend.php executable must be protected so that only local clients can change or load the configuration. Leaving this open for remote devices as well could be a security issue.</li>
   <li>Adding new handsets at this moment still requires manual editing of the database.cfg file. I like to add more options to the OPTIONS screen for setup of new switch types and handset types, so that adding such switches and handsets at runtime is a lot easier.</li>
   <li>LamPI-gate.php, the gateway for controlling z-wave devices is written in PHP. It should change to javascript/node.js pretty soon for more reliability and especially for less overhead.</li>
   <li>Z-Wave alarms and sensors should be integrated into LamPI.</li>
+  <li>Username and Password combinations shoudl be stored in the MySQL database securely</li>
 </ul>
 <p>January 25, 2015</p>
 </body>

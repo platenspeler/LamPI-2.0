@@ -35,10 +35,10 @@
 <ul>
   <li>The web GUI of LamPI runs on every webserver in your network as it is implemented in Javascript/jQuery. That means that if you install it on a webserver in your network you can access the GUI User Interface from every browser in your network (and soon also from the internet). By default, the webserver runs fine on the RaspberryPI (you need the Raspberry anyway).<br>
     <br>
-    <strong>The current web front-end works VERY well on iPad, and can be installed as an app...</strong><br>
+    <strong>The current web front-end works VERY well on iPad of Android Tablets, and can be installed as an app on the desktop...</strong><br>
     <br>
   </li>
-  <li>If you want, you can setup the MySQL database on another server (that is what I did), but this is optional. Setting of the database server is in backend_config.php<br>
+  <li>If you want, you can setup the MySQL database on another server (that is what I did), but this is optional. Setting of the database server is in backend_cfg.php<br>
     <br>
   </li>
   <li>The low-level device functions for transmitter and receiver, will at the moment only run on the RaspberryPI, although making an Arduino version is probably not much work. The executables are all found in the ~/exe directory. The source code for these functions can be found in the ~/receivers directory.<br>
@@ -50,19 +50,30 @@
 <h1>LamPI Installation</h1>
 <p>Of course we all like to use our RaspberryPI for multiple tasks. Reality is: If you need to rely on the Raspberry + LamPI combo to switch your lighting and other devices reliably, then you must seriously consider reserving a RaspberryPI device for JUST DOING THAT and nothing else.</p>
 <p>Therefore, I decided to make the configuration and installation locations for LamPI really simple: Put everything in the LamPI homedirectory or one of its subdirectories. Of course it is quite good possible to use other locations, but I must warn you, unless you are an experienced user it will be difficult to get everything up and running so why not use the pi homedirectory and its subdirectories ~/www, ~/scripts, ~/exe and ~/receivers?</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<h1>LamPI Configuration (first time run)</h1>
-<p>xxxxx</p>
-<h1>LamPI Configuration </h1>
+<h1>Starting the System</h1>
+<p>This short chapter describes the basic and minimal steps to take to get LamPI up and running. </p>
+<ul>
+  <li>Install all required packages and system files on you Raspberry</li>
+  <li>Install the minimal hardware for LamPI: A 433MHz transmitter if you only like to control your lights and a 433MHz received and one or more sensors if you like to see weather or energy sensors in motion</li>
+  <li>Install the packages needed for your LamPI environment. Probably doing this by downloading the ~/PI-install file and use this file to install LamPI further</li>
+  <li>Setp your MySQL database (if not already done)</li>
+</ul>
+<h2>1. Configure the backend_cfg.php file</h2>
+<p>The ~/config/backend_cfg.php file contains the settings for the network communication, contains database data (including password) and some othe rconfiguration settings. You probably have to configure the network setting as these differ for every home situation.</p>
+<h2>2. Configure the database.cfg file</h2>
 <p>Most of the configuration of LamPI can be done from the user interface application. This includes making/deleting of rooms, scenes and timers. Also, assigning devices to rooms, with the correct type and address is cometihing that can be done from the user interface. Should for whatever reason the LamPI configuration not work as expected or desired than it's good to know that there is a main configuration file for the LamPI operation that is read upon startup and that would contain the correct information.</p>
-<p>database.cfg</p>
-<p>&gt; cd ~/www/config&gt;<br>
-  &gt; vi database.cfg
-</p>
+<p>As shipped, your LamPI system contains the standard database.cfg file, which is mine and probably not useful for others. Therefore edit the ~/www/config/database.cfg file</p>
+<p><code><em><strong>vi ~/www/config/database.cfg</strong></em></code></p>
 <p>The database.cfg file contains a readable jSon description of the LamPI configuration. It is possible to change database.cfg with a simple text editor (and unfortunately for some complex settings you must) and its content is used to initialize the MySQL database which is queried upon program setup. In the &quot;Config&quot; menu of the application you can set several parameters and you can make backups and do restores from xxxxxx.cfg files in the ~/www/config directory.</p>
 <p>This way, you can make a backup of YOUR database.cfg file and do restores as well if you messed up for whatever reason.</p>
-<h2>Loading a configuration file</h2>
+<h2>3. Start the daemon</h2>
+<p>Wthou the daemon running, LamPI will not have a database and will not run correctly. Start the ~/daemon/LamPI-daemon.php with the following command:</p>
+<p><code><em><strong>cd  ~/scripts; ./PI-run -i</strong></em></code></p>
+<p>Check whether LamPI will start correctly now and read the database. At anytime you can see the output of the LamPI-daemon.php process by inspecting the log-file. A good way to do this is with the following command:</p>
+<p><code><em><strong>tail -f ~/log/LamPI-daemon.log</strong></em></code></p>
+<h2>&nbsp;</h2>
+<h2>4. Loading a new configuration file</h2>
+<p>If you mess up or add new devices to your system, then it is of-course possible to add devices to the system with the GUI. But if you made a regular backup of your database.cfg file, it is easier to just restore the system should for whatever reason your database fail.</p>
 <p>You can load a configuration file on more than one way:</p>
 <ol>
   <li>Use the GUI, go to the &quot;Config&quot; menu and select the &quot;Backup&quot; button. In the backup/restore screen do a restore of the &quot;database.cfg&quot; file or another file where you saved your active configuration</li>
