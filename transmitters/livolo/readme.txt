@@ -2,7 +2,7 @@ This is a library to control Livolo branded wireless switches.
 
 Features:
 
-- emulates buttons 1 to 0 and ALL OFF of Livolo remote controller
+- emulates buttons 1 to 10 and ALL OFF of Livolo remote controller
 
 Usage:
 
